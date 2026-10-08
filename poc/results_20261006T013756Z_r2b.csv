@@ -1,0 +1,34 @@
+n,rule,gt_disp,gt_urg,label_confidence,status,jev_disp,jev_disp_raw,disp_conf,jev_urg,urg_score,urg_conf,escalate,admin,mismatch,tactic,policy,latency_ms,tokens
+1,BOTS - Excessive Failed Logins,true_positive,low,高,ok,true_positive,true_positive,0.99,low,0.0,1.0,0.11,0.12,0.14,initial_access,,273,1195
+2,BOTS - Excessive Failed Logins,true_positive,low,高,ok,true_positive,true_positive,1.0,low,0.01,0.99,0.12,0.08,0.13,initial_access,,308,1202
+3,BOTS - SSH Brute Force Detected,true_positive,low,高,ok,true_positive,true_positive,1.0,low,0.01,0.99,0.13,0.05,0.1,initial_access,,266,1185
+4,BOTS - SSH Brute Force Detected,true_positive,low,高,ok,true_positive,true_positive,1.0,low,0.01,0.99,0.14,0.04,0.1,initial_access,,326,1205
+5,BOTS - Unexpected Source Firewall Blocks,undetermined,medium,低,ok,true_positive,true_positive,0.98,medium,1.18,0.66,0.56,0.07,0.21,exfiltration,,259,1295
+6,BOTS - AWS EC2 Instance Created,true_positive,critical,高,ok,undetermined,benign,0.28,critical,2.98,0.98,0.68,0.41,0.24,impact,low confidence 0.28 / order check disagreed (true_positive),268,1232
+7,24 hour risk threshold exceeded for system=5.101.40.81,true_positive,low,高,ok,true_positive,true_positive,1.0,low,0.1,0.9,0.18,0.07,0.13,initial_access,,284,1230
+8,24 hour risk threshold exceeded for system=167.114.13.150,true_positive,low,高,ok,true_positive,true_positive,1.0,low,0.11,0.89,0.16,0.07,0.12,initial_access,,339,1236
+9,BOTS - Suspicious PowerShell Execution,true_positive,high,中,ok,undetermined,true_positive,0.32,medium,1.04,0.96,0.18,0.28,0.22,execution,low confidence 0.32,281,1171
+10,BOTS - Suspicious PowerShell Execution,undetermined,low,低,ok,undetermined,benign,0.37,medium,1.01,0.98,0.16,0.31,0.24,execution,low confidence 0.37,381,1163
+11,BOTS - Suspicious PowerShell Execution,undetermined,low,低,ok,undetermined,benign,0.43,medium,1.03,0.97,0.17,0.35,0.23,execution,low confidence 0.43,334,1165
+12,BOTS - Suspicious PowerShell Execution,undetermined,low,低,ok,undetermined,benign,0.47,medium,1.02,0.98,0.17,0.34,0.23,execution,low confidence 0.47,271,1169
+13,BOTS - Watchlist Service Account AWS Activity,true_positive,critical,高,ok,undetermined,benign,0.25,high,2.37,0.62,0.66,0.59,0.27,discovery,low confidence 0.25 / order check disagreed (true_positive),265,1226
+14,BOTS - Watchlist Service Account AWS Activity,benign,low,高,ok,benign,benign,0.96,low,0.39,0.61,0.27,0.82,0.39,discovery,,320,1244
+15,BOTS - Risk Threshold Exceeded,true_positive,high,高,ok,undetermined,true_positive,0.53,high,2.0,1.0,0.66,0.4,0.18,impact,low confidence 0.53,372,1228
+16,BOTS - Risk Threshold Exceeded,true_positive,low,高,ok,true_positive,true_positive,1.0,low,0.11,0.89,0.25,0.05,0.11,initial_access,,274,1252
+17,BOTS - Risk Threshold Exceeded,true_positive,low,高,ok,true_positive,true_positive,1.0,low,0.13,0.87,0.24,0.05,0.11,initial_access,,366,1258
+18,24 hour risk threshold exceeded for user=web_admin,true_positive,high,高,ok,undetermined,true_positive,0.41,high,1.98,0.98,0.45,0.46,0.2,impact,low confidence 0.41,347,1207
+19,Excessive Failed Logins,true_positive,low,高,ok,true_positive,true_positive,0.99,low,0.01,0.99,0.13,0.11,0.13,initial_access,,303,1197
+20,Excessive Failed Logins,true_positive,low,高,ok,true_positive,true_positive,1.0,low,0.01,0.99,0.12,0.09,0.12,initial_access,,352,1204
+21,Network Change Detected On ec2.amazonaws.com,undetermined,low,低,ok,benign,benign,0.86,medium,1.0,1.0,0.14,0.76,0.19,none,,262,1174
+22,Network Change Detected On ec2.amazonaws.com,true_positive,medium,中,ok,benign,benign,0.74,medium,1.0,1.0,0.15,0.65,0.26,none,,273,1165
+23,Network Change Detected On ec2.amazonaws.com,undetermined,medium,低,ok,benign,benign,0.89,medium,1.0,1.0,0.18,0.71,0.15,initial_access,,259,1169
+24,Network Change Detected On ec2.amazonaws.com,undetermined,low,低,ok,benign,benign,0.96,medium,1.0,1.0,0.14,0.75,0.16,none,,347,1168
+25,24 hour risk threshold exceeded for system=ec2.amazonaws.com,true_positive,medium,中,ok,undetermined,benign,0.38,medium,1.09,0.91,0.26,0.47,0.2,none,low confidence 0.38,262,1190
+26,24 hour risk threshold exceeded for system=5.101.40.81,true_positive,low,高,ok,true_positive,true_positive,1.0,low,0.12,0.88,0.18,0.07,0.14,initial_access,,300,1243
+27,24 hour risk threshold exceeded for system=167.114.13.150,true_positive,low,高,ok,true_positive,true_positive,1.0,low,0.16,0.84,0.19,0.08,0.14,initial_access,,346,1249
+28,Finding Group Template - Entity Exceeded Risk Threshold,true_positive,low,高,ok,true_positive,true_positive,1.0,low,0.61,0.39,0.26,0.06,0.14,initial_access,,395,1241
+29,Finding Group Template - Entity Exceeded Risk Threshold,true_positive,high,高,ok,true_positive,true_positive,0.8,high,2.0,1.0,0.65,0.32,0.19,impact,,364,1215
+30,Finding Group Template - Entity Exceeded Risk Threshold,true_positive,medium,中,ok,true_positive,true_positive,0.72,high,1.92,0.91,0.46,0.27,0.19,none,,265,1196
+31,Finding Group Template - Entity Exceeded Risk Threshold,true_positive,low,高,ok,true_positive,true_positive,1.0,low,0.65,0.35,0.26,0.05,0.14,initial_access,,279,1238
+32,Default Account Activity Detected,false_positive,low,中,ok,undetermined,benign,0.36,medium,0.77,0.58,0.15,0.39,0.38,none,low confidence 0.36,313,1172
+33,BOTS - Risk Threshold Exceeded,true_positive,medium,中,ok,undetermined,benign,0.13,medium,1.23,0.76,0.39,0.4,0.22,none,low confidence 0.13 / order check disagreed (true_positive),264,1197

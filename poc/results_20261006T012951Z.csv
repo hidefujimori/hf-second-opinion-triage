@@ -1,0 +1,4 @@
+n,rule,gt_disp,gt_urg,label_confidence,status,jev_disp,jev_disp_raw,disp_conf,jev_urg,urg_score,urg_conf,escalate,admin,mismatch,tactic,policy,latency_ms,tokens
+1,BOTS - Excessive Failed Logins,true_positive,low,高,ok,true_positive,true_positive,0.98,medium,0.83,0.83,0.11,0.11,0.14,initial_access,,334,1053
+6,BOTS - AWS EC2 Instance Created,true_positive,critical,高,ok,undetermined,benign,0.12,high,1.93,0.47,0.66,0.4,0.23,impact,low confidence 0.12,268,1090
+14,BOTS - Watchlist Service Account AWS Activity,benign,low,高,ok,benign,benign,0.97,medium,1.3,0.53,0.27,0.82,0.38,discovery,,268,1102

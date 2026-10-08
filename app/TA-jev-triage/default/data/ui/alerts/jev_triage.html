@@ -1,0 +1,58 @@
+<form class="form-horizontal form-complex">
+  <p>Sends the finding(s) to TypeSafe Jev and stores the suggested disposition and urgency in the Jev Triage app. ES fields are not changed.</p>
+  <div class="control-group">
+    <label class="control-label" for="jev_write_note">Write ES Note</label>
+    <div class="controls">
+      <select id="jev_write_note" name="action.jev_triage.param.write_note">
+        <option value="0">No</option>
+        <option value="1">Yes</option>
+      </select>
+      <span class="help-block">Adds the suggestion as a Note on the finding (needs mc_investigation_write).</span>
+    </div>
+  </div>
+  <div class="control-group">
+    <label class="control-label" for="jev_note_language">Note language</label>
+    <div class="controls">
+      <select id="jev_note_language" name="action.jev_triage.param.note_language">
+        <option value="">App default</option>
+        <option value="en">English</option>
+        <option value="ja">日本語</option>
+      </select>
+    </div>
+  </div>
+  <div class="control-group">
+    <label class="control-label" for="jev_auto_explain">Explain with LLM</label>
+    <div class="controls">
+      <select id="jev_auto_explain" name="action.jev_triage.param.auto_explain">
+        <option value="0">No</option>
+        <option value="1">Yes</option>
+      </select>
+      <span class="help-block">Also ask the LLM to explain the suggestion (uses LLM tokens). From detections, at most the daily limit set on the Setup page.</span>
+    </div>
+  </div>
+  <div class="control-group">
+    <label class="control-label" for="jev_explain_min_urgency">Explain only urgency at least</label>
+    <div class="controls">
+      <select id="jev_explain_min_urgency" name="action.jev_triage.param.explain_min_urgency">
+        <option value="critical">Critical</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low (all)</option>
+      </select>
+    </div>
+  </div>
+  <div class="control-group">
+    <label class="control-label" for="jev_explain_dispositions">Explain only dispositions</label>
+    <div class="controls">
+      <input type="text" id="jev_explain_dispositions" name="action.jev_triage.param.explain_dispositions"/>
+      <span class="help-block">Comma-separated: TP, FP, Benign, Undetermined. Empty = all.</span>
+    </div>
+  </div>
+  <div class="control-group">
+    <label class="control-label" for="jev_wait_seconds">Wait for findings (s)</label>
+    <div class="controls">
+      <input type="text" id="jev_wait_seconds" name="action.jev_triage.param.wait_seconds" value="300"/>
+      <span class="help-block">Used when run from a detection: how long the queue waits for the findings of that run before giving up.</span>
+    </div>
+  </div>
+</form>

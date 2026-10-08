@@ -1,0 +1,6 @@
+<nav search_view="search" color="#3C444D">
+  <view name="jev_triage" default="true" />
+  <view name="jev_setup" />
+  <view name="search" />
+  <a href="https://docs.typesafe.ai/introduction">Jev docs</a>
+</nav>

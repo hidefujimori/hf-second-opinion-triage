@@ -1,0 +1,86 @@
+{
+  "version": "q-2026-10-06-r2a",
+  "questions": {
+    "disposition": {
+      "type": "choice",
+      "instructions": "What is the most likely disposition of this security alert?",
+      "criteria": {
+        "true_positive": "Real malicious or unauthorized activity, including attack attempts that did not succeed",
+        "false_positive": "The alert fired on activity that does not match what the rule is meant to detect, or on wrong or misclassified data",
+        "benign": "The activity matches the rule but is expected and authorized, such as admin work, approved scanning, or a monitoring or data collection account",
+        "undetermined": "The fields in the alert are not enough to tell which of the other dispositions applies"
+      }
+    },
+    "urgency": {
+      "type": "score",
+      "instructions": "How urgently must a SOC analyst act on this alert?",
+      "criteria": [
+        {
+          "what": "Low: attack attempts that failed or were blocked, or noisy activity with no sign of success",
+          "examples": [
+            "SSH or login brute force from the internet with no successful login",
+            "Traffic blocked by a firewall",
+            "Read-only activity by a monitoring account"
+          ]
+        },
+        {
+          "what": "Medium: unexplained or unauthorized change or activity that needs checking today, with no sign of compromise yet",
+          "examples": [
+            "A cloud network or security group change with unknown actor",
+            "An internal host not in the asset inventory generating unusual traffic",
+            "Script execution on a workstation with no details"
+          ]
+        },
+        {
+          "what": "High: likely compromise of an account or host, or a privileged or watchlisted account behaving unusually",
+          "examples": [
+            "Successful login after brute force",
+            "A watchlisted service account making changes",
+            "Several detections on the same user or host"
+          ]
+        },
+        {
+          "what": "Critical: active compromise with impact in progress",
+          "examples": [
+            "Mass creation of cloud instances across many regions",
+            "Deleting access keys or logs",
+            "Data theft or destruction under way"
+          ]
+        }
+      ]
+    },
+    "requires_escalation": {
+      "type": "noul",
+      "instructions": "This alert should be escalated to a senior analyst immediately.",
+      "criteria": {
+        "true": "Signs of successful compromise, misuse of a privileged or cloud account, or spread to more systems",
+        "false": "No sign that the activity succeeded or spread"
+      }
+    },
+    "expected_admin_activity": {
+      "type": "noul",
+      "instructions": "The activity in this alert is expected work by an administrator, a service account, or a monitoring tool."
+    },
+    "detection_logic_mismatch": {
+      "type": "noul",
+      "instructions": "The alert fired on activity or data that does not match what the detection rule is meant to find."
+    },
+    "attack_tactic": {
+      "type": "choice",
+      "instructions": "Which attack tactic best matches the activity in this alert?",
+      "criteria": {
+        "none": "No attack activity",
+        "initial_access": "Getting into the environment, such as brute forcing logins from the internet",
+        "execution": "Running code or scripts on a host",
+        "persistence": "Keeping access, such as creating accounts or keys",
+        "privilege_escalation": "Gaining higher privileges",
+        "credential_access": "Stealing or guessing credentials",
+        "defense_evasion": "Hiding activity, such as deleting logs or keys",
+        "discovery": "Exploring the environment, such as listing resources",
+        "lateral_movement": "Moving to other hosts",
+        "exfiltration": "Taking data out",
+        "impact": "Abusing or damaging resources, such as launching instances for crypto mining"
+      }
+    }
+  }
+}

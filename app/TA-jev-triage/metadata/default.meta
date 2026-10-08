@@ -1,0 +1,19 @@
+# Enterprise Security imports apps named TA-* and requires them to export their objects to system
+# (Health Check: "previously imported ... not exporting configurations globally").
+[]
+access = read : [ * ], write : [ admin, sc_admin ]
+export = system
+
+# Pages stay inside this app (they are not useful in other apps' menus).
+[views]
+export = none
+
+[nav]
+export = none
+
+# Analysts write results (Explain / Note / Re-run) and usage counters through the commands
+[collections/jev_triage_latest]
+access = read : [ * ], write : [ admin, sc_admin, ess_admin, ess_analyst, jev_triage_user ]
+
+[collections/jev_usage]
+access = read : [ * ], write : [ admin, sc_admin, ess_admin, ess_analyst, jev_triage_user ]

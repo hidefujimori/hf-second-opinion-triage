@@ -1,0 +1,18 @@
+# secrets
+.env
+*.env
+local/
+*.pem
+# OS / editor
+.DS_Store
+# build and release outputs
+*.spl
+node_modules/
+__pycache__/
+*.pyc
+*.LICENSE.txt
+# old / generated
+app/_old_classic_ui/
+app/appinspect_cloud_*.json
+app/tests/cache.json
+app/tests/pending.json

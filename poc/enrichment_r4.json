@@ -1,0 +1,69 @@
+{
+  "_source": "Collected 2026-10-06 via Splunk MCP from the test environment (identity_lookup_expanded, asset_lookup_by_str, aws:cloudtrail, Authentication data model, Windows process events) for the detection window. Facts are phrased in English for Jev.",
+  "entities": {
+    "web_admin": [
+      "identity: service account, IT department, on the watchlist, priority high",
+      "cloud API calls came from 4 different public IP addresses",
+      "one of those IPs launched instances in 15 regions using a generic Linux scripting client",
+      "the account also created a new IAM user and a new access key, and deleted an access key"
+    ],
+    "splunk_access": [
+      "identity: service account for cloud data collection, on the watchlist",
+      "all calls came from one fixed IP address with the usual collection client",
+      "calls are read-only (Describe, Get, List)"
+    ],
+    "bstoll": [
+      "identity: regular employee in the IT department, not a default, shared, or vendor account",
+      "this user's own workstation BSTOLL-L shows hidden, base64 encoded PowerShell launchers, a sign the workstation may be compromised"
+    ],
+    "5.101.40.81": [
+      "authentication outcome: every attempt failed or was blocked; no successful login from this source"
+    ],
+    "167.114.13.150": [
+      "authentication outcome: every attempt failed or was blocked; no successful login from this source"
+    ],
+    "192.168.9.50": [
+      "asset: not in the asset inventory",
+      "traffic outcome: every connection was blocked by the firewall; destinations include a public DNS resolver"
+    ],
+    "FYODOR-L.froth.ly": [
+      "asset: engineering workstation in the inventory",
+      "PowerShell command lines include hidden windows and base64 encoded commands, and code loaded from a registry value"
+    ],
+    "BSTOLL-L.froth.ly": [
+      "asset: not in the asset inventory",
+      "PowerShell command lines use a hidden, no-profile, base64 encoded launcher (-nop -sta -w 1 -enc)"
+    ],
+    "ABUNGST-L.froth.ly": [
+      "asset: not in the asset inventory",
+      "PowerShell command lines use a hidden, no-profile, base64 encoded launcher (-nop -sta -w 1 -enc)"
+    ],
+    "BGIST-L.froth.ly": [
+      "asset: not in the asset inventory",
+      "PowerShell command lines show no encoded or hidden commands"
+    ],
+    "ec2.amazonaws.com": [
+      "recent changes on this object came from two actors: web_admin (CreateDefaultVpc in 15 regions from the IP that launched 576 instances) and bstoll (security group edits through the AWS web console)"
+    ],
+    "BudStoll": [
+      "identity: regular employee in the IT department (same person as AWS user bstoll)"
+    ]
+  },
+  "by_change": {
+    "CreateDefaultVpc": [
+      "actor: web_admin, from the same IP that launched 576 instances in 15 regions"
+    ],
+    "AuthorizeSecurityGroupIngress": [
+      "actor: bstoll (regular employee, IT) through the AWS web console",
+      "the actor's own workstation BSTOLL-L shows hidden, base64 encoded PowerShell launchers, a sign the workstation may be compromised"
+    ],
+    "RevokeSecurityGroupIngress": [
+      "actor: bstoll (regular employee, IT) through the AWS web console",
+      "the actor's own workstation BSTOLL-L shows hidden, base64 encoded PowerShell launchers, a sign the workstation may be compromised"
+    ],
+    "UpdateSecurityGroupRuleDescriptionsIngress": [
+      "actor: bstoll (regular employee, IT) through the AWS web console",
+      "the actor's own workstation BSTOLL-L shows hidden, base64 encoded PowerShell launchers, a sign the workstation may be compromised"
+    ]
+  }
+}
