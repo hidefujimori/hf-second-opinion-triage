@@ -13,6 +13,7 @@ import Message from '@splunk/react-ui/Message';
 import { rest, search, APP } from '../../common/api';
 import { useLang, ensureLocale } from '../../common/i18n';
 import { injectCss } from '../../common/styles';
+import { collect, download } from './support';
 import LangSwitch from '../../common/LangSwitch';
 
 const REALM = APP;
@@ -23,6 +24,8 @@ const L = {
     save: 'Save', test: 'Test connection', testHint: 'Uses the saved settings (save first). Sends one tiny request to Jev and to the LLM.',
     saving: 'Saving…', saved: 'Saved. Changes apply to the next search; no restart needed.', saveFail: 'Save failed: ',
     testing: 'Testing…', bothOk: 'Both connections work.', seeTable: 'See the table for what is missing or failing.', testFail: 'Test failed: ',
+    supTitle: 'Support', supDesc: 'Makes a diagnostics file to send with a question or problem report: versions, settings, a connection test, recent errors, response-action results and app logs of the last 24 hours. API keys are never included, and the hosts of the endpoint and proxy are hidden. Anyone who can open this page can make it (beta).',
+    supBtn: 'Make diagnostics file', supBusy: 'Collecting… ', supDone: 'Saved as a download. Items collected: ', supMissing: ' Not collected (no permission or no data): ',
     check: 'Check: ', proxyPw: 'Proxy URL must not contain user:password@', unsaved: 'Not saved yet. Click Save, then Test connection.', testUnsaved: 'Save first: Test connection uses the saved settings.', badUrl: ' must start with http:// or https://', urlEx: ' (e.g. http://<host>:11434/v1)', noCap: 'Your role cannot save keys (needs edit_storage_passwords or admin_all_objects). You can view settings.',
     loadFail: 'Could not load settings: ', aclFail: 'Could not share these keys with the jev_triage_user role: ', none: '(none)', cols: ['Target', 'Key', 'Model', 'Status', 'Detail', 'ms'],
     sections: {
@@ -59,6 +62,8 @@ const L = {
     save: '保存', test: '接続テスト', testHint: '保存済みの設定を使います（先に保存してください）。Jev と LLM にそれぞれ小さな要求を1回送ります。',
     saving: '保存中…', saved: '保存しました。次の検索から反映されます（再起動は不要）。', saveFail: '保存に失敗しました: ',
     testing: 'テスト中…', bothOk: 'Jev と LLM の両方に接続できました。', seeTable: '未設定・失敗の内容は表を確認してください。', testFail: 'テストに失敗しました: ',
+    supTitle: 'サポート', supDesc: '問い合わせや不具合の報告に添える診断ファイルを作ります。内容は版、設定、接続テスト、最近のエラー、レスポンスアクションの結果、直近24時間のアプリのログです。API キーは含みません。エンドポイントとプロキシのホスト名は伏せます。このページを開ける人なら誰でも作れます（β版の間）。',
+    supBtn: '診断ファイルを作成', supBusy: '収集中… ', supDone: 'ダウンロードとして保存しました。取得した項目: ', supMissing: ' 取得できなかった項目（権限がない・データがない）: ',
     check: '確認してください: ', proxyPw: 'プロキシの URL に user:password@ を含めないでください', unsaved: '変更はまだ保存されていません。保存してから接続テストを行ってください。', testUnsaved: '先に保存してください（接続テストは保存済みの設定を使います）。', badUrl: ' は http:// または https:// で始めてください', urlEx: '（例: http://<ホスト>:11434/v1）', noCap: 'このロールではキーを保存できません（edit_storage_passwords または admin_all_objects が必要）。設定の表示はできます。',
     loadFail: '設定を読み込めませんでした: ', aclFail: '次のキーを jev_triage_user ロールに共有できませんでした: ', none: '（なし）', cols: ['対象', 'キー', 'モデル', '状態', '詳細', 'ms'],
     sections: {
@@ -134,7 +139,8 @@ function SetupPage({ theme }) {
   const [busy, setBusy] = useState(false);
   const [canSave, setCanSave] = useState(true);
   const [savedVals, setSavedVals] = useState(null);   // JSON of vals as last loaded / saved
-  const [usage, setUsage] = useState(null);   // { date, jev_auto, jev_manual, llm_auto, llm_manual }
+  const [usage, setUsage] = useState(null);
+  const [sup, setSup] = useState(null);   // { busy, text, type }   // { date, jev_auto, jev_manual, llm_auto, llm_manual }
 
   const loadUsage = () => rest('storage/collections/data/jev_usage', { params: { sort: 'date:-1', limit: 20 } })
     .then((docs) => {
@@ -242,6 +248,16 @@ function SetupPage({ theme }) {
     } finally { setBusy(false); }
   };
 
+  const makeSupport = async () => {
+    setSup({ busy: true, text: T.supBusy, type: 'info' });
+    try {
+      const { bundle, steps } = await collect({ hours: 24, onStep: (n) => setSup({ busy: true, text: T.supBusy + n, type: 'info' }) });
+      download(bundle);
+      const okN = steps.filter((s) => s.ok).length; const miss = steps.filter((s) => !s.ok).map((s) => s.name);
+      setSup({ busy: false, type: miss.length ? 'warning' : 'success', text: `${T.supDone}${okN}/${steps.length}.${miss.length ? T.supMissing + miss.join(', ') : ''}` });
+    } catch (e) { setSup({ busy: false, type: 'error', text: String(e.message || e) }); }
+  };
+
   const test = async () => {
     if (dirty) { setMsg({ type: 'warning', text: T.testUnsaved }); return; }
     setBusy(true); setCheck(null); setMsg({ type: 'info', text: T.testing });
@@ -305,6 +321,12 @@ function SetupPage({ theme }) {
           <tbody>{check.map((r) => (
             <tr key={r.target}>{[r.target === 'jev' ? 'Jev' : 'LLM', r.key_set, r.model, r.status, r.detail, r.latency_ms || ''].map((v, i) => <td key={i}>{v}</td>)}</tr>))}
           </tbody></table>)}
+      <h2 style={{ marginTop: 32 }}>{T.supTitle}</h2>
+      <div className="hint">{T.supDesc}</div>
+      <div className="jev-actions" style={{ margin: '10px 0' }}>
+        <Button label={T.supBtn} onClick={makeSupport} disabled={!!(sup && sup.busy)} />
+      </div>
+      {sup && <Message type={sup.type}>{sup.text}</Message>}
     </div>
   );
 }

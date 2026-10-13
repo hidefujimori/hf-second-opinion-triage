@@ -62,9 +62,14 @@ Examples:
 
 ## Troubleshooting
 
+When you ask for help, attach the diagnostics file: **Setup > Support > Make diagnostics file**. It holds
+versions, settings, a connection test, recent errors and the app logs of the last 24 hours. It never
+contains API keys, and the endpoint and proxy hosts are hidden.
+
 | Symptom | Check |
 |---|---|
 | Test connection fails | Network / proxy to `api.typesafe.ai` or the LLM; key stored (Setup shows *stored*) |
+| Explanation fails with `The read operation timed out` | The LLM did not answer within Timeout (busy server, thinking model, model loading). The app tries once more; then raise Timeout or try later |
 | Explanation fails with `unknown url type` or `endpoint must start with http://` | Endpoint is missing `http://` (and the port / `/v1`), e.g. `http://<host>:11434/v1` |
 | Explanation fails with `empty answer … thinking` | A thinking model used up Max tokens: set Thinking level (`none`, or `low` for gpt-oss) or raise Max tokens |
 | Analysts get "API key not found" | Give them the `jev_triage_user` role, then click **Save** on Setup once |

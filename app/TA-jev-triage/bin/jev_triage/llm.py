@@ -174,5 +174,7 @@ def complete(cfg, system, user, retries=2):
             if any(c in str(e) for c in ("HTTP 429", "HTTP 500", "HTTP 502", "HTTP 503", "HTTP 529")) and attempt < retries:
                 time.sleep(2 ** attempt)
                 continue
+            if "timed out" in str(e).lower() and attempt == 0:   # a busy server: try once more
+                continue
             raise
     raise last
