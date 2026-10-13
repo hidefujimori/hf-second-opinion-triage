@@ -1,11 +1,11 @@
-# TA-jev-triage 0.9.5 (prototype)
+# TA-jev-triage 0.9.7 (prototype)
 
 Triage Splunk Enterprise Security 8.7+ findings with TypeSafe Jev. Jev suggests a disposition
 (TP / FP / Benign / Undetermined) and an urgency (low / medium / high / critical). Analysts make
 the final decision in ES; this app does not change ES fields.
 
 ## Install (test environment)
-1. Apps > Manage Apps > Install app from file > `TA-jev-triage-0.9.5.spl`, then restart Splunk.
+1. Apps > Manage Apps > Install app from file > `TA-jev-triage-0.9.7.spl`, then restart Splunk.
 2. Open the app. The first time, it opens **Setup** (also in the app menu and in Manage Apps > Set up).
    Enter the Jev API key, the LLM provider, model and key, and where your CloudTrail and endpoint data
    are; Save; then **Test connection**. Keys go to storage/passwords (realm TA-jev-triage) and are
@@ -175,6 +175,13 @@ LLM explanations cost tokens, so automatic use is limited. Setup page > "Limits 
 - An empty answer is an error ("empty answer … set thinking_level …") instead of an empty `ok`;
   `<think>` blocks are removed.
 - 0.9.5: help text and error message say `low` for gpt-oss (0.9.4 said `none`).
+- 0.9.6: the endpoint and proxy must start with http:// or https:// (Setup refuses to save otherwise;
+  the LLM call reports it clearly). Setup shows "Not saved yet. Click Save, then Test connection."
+  above the buttons (kept in view while scrolling) when something changed, Test connection waits until
+  you save, and the browser asks before leaving the page with unsaved changes.
+- 0.9.7: response action with "Write ES Note" + "Explain with LLM" and Note language "App default": the
+  explanation is written in the Note language ([es_note] language) instead of [llm] language, so a
+  Japanese Note no longer carries an English explanation.
 
 ## UI (0.8.0)
 - The Jev Triage page and the Setup page are React pages built with Splunk UI Toolkit

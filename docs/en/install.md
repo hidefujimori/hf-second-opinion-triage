@@ -44,7 +44,8 @@ Open the app. The first time it opens **Setup**; later use the menu **Setup**.
 | Limits for automatic runs | Daily limits for automatic Jev triage and automatic LLM explanations (see the [User guide](user-guide.md#limits-for-automatic-runs)) |
 
 Click **Save**, then **Test connection**: the table must show `ok` for Jev (and for the LLM if
-you set one). Settings apply to the next search; no restart is needed.
+you set one). Settings apply to the next search; no restart is needed. While there are unsaved
+changes the page says *Not saved yet* above the buttons, and Test connection waits until you save.
 
 > If you use Google's free Gemini tier, Google may use the prompts to improve its products. Use
 > it only with test data.
@@ -59,6 +60,8 @@ the API key can stay empty.
 | Ollama | `http://<host>:11434/v1` | e.g. `gemma4:26b`, `gpt-oss:20b`, `qwen2.5:14b-instruct` | `none` for gemma4 / qwen3, `low` for gpt-oss, empty for models that do not think |
 | Apple Foundation Models (macOS 27, `fm serve --host 0.0.0.0 --port 1976`) | `http://<mac>:1976/v1` | `system` | empty |
 
+- Write the endpoint with `http://` and the port, ending in `/v1` (not just the host name; Setup
+  refuses an endpoint without `http://` or `https://`).
 - The Splunk search head must reach the server. Ollama listens only on localhost unless
   `OLLAMA_HOST=0.0.0.0` is set; `fm serve` needs `--host 0.0.0.0`.
 - Thinking models can spend all of **Max tokens** on thinking and return nothing. The app then

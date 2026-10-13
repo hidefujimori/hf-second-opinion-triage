@@ -14,7 +14,13 @@ class LLMError(Exception):
     pass
 
 
+def _check_url(url, what="endpoint"):
+    if not url.lower().startswith(("http://", "https://")):
+        raise LLMError("%s must start with http:// or https:// (e.g. http://<host>:11434/v1), got %r" % (what, url))
+
+
 def _post(url, body, headers, timeout, proxy=None):
+    _check_url(url)
     handlers = [urllib.request.HTTPSHandler(context=ssl.create_default_context())]
     if proxy:
         handlers.append(urllib.request.ProxyHandler({"https": proxy}))

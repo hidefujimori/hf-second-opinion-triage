@@ -11,7 +11,8 @@
 - Splunk Enterprise Security **8.7.1 以降**（検証済み: Splunk Enterprise 10.4.2 ＋ ES 8.7.1）
 - **TypeSafe Jev の API キー**（https://docs.typesafe.ai）
 - 検索ヘッドから `api.typesafe.ai` への外向き HTTPS 通信
-- 任意: 口語の説明を作る LLM（Anthropic、Amazon Bedrock、OpenAI 互換、Google Gemini）とその API キー
+- 任意: 口語の説明を作る LLM（Anthropic、Amazon Bedrock、OpenAI 互換、Google Gemini）とその API キー。
+  社内ネットワークのローカル LLM（Ollama、Mac の Apple Foundation Models）も使えます（[任意: ローカルの LLM](#任意-ローカルの-llm)）
 - 管理者アカウント（Splunk Cloud では `sc_admin`）
 
 ## 1. アプリを入れる
@@ -26,11 +27,61 @@
 
 1. **TypeSafe Jev > Jev の API キー** にキーを貼り付けます。
 2. **LLM による説明**（任意）: **プロバイダ**を選び、**モデル**と **API キー**を入れます。
+   ローカルの LLM は[任意: ローカルの LLM](#任意-ローカルの-llm)を参照してください。
 3. **Enrichment（情報収集）**: **CloudTrail のデータ**と**エンドポイントのプロセスデータ**を実際の index に
    向けます（例: `index=aws sourcetype=aws:cloudtrail`）。既定の `index=*` でも動きますが遅くなります。
-4. **保存**を押し、**接続テスト**を押します。両方の行が `ok` になれば完了です。
+4. **保存**を押し、**接続テスト**を押します。両方の行が `ok` になれば完了です。保存するまでは、ボタンの上に
+   「変更はまだ保存されていません」と表示されます。
 
 キーは Splunk の暗号化された資格情報ストアに保存され、保存後は表示されません。
+
+### 任意: ローカルの LLM
+
+説明を社内ネットワーク内のモデルで作れば、プロンプトは外に出ません。下のサーバーはどれも OpenAI 互換の API なので、
+**プロバイダ**は `openai`、**API キー**は空欄にします。
+
+> **LLM を呼ぶのはブラウザではなく Splunk の検索ヘッドです。** エンドポイントに `localhost` と書くと Splunk サーバー
+> 自身を指します。自分の PC や Mac で動かしているモデル（Ollama、vLLM、LM Studio、`fm serve`）は、Splunk サーバーから
+> ネットワーク経由で届く場合だけ使えます。サーバーを localhost だけでなくネットワークで待ち受けるように起動し、
+> そのマシンの IP アドレスかホスト名を入れてください。アドレスが変わると設定が使えなくなるので、固定がおすすめです。
+> レスポンスアクションからの自動説明も同じ経路を使います。
+
+**Mac の Apple Foundation Models（`fm serve`）**
+
+1. Mac（macOS 27、Apple Intelligence がオン）で、他のマシンから届くようにサーバーを起動し、ターミナルは開いたままにします。
+   ```
+   fm serve --host 0.0.0.0 --port 1976
+   ```
+   macOS のファイアウォールがオンの場合は、`fm` への着信接続を許可してください。
+2. Splunk の検索ヘッドから確認します: `curl http://<MacのIP>:1976/v1/models` でモデル `system` が表示されれば OK です。
+3. Setup 画面で次のように設定します。
+
+   | 項目 | 値 |
+   |---|---|
+   | プロバイダ | `openai` |
+   | モデル | `system` |
+   | エンドポイント | `http://<MacのIP>:1976/v1`（`http://`、ポート、`/v1` まで書く） |
+   | Thinking level | 空欄（なし） |
+   | LLM の API キー | 空欄 |
+
+4. **保存**を押し、**接続テスト**を押します。
+
+Mac はスリープさせず、`fm serve` を動かしたままにしてください。IP アドレスは固定がおすすめです。`fm serve` には認証が
+ないため、ポートに届く人は誰でも使えます。ファイアウォールで制限してください。
+
+**Ollama**
+
+Ollama をネットワークで待ち受けるように起動し（`OLLAMA_HOST=0.0.0.0`）、プロバイダ `openai`、エンドポイント
+`http://<ホスト>:11434/v1`、モデルは Ollama に表示される名前（例: `gemma4:26b`）、Thinking level は `none`
+（`gpt-oss` は `low`）にします。
+
+**vLLM などの OpenAI 互換サーバー**
+
+エンドポイント `http://<ホスト>:<ポート>/v1`（vLLM の既定は 8000。localhost だけで待ち受けている場合は `--host 0.0.0.0` で起動）、モデルは提供している
+モデル名（vLLM: `curl http://<ホスト>:8000/v1/models` で確認）。思考するモデルで回答が空になる場合は、
+Thinking level（`reasoning_effort` として送信）を設定するか、最大トークン数を増やしてください。
+
+他のモデル、速度、トラブルシューティング: [導入ガイド > ローカルの LLM](install.md#ローカルの-llmollamaapple-foundation-models)
 
 ## 3. アナリストが使えるようにする
 

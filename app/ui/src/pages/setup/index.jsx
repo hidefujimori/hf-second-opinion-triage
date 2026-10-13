@@ -23,7 +23,7 @@ const L = {
     save: 'Save', test: 'Test connection', testHint: 'Uses the saved settings (save first). Sends one tiny request to Jev and to the LLM.',
     saving: 'Saving…', saved: 'Saved. Changes apply to the next search; no restart needed.', saveFail: 'Save failed: ',
     testing: 'Testing…', bothOk: 'Both connections work.', seeTable: 'See the table for what is missing or failing.', testFail: 'Test failed: ',
-    check: 'Check: ', proxyPw: 'Proxy URL must not contain user:password@', noCap: 'Your role cannot save keys (needs edit_storage_passwords or admin_all_objects). You can view settings.',
+    check: 'Check: ', proxyPw: 'Proxy URL must not contain user:password@', unsaved: 'Not saved yet. Click Save, then Test connection.', testUnsaved: 'Save first: Test connection uses the saved settings.', badUrl: ' must start with http:// or https://', urlEx: ' (e.g. http://<host>:11434/v1)', noCap: 'Your role cannot save keys (needs edit_storage_passwords or admin_all_objects). You can view settings.',
     loadFail: 'Could not load settings: ', aclFail: 'Could not share these keys with the jev_triage_user role: ', none: '(none)', cols: ['Target', 'Key', 'Model', 'Status', 'Detail', 'ms'],
     sections: {
       jev: ['TypeSafe Jev', 'Jev suggests the disposition and urgency. The Splunk search head must reach https://api.typesafe.ai. Keys can be read by admins and the role jev_triage_user (give that role to your analysts).'],
@@ -45,7 +45,7 @@ const L = {
       jev_endpoint: 'Endpoint process data|Macro jev_endpoint, e.g. index=wineventlog OR index=sysmon',
       llm_api_key: 'LLM API key', aws_access_key_id: 'AWS access key ID', aws_secret_access_key: 'AWS secret access key',
       provider: 'Provider|openai = any OpenAI-compatible endpoint; gemini = Google Gemini API (incl. Gemma 4)',
-      llm_model: 'Model|e.g. gemma-4-26b-a4b-it, or your provider\'s model id', endpoint: 'Endpoint|Optional base URL (OpenAI-compatible server, gateway)',
+      llm_model: 'Model|e.g. gemma-4-26b-a4b-it, or your provider\'s model id', endpoint: 'Endpoint|Optional base URL with http:// or https://. Ollama: http://<host>:11434/v1, Apple fm serve: http://<mac>:1976/v1',
       region: 'AWS region', thinking_level: 'Thinking level|gemini: Gemma 4 minimal makes answers ~1 s (empty for Gemini models). openai: sent as reasoning_effort; Ollama: gemma4 / qwen3 need none, gpt-oss needs low',
       max_tokens: 'Max tokens', llm_timeout: 'Timeout (seconds)', language: 'Default language', llm_proxy: 'HTTPS proxy|Do not put a password in this URL',
       note_language: 'Note language',
@@ -59,7 +59,7 @@ const L = {
     save: '保存', test: '接続テスト', testHint: '保存済みの設定を使います（先に保存してください）。Jev と LLM にそれぞれ小さな要求を1回送ります。',
     saving: '保存中…', saved: '保存しました。次の検索から反映されます（再起動は不要）。', saveFail: '保存に失敗しました: ',
     testing: 'テスト中…', bothOk: 'Jev と LLM の両方に接続できました。', seeTable: '未設定・失敗の内容は表を確認してください。', testFail: 'テストに失敗しました: ',
-    check: '確認してください: ', proxyPw: 'プロキシの URL に user:password@ を含めないでください', noCap: 'このロールではキーを保存できません（edit_storage_passwords または admin_all_objects が必要）。設定の表示はできます。',
+    check: '確認してください: ', proxyPw: 'プロキシの URL に user:password@ を含めないでください', unsaved: '変更はまだ保存されていません。保存してから接続テストを行ってください。', testUnsaved: '先に保存してください（接続テストは保存済みの設定を使います）。', badUrl: ' は http:// または https:// で始めてください', urlEx: '（例: http://<ホスト>:11434/v1）', noCap: 'このロールではキーを保存できません（edit_storage_passwords または admin_all_objects が必要）。設定の表示はできます。',
     loadFail: '設定を読み込めませんでした: ', aclFail: '次のキーを jev_triage_user ロールに共有できませんでした: ', none: '（なし）', cols: ['対象', 'キー', 'モデル', '状態', '詳細', 'ms'],
     sections: {
       jev: ['TypeSafe Jev', 'Jev が Disposition と Urgency を提案します。Splunk の検索ヘッドから https://api.typesafe.ai に接続できる必要があります。キーを読めるのは管理者と jev_triage_user ロールです（アナリストのロールにこのロールを追加してください）。'],
@@ -81,7 +81,7 @@ const L = {
       jev_endpoint: 'エンドポイントのプロセスデータ|マクロ jev_endpoint。例: index=wineventlog OR index=sysmon',
       llm_api_key: 'LLM の API キー', aws_access_key_id: 'AWS アクセスキー ID', aws_secret_access_key: 'AWS シークレットアクセスキー',
       provider: 'プロバイダ|openai = OpenAI 互換の任意のエンドポイント、gemini = Google Gemini API（Gemma 4 を含む）',
-      llm_model: 'モデル|例: gemma-4-26b-a4b-it、またはプロバイダのモデル ID', endpoint: 'エンドポイント|任意のベース URL（OpenAI 互換サーバー、ゲートウェイ）',
+      llm_model: 'モデル|例: gemma-4-26b-a4b-it、またはプロバイダのモデル ID', endpoint: 'エンドポイント|任意。http:// または https:// から書くベース URL。Ollama: http://<ホスト>:11434/v1、Apple fm serve: http://<Mac>:1976/v1',
       region: 'AWS リージョン', thinking_level: 'Thinking level|gemini: Gemma 4 は minimal で約1秒（Gemini モデルは空欄）。openai: reasoning_effort として送信。Ollama の gemma4・qwen3 は none、gpt-oss は low',
       max_tokens: '最大トークン数', llm_timeout: 'タイムアウト（秒）', language: '既定の言語', llm_proxy: 'HTTPS プロキシ|URL にパスワードを入れないでください',
       note_language: 'Note の言語',
@@ -107,7 +107,7 @@ const SECTIONS = [
   { id: 'llm', secrets: [{ name: 'llm_api_key', providers: ['anthropic', 'openai', 'gemini'] },
     { name: 'aws_access_key_id', providers: ['bedrock'] }, { name: 'aws_secret_access_key', providers: ['bedrock'] }], fields: [
     { id: 'provider', stanza: 'llm', key: 'provider', options: ['anthropic', 'openai', 'bedrock', 'gemini'] },
-    { id: 'llm_model', stanza: 'llm', key: 'model' }, { id: 'endpoint', stanza: 'llm', key: 'endpoint', providers: ['anthropic', 'openai', 'gemini'] },
+    { id: 'llm_model', stanza: 'llm', key: 'model' }, { id: 'endpoint', stanza: 'llm', key: 'endpoint', url: true, providers: ['anthropic', 'openai', 'gemini'] },
     { id: 'region', stanza: 'llm', key: 'region', providers: ['bedrock'] },
     { id: 'thinking_level', stanza: 'llm', key: 'thinking_level', options: ['', 'none', 'minimal', 'low'], providers: ['gemini', 'openai'] },
     { id: 'max_tokens', stanza: 'llm', key: 'max_tokens', num: [100, 4000] }, { id: 'llm_timeout', stanza: 'llm', key: 'timeout', num: [5, 300] },
@@ -133,6 +133,7 @@ function SetupPage({ theme }) {
   const [check, setCheck] = useState(null);
   const [busy, setBusy] = useState(false);
   const [canSave, setCanSave] = useState(true);
+  const [savedVals, setSavedVals] = useState(null);   // JSON of vals as last loaded / saved
   const [usage, setUsage] = useState(null);   // { date, jev_auto, jev_manual, llm_auto, llm_manual }
 
   const loadUsage = () => rest('storage/collections/data/jev_usage', { params: { sort: 'date:-1', limit: 20 } })
@@ -159,7 +160,7 @@ function SetupPage({ theme }) {
           v[f.id] = String(x);
         });
         [m1, m2].forEach((m) => { const e = entries(m)[0]; if (e) { v[e.name] = (e.content || {}).definition || ''; } });
-        setVals(v);
+        setVals(v); setSavedVals(JSON.stringify(v));
       }, (e) => setMsg({ type: 'error', text: T.loadFail + e.message }));
     loadSecrets().catch(() => {});
     loadUsage();
@@ -168,6 +169,15 @@ function SetupPage({ theme }) {
       setCanSave(caps.includes('admin_all_objects') || caps.includes('edit_storage_passwords'));
     }).catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const dirty = !!vals && (JSON.stringify(vals) !== savedVals
+    || Object.values(secrets).some((x) => x) || Object.values(removes).some((x) => x));
+  useEffect(() => {   // warn before leaving the page with unsaved changes
+    if (!dirty) { return undefined; }
+    const h = (e) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', h);
+    return () => window.removeEventListener('beforeunload', h);
+  }, [dirty]);
 
   if (!vals) {
     return <div className={`jev-root${theme === 'dark' ? ' dark' : ''}`}>{msg ? <Message type={msg.type}>{msg.text}</Message> : '…'}</div>;
@@ -182,6 +192,9 @@ function SetupPage({ theme }) {
       const v = (vals[f.id] || '').trim();
       if (f.num && v !== '') { const n = Number(v); if (Number.isNaN(n) || n < f.num[0] || n > f.num[1]) { bad.push(`${label(T, f.id).l} (${f.num[0]}–${f.num[1]})`); } }
       if (f.proxy && /\/\/[^/]*@/.test(v)) { bad.push(T.proxyPw); }
+      if ((f.url || f.proxy) && v !== '' && visible(f) && !/^https?:\/\/[^/\s]+/i.test(v)) {
+        bad.push(label(T, f.id).l + T.badUrl + (f.url ? T.urlEx : ''));
+      }
     });
     return bad;
   };
@@ -221,7 +234,7 @@ function SetupPage({ theme }) {
         } catch (e) { aclFailed.push(row.username); }
       }
       await rest(`/apps/local/${APP}`, { method: 'POST', params: { configured: '1' } });
-      setSecrets({}); setRemoves({});
+      setSecrets({}); setRemoves({}); setSavedVals(JSON.stringify(vals));
       await loadSecrets();
       setMsg(aclFailed.length ? { type: 'warning', text: `${T.saved} ${T.aclFail}${aclFailed.join(', ')}` } : { type: 'success', text: T.saved });
     } catch (e) {
@@ -230,6 +243,7 @@ function SetupPage({ theme }) {
   };
 
   const test = async () => {
+    if (dirty) { setMsg({ type: 'warning', text: T.testUnsaved }); return; }
     setBusy(true); setCheck(null); setMsg({ type: 'info', text: T.testing });
     try {
       const rows = await search('| jevcheck target=all');
@@ -277,10 +291,13 @@ function SetupPage({ theme }) {
               </ControlGroup>);
           })}
         </div>))}
-      <div className="jev-actions" style={{ margin: '22px 0 10px' }}>
+      <div style={dirty ? { position: 'sticky', bottom: 0, zIndex: 5, background: 'var(--bg)', borderTop: '1px solid var(--line)', padding: '10px 0 4px' } : undefined}>
+      {dirty && <Message type="warning">{T.unsaved}</Message>}
+      <div className="jev-actions" style={{ margin: dirty ? '8px 0 6px' : '22px 0 10px' }}>
         <Button appearance="primary" label={T.save} onClick={save} disabled={busy} />
         <Button label={T.test} onClick={test} disabled={busy} />
         <span className="hint" style={{ margin: 0 }}>{T.testHint}</span>
+      </div>
       </div>
       {msg && <Message type={msg.type}>{msg.text}</Message>}
       {check && (

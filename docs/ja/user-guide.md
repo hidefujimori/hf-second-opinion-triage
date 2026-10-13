@@ -50,7 +50,7 @@ ES の Finding にアクションと状態が表示されます。
 | オプション | 既定 | 意味 |
 |---|---|---|
 | Write ES Note | No | Note も書き込む |
-| Note language | アプリの既定 | `en` / `ja`（自動説明の言語も兼ねる） |
+| Note language | アプリの既定 | `en` / `ja`。「アプリの既定」は Setup 画面の **Note の言語**。自動説明も同じ言語で作るので、Note と言語がそろいます |
 | Explain with LLM | No | LLM の説明も作る（トークンを使います） |
 | Explain only urgency at least | High | この Urgency 以上の Finding だけ自動で説明する |
 | Explain only dispositions | TP,Undetermined | この Disposition だけ自動で説明する。空欄 = すべて |

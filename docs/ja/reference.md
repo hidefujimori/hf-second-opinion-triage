@@ -64,6 +64,7 @@
 | 症状 | 確認すること |
 |---|---|
 | 接続テストが失敗する | `api.typesafe.ai` や LLM への通信・プロキシ、キーが保存済みか（Setup に「保存済み」と出るか） |
+| 説明が `unknown url type` や `endpoint must start with http://` で失敗する | エンドポイントに `http://`（とポート・`/v1`）がありません。例: `http://<ホスト>:11434/v1` |
 | 説明が `empty answer … thinking` で失敗する | 思考するモデルが最大トークン数を使い切っています。Thinking level を設定する（`none`、gpt-oss は `low`）か、最大トークン数を増やす |
 | アナリストで「API key not found」 | `jev_triage_user` ロールを付与し、Setup 画面で一度**保存**を押す |
 | レスポンスアクションが failure | `index=cim_modactions action_name=jev_triage` と `index=_internal source=*jev_triage_modalert.log` |

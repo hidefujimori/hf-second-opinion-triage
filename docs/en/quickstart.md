@@ -12,7 +12,8 @@ About 15 minutes from install to the first suggestion. For details see the
 - A **TypeSafe Jev API key** (https://docs.typesafe.ai)
 - Outbound HTTPS from the search head to `api.typesafe.ai`
 - Optional: an LLM for plain-language explanations (Anthropic, Amazon Bedrock, OpenAI-compatible,
-  or Google Gemini) and its API key
+  or Google Gemini) and its API key — or a local one on your network (Ollama, Apple Foundation
+  Models on a Mac); see [Optional: a local LLM](#optional-a-local-llm)
 - An admin account (Splunk Cloud: `sc_admin`)
 
 ## 1. Install the app
@@ -28,11 +29,63 @@ Open the app **Jev Triage**. The first time it opens **Setup** (later: menu **Se
 
 1. **TypeSafe Jev > Jev API key**: paste the key.
 2. **LLM explanation** (optional): choose the **Provider**, enter the **Model** and the **API key**.
+   For a local LLM see [Optional: a local LLM](#optional-a-local-llm).
 3. **Enrichment**: point **CloudTrail data** and **Endpoint process data** at your indexes
    (for example `index=aws sourcetype=aws:cloudtrail`). The default `index=*` works but is slow.
-4. Click **Save**, then **Test connection**. Both rows should say `ok`.
+4. Click **Save**, then **Test connection**. Both rows should say `ok`. Until you save, the page
+   shows *Not saved yet* above the buttons.
 
 Keys are stored in Splunk's encrypted credential store and are never shown again.
+
+### Optional: a local LLM
+
+Explanations can come from a model inside your network, so no prompt leaves it. The servers below
+speak the OpenAI API, so the **Provider** is `openai` and the **API key** stays empty.
+
+> **The Splunk search head calls the LLM, not your browser.** In the Endpoint, `localhost` means the
+> Splunk server itself. A model running on your own PC or Mac (Ollama, vLLM, LM Studio, `fm serve`)
+> is used only if the Splunk server can reach that machine over the network: start the server so it
+> listens on the network (not only on localhost), and enter that machine's IP address or host name.
+> A fixed address avoids breaking the setting when it changes. Automatic explanations from the
+> response action use the same path.
+
+**Apple Foundation Models on a Mac (`fm serve`)**
+
+1. On the Mac (macOS 27 with Apple Intelligence turned on), start the server so other machines can
+   reach it, and leave the Terminal window open:
+   ```
+   fm serve --host 0.0.0.0 --port 1976
+   ```
+   If the macOS firewall is on, allow incoming connections for `fm`.
+2. Check from the Splunk search head: `curl http://<mac-ip>:1976/v1/models` lists the model `system`.
+3. On the Setup page:
+
+   | Field | Value |
+   |---|---|
+   | Provider | `openai` |
+   | Model | `system` |
+   | Endpoint | `http://<mac-ip>:1976/v1` — with `http://`, the port and `/v1` |
+   | Thinking level | empty |
+   | LLM API key | empty |
+
+4. **Save**, then **Test connection**.
+
+The Mac must stay awake with `fm serve` running, and a fixed IP address helps. `fm serve` has no
+authentication: anyone who can reach the port can use it, so limit it with a firewall.
+
+**Ollama**
+
+Start Ollama so it listens on the network (`OLLAMA_HOST=0.0.0.0`), then set Provider `openai`,
+Endpoint `http://<host>:11434/v1`, the Model name as Ollama lists it (for example `gemma4:26b`),
+and Thinking level `none` (`low` for `gpt-oss`).
+
+**vLLM and other OpenAI-compatible servers**
+
+Endpoint `http://<host>:<port>/v1` (vLLM: port 8000 by default; if it listens only on localhost, start it with `--host 0.0.0.0`),
+Model = the served model name (vLLM: `curl http://<host>:8000/v1/models`). If the model thinks
+and answers come back empty, set Thinking level (sent as `reasoning_effort`) or raise Max tokens.
+
+More models, timings and troubleshooting: [Installation guide > Local LLMs](install.md#local-llms-ollama-apple-foundation-models).
 
 ## 3. Let analysts use it
 

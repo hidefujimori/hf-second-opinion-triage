@@ -68,6 +68,14 @@ def triage(svc, where, e, l, write_note=False, lang="", auto=False, explain=None
     auto=True: an automatic run (detection through the queue): the daily limits in [limits] apply.
     explain: None, or {"min_urgency": "high", "dispositions": "TP,Undetermined"} to add LLM explanations
     (before the Note, so the Note includes them)."""
+    if write_note and explain and lang not in ("en", "ja"):
+        # "App default" Note language: the explanation goes into the Note, so write it in the Note's
+        # language ([es_note] language), not in [llm] language.
+        try:
+            from jev_triage import settings
+            lang = (settings.stanza(svc, "es_note", {"language": "en"}).get("language") or "en").strip().lower()
+        except Exception:
+            pass
     steps = " | jevtriage%s" % (" auto=true" if auto else "")
     if explain:
         steps += " | jevexplain%s%s%s%s" % (

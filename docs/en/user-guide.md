@@ -52,7 +52,7 @@ run once they are indexed — usually within 1–2 minutes. Keep that search ena
 | Option | Default | Meaning |
 |---|---|---|
 | Write ES Note | No | Also write the Note |
-| Note language | App default | `en` / `ja` (also the language of automatic explanations) |
+| Note language | App default | `en` / `ja`. *App default* = **Note language** on the Setup page. Automatic explanations use the same language, so they match the Note |
 | Explain with LLM | No | Also ask the LLM for an explanation (uses tokens) |
 | Explain only urgency at least | High | Only findings with this urgency or higher get an automatic explanation |
 | Explain only dispositions | TP,Undetermined | Only these dispositions get one. Empty = all |
