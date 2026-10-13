@@ -1,5 +1,5 @@
 """Pluggable LLM providers for the explanation (stdlib only).
-provider = anthropic | openai | bedrock | gemini   (openai = any OpenAI-compatible endpoint; gemini = Google Gemini API incl. Gemma 4)"""
+provider = anthropic | openai | bedrock | gemini   (openai = any OpenAI-compatible endpoint incl. Ollama and Apple fm serve; gemini = Google Gemini API incl. Gemma 4)"""
 import datetime
 import hashlib
 import hmac
@@ -40,14 +40,48 @@ def _anthropic(cfg, system, user):
 
 
 def _openai(cfg, system, user):
+    """OpenAI Chat Completions and compatible servers (Ollama, vLLM, LM Studio, Apple `fm serve`, gateways).
+    stream=false is sent explicitly: some servers (Apple fm serve) stream by default.
+    thinking_level -> reasoning_effort (Ollama: "none" turns thinking off for gemma4 / qwen3 / gpt-oss;
+    otherwise the thinking can use up max_tokens and leave an empty answer)."""
     base = (cfg.get("endpoint") or "https://api.openai.com/v1").rstrip("/")
     headers = {"Content-Type": "application/json"}
     if cfg.get("api_key"):
         headers["Authorization"] = "Bearer " + cfg["api_key"]
-    out = _post(base + "/chat/completions", {"model": cfg["model"], "max_tokens": int(cfg.get("max_tokens", 600)),
-                                              "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]},
-                headers, int(cfg.get("timeout", 60)), cfg.get("proxy"))
-    return out["choices"][0]["message"]["content"]
+    body = {"model": cfg["model"], "max_tokens": int(cfg.get("max_tokens", 600)), "stream": False,
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
+    level = (cfg.get("thinking_level") or "").strip()
+    if level:
+        body["reasoning_effort"] = level
+    timeout = int(cfg.get("timeout", 60))
+    try:
+        out = _post(base + "/chat/completions", body, headers, timeout, cfg.get("proxy"))
+    except LLMError as e:
+        if "reasoning" in str(e).lower() and "reasoning_effort" in body:
+            body.pop("reasoning_effort")
+            out = _post(base + "/chat/completions", body, headers, timeout, cfg.get("proxy"))
+        else:
+            raise
+    choice = (out.get("choices") or [{}])[0]
+    text = _strip_think((choice.get("message") or {}).get("content") or "")
+    if not text:
+        hint = ""
+        if (choice.get("message") or {}).get("reasoning") or (choice.get("message") or {}).get("reasoning_content"):
+            hint = "; the model spent max_tokens on thinking - set thinking_level = none or raise max_tokens"
+        raise LLMError("empty answer (finish_reason %s%s)" % (choice.get("finish_reason"), hint))
+    return text
+
+
+def _strip_think(text):
+    """Drop <think>...</think> blocks that some local models put in the answer."""
+    while "<think>" in text and "</think>" in text:
+        a, b = text.index("<think>"), text.index("</think>")
+        if b < a:
+            break
+        text = text[:a] + text[b + len("</think>"):]
+    if "</think>" in text:          # opening tag eaten by the chat template
+        text = text.split("</think>", 1)[1]
+    return text.strip()
 
 
 def _sign(key, msg):
