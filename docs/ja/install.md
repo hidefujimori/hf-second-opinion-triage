@@ -48,6 +48,22 @@
 
 > Google Gemini の無料枠を使う場合、Google がプロンプトを製品改善に使うことがあります。テストデータだけで使ってください。
 
+### ローカルの LLM（Ollama、Apple Foundation Models）
+
+プロンプトが社内ネットワークの外に出ません。**プロバイダ**は `openai` にし、**エンドポイント**にサーバーを指定します。
+API キーは空欄でかまいません。
+
+| サーバー | エンドポイント | モデル | Thinking level |
+|---|---|---|---|
+| Ollama | `http://<ホスト>:11434/v1` | 例: `gemma4:26b`、`gpt-oss:20b`、`qwen2.5:14b-instruct` | gemma4・qwen3 は `none`、gpt-oss は `low`、思考しないモデルは空欄 |
+| Apple Foundation Models（macOS 27、`fm serve --host 0.0.0.0 --port 1976`） | `http://<Mac>:1976/v1` | `system` | 空欄 |
+
+- Splunk の検索ヘッドからサーバーに届く必要があります。Ollama は `OLLAMA_HOST=0.0.0.0` を設定しないと localhost でしか待ち受けません。`fm serve` は `--host 0.0.0.0` が必要です。
+- 思考するモデルは**最大トークン数**を思考で使い切り、空の回答を返すことがあります。その場合は `empty answer … set thinking_level …` と表示されます。表のとおり **Thinking level** を設定するか（gpt-oss は思考を止められないので `low` で短くします）、**最大トークン数**を増やしてください。
+- `fm serve` と Ollama には認証がありません。ポートに届く人は誰でも使えるので、ファイアウォールで制限してください。
+- LLM のキーは1つだけ保存されます。キー（例: Gemini のもの）が保存されていると、ローカルのサーバーにも送られます（サーバーは無視します）。送りたくない場合は Setup 画面で削除してください。
+- 確認済み（0.9.4〜0.9.5、3件、英語・日本語）: Ollama `gemma4:26b`（none）約3秒、`gpt-oss:20b`（low）2〜4秒、`qwen2.5:14b-instruct` 4〜7秒、Apple `fm serve` 約5秒。
+
 ## 権限
 
 | 誰が | 必要なもの |

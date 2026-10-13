@@ -1,11 +1,11 @@
-# TA-jev-triage 0.9.3 (prototype)
+# TA-jev-triage 0.9.5 (prototype)
 
 Triage Splunk Enterprise Security 8.7+ findings with TypeSafe Jev. Jev suggests a disposition
 (TP / FP / Benign / Undetermined) and an urgency (low / medium / high / critical). Analysts make
 the final decision in ES; this app does not change ES fields.
 
 ## Install (test environment)
-1. Apps > Manage Apps > Install app from file > `TA-jev-triage-0.9.3.spl`, then restart Splunk.
+1. Apps > Manage Apps > Install app from file > `TA-jev-triage-0.9.5.spl`, then restart Splunk.
 2. Open the app. The first time, it opens **Setup** (also in the app menu and in Manage Apps > Set up).
    Enter the Jev API key, the LLM provider, model and key, and where your CloudTrail and endpoint data
    are; Save; then **Test connection**. Keys go to storage/passwords (realm TA-jev-triage) and are
@@ -52,6 +52,14 @@ the final decision in ES; this app does not change ES fields.
    provider = gemini
    model = gemma-4-26b-a4b-it     # or gemma-4-31b-it
    thinking_level = minimal       # Gemma 4 thinks by default (~9 s); minimal makes it ~1 s
+   ```
+   Local LLMs (0.9.4) use provider `openai` (no key needed):
+   ```
+   [llm]
+   provider = openai
+   endpoint = http://<host>:11434/v1   # Ollama; Apple fm serve: http://<mac>:1976/v1, model = system
+   model = gemma4:26b
+   thinking_level = none               # sent as reasoning_effort; gpt-oss: low
    ```
    Key from Google AI Studio, stored as `llm_api_key`. The Splunk server must reach
    `generativelanguage.googleapis.com`. Note: on the free tier Google may use prompts to improve
@@ -156,6 +164,17 @@ LLM explanations cost tokens, so automatic use is limited. Setup page > "Limits 
 - Counters: KV store `jev_usage`, one record per day (server local date) and kind
   (jev_auto, jev_manual, llm_auto, llm_manual); today's numbers are shown on the Setup page.
   Findings processed in parallel can pass a limit by up to `[jev] parallel`.
+
+## Local LLMs (0.9.4, 0.9.5)
+- Ollama and Apple Foundation Models (macOS 27 `fm serve`) work through provider `openai`
+  (see "LLM explanation" above and docs/en/install.md > Local LLMs).
+- OpenAI-compatible requests send `stream: false` (fm serve streams by default).
+- `thinking_level` is also used for `openai` and sent as `reasoning_effort`: Ollama gemma4 / qwen3
+  need `none`; gpt-oss cannot stop thinking, use `low`. The Setup page shows the field for openai too
+  (options: empty, none, minimal, low).
+- An empty answer is an error ("empty answer … set thinking_level …") instead of an empty `ok`;
+  `<think>` blocks are removed.
+- 0.9.5: help text and error message say `low` for gpt-oss (0.9.4 said `none`).
 
 ## UI (0.8.0)
 - The Jev Triage page and the Setup page are React pages built with Splunk UI Toolkit

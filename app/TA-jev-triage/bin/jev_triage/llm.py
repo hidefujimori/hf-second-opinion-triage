@@ -42,7 +42,8 @@ def _anthropic(cfg, system, user):
 def _openai(cfg, system, user):
     """OpenAI Chat Completions and compatible servers (Ollama, vLLM, LM Studio, Apple `fm serve`, gateways).
     stream=false is sent explicitly: some servers (Apple fm serve) stream by default.
-    thinking_level -> reasoning_effort (Ollama: "none" turns thinking off for gemma4 / qwen3 / gpt-oss;
+    thinking_level -> reasoning_effort (Ollama: "none" turns thinking off for gemma4 / qwen3; gpt-oss cannot
+    turn it off, use "low";
     otherwise the thinking can use up max_tokens and leave an empty answer)."""
     base = (cfg.get("endpoint") or "https://api.openai.com/v1").rstrip("/")
     headers = {"Content-Type": "application/json"}
@@ -67,7 +68,7 @@ def _openai(cfg, system, user):
     if not text:
         hint = ""
         if (choice.get("message") or {}).get("reasoning") or (choice.get("message") or {}).get("reasoning_content"):
-            hint = "; the model spent max_tokens on thinking - set thinking_level = none or raise max_tokens"
+            hint = "; the model spent max_tokens on thinking - set thinking_level = none (gemma4, qwen3) or low (gpt-oss), or raise max_tokens"
         raise LLMError("empty answer (finish_reason %s%s)" % (choice.get("finish_reason"), hint))
     return text
 

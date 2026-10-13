@@ -11,7 +11,8 @@ written to the ES finding as a Note. ES fields are never changed: analysts decid
 - Triage page (React, Splunk UI Toolkit): list + detail pane, English / Japanese
 - Adaptive response action **Jev Triage**: on one finding, or on every finding of a detection
 - Context collection with SPL (identity, asset, cloud account behaviour, outcomes, related alerts)
-- Pluggable LLM: Anthropic, Amazon Bedrock, OpenAI-compatible, Google Gemini
+- Pluggable LLM: Anthropic, Amazon Bedrock, OpenAI-compatible, Google Gemini — including local
+  models on Ollama and Apple Foundation Models (macOS `fm serve`)
 - Daily limits for automatic Jev and LLM use
 - Splunk Cloud ready: passes AppInspect cloud vetting (not yet tested on a live Cloud stack)
 

@@ -10,7 +10,8 @@ Splunk アプリ（`TA-jev-triage`）です。選んだ LLM に提案を口語�
 - トリアージ画面（React、Splunk UI Toolkit）: 一覧＋詳細ペイン、英語・日本語
 - レスポンスアクション **Jev Triage**: 1件の Finding に、または検知のすべての Finding に
 - SPL による情報収集（ID、資産、クラウドアカウントの挙動、結果、関連アラート）
-- LLM は差し替え可能: Anthropic、Amazon Bedrock、OpenAI 互換、Google Gemini
+- LLM は差し替え可能: Anthropic、Amazon Bedrock、OpenAI 互換、Google Gemini。Ollama のローカルモデルや
+  Apple Foundation Models（macOS の `fm serve`）も使えます
 - 自動実行での Jev・LLM の1日の上限
 - Splunk Cloud 対応の準備: AppInspect の Cloud 向け審査に合格（実際の Cloud 環境では未検証）
 

@@ -13,7 +13,7 @@ Normally changed on the Setup page. Defaults are in `default/jev_triage.conf`; c
 | `[jev] order_check` | true | Ask a second time with the options reversed; disagreement → Undetermined |
 | `[jev] timeout`, `parallel`, `proxy` | 30, 4, — | Request timeout (s), findings processed at the same time (1–8), HTTPS proxy |
 | `[enrichment] enabled`, `max_facts`, `shared_entities` | true, 12, `*.amazonaws.com,…` | Context collection; patterns never used as join keys |
-| `[llm] provider`, `model`, `endpoint`, `region`, `thinking_level`, `max_tokens`, `timeout`, `language`, `proxy` | anthropic, —, —, —, —, 600, 60, en, — | LLM for explanations |
+| `[llm] provider`, `model`, `endpoint`, `region`, `thinking_level`, `max_tokens`, `timeout`, `language`, `proxy` | anthropic, —, —, —, —, 600, 60, en, — | LLM for explanations. `thinking_level`: gemini → thinkingLevel (`minimal` for Gemma 4); openai → reasoning_effort (Ollama: `none` for gemma4 / qwen3, `low` for gpt-oss). OpenAI-compatible requests always send `stream: false` |
 | `[es_note] language` | en | Language of Notes |
 | `[limits] llm_auto_daily` | 100 | Automatic LLM explanations per day (empty = no limit) |
 | `[limits] jev_auto_daily` | empty | Findings sent to Jev per day by automatic runs |
@@ -65,6 +65,7 @@ Examples:
 | Symptom | Check |
 |---|---|
 | Test connection fails | Network / proxy to `api.typesafe.ai` or the LLM; key stored (Setup shows *stored*) |
+| Explanation fails with `empty answer … thinking` | A thinking model used up Max tokens: set Thinking level (`none`, or `low` for gpt-oss) or raise Max tokens |
 | Analysts get "API key not found" | Give them the `jev_triage_user` role, then click **Save** on Setup once |
 | Response action shows *failure* | `index=cim_modactions action_name=jev_triage`, and `index=_internal source=*jev_triage_modalert.log` |
 | Detection runs but nothing is triaged | Is *Jev Triage - Response Queue* enabled? Look at `jev_usage` limits (status *skipped*) |

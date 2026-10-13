@@ -13,7 +13,7 @@
 | `[jev] order_check` | true | 選択肢を逆順にしてもう一度聞き、食い違えば判別不可 |
 | `[jev] timeout`, `parallel`, `proxy` | 30, 4, — | タイムアウト（秒）、同時に処理する Finding 数（1〜8）、HTTPS プロキシ |
 | `[enrichment] enabled`, `max_facts`, `shared_entities` | true, 12, `*.amazonaws.com,…` | 情報収集。結合キーに使わないパターン |
-| `[llm] provider`, `model`, `endpoint`, `region`, `thinking_level`, `max_tokens`, `timeout`, `language`, `proxy` | anthropic, —, —, —, —, 600, 60, en, — | 説明に使う LLM |
+| `[llm] provider`, `model`, `endpoint`, `region`, `thinking_level`, `max_tokens`, `timeout`, `language`, `proxy` | anthropic, —, —, —, —, 600, 60, en, — | 説明に使う LLM。`thinking_level`: gemini → thinkingLevel（Gemma 4 は `minimal`）、openai → reasoning_effort（Ollama の gemma4・qwen3 は `none`、gpt-oss は `low`）。OpenAI 互換には常に `stream: false` を送ります |
 | `[es_note] language` | en | Note の言語 |
 | `[limits] llm_auto_daily` | 100 | 自動の LLM 説明の1日の上限（空欄 = 無制限） |
 | `[limits] jev_auto_daily` | 空欄 | 自動実行で Jev に送る Finding の1日の上限 |
@@ -64,6 +64,7 @@
 | 症状 | 確認すること |
 |---|---|
 | 接続テストが失敗する | `api.typesafe.ai` や LLM への通信・プロキシ、キーが保存済みか（Setup に「保存済み」と出るか） |
+| 説明が `empty answer … thinking` で失敗する | 思考するモデルが最大トークン数を使い切っています。Thinking level を設定する（`none`、gpt-oss は `low`）か、最大トークン数を増やす |
 | アナリストで「API key not found」 | `jev_triage_user` ロールを付与し、Setup 画面で一度**保存**を押す |
 | レスポンスアクションが failure | `index=cim_modactions action_name=jev_triage` と `index=_internal source=*jev_triage_modalert.log` |
 | 検知は動くがトリアージされない | *Jev Triage - Response Queue* が有効か。`jev_usage` の上限（状態が skipped） |
