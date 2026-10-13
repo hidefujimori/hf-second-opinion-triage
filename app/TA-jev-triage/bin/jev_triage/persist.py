@@ -13,7 +13,7 @@ KV_FIELDS = ("event_id rule_name rule_title security_domain urgency src dest use
              "jev_urgency jev_urgency_score jev_urgency_confidence jev_escalate jev_admin_activity jev_logic_mismatch "
              "jev_tactic jev_policy jev_state jev_answers jev_model jev_questions jev_version jev_time jev_latency_ms "
              "jev_enrich_ms jev_input_tokens jev_explanation jev_explain_status jev_explain_model jev_explain_lang "
-             "jev_explain_time jev_explain_for jev_explain_ms jev_note_status jev_note_id jev_note_time jev_note_for jev_prev_time jev_prev_disposition jev_prev_urgency jev_prev_had_explanation jev_rerun_count jev_rerun_by").split()
+             "jev_explain_time jev_explain_for jev_explain_ms jev_note_status jev_note_id jev_note_time jev_note_for jev_note_expl_for jev_prev_time jev_prev_disposition jev_prev_urgency jev_prev_had_explanation jev_rerun_count jev_rerun_by").split()
 NUMERIC = {"jev_time", "jev_disposition_confidence", "jev_urgency_score", "jev_explain_time", "jev_prev_time", "jev_rerun_count"}
 # a new triage result replaces the old explanation and note record (they belong to the old result)
 CLEARED_ON_TRIAGE = [f for f in KV_FIELDS if f.startswith("jev_explain") or f.startswith("jev_note")]

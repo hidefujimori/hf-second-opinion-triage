@@ -1,11 +1,11 @@
-# TA-jev-triage 0.9.7 (prototype)
+# TA-jev-triage 0.9.8 (prototype)
 
 Triage Splunk Enterprise Security 8.7+ findings with TypeSafe Jev. Jev suggests a disposition
 (TP / FP / Benign / Undetermined) and an urgency (low / medium / high / critical). Analysts make
 the final decision in ES; this app does not change ES fields.
 
 ## Install (test environment)
-1. Apps > Manage Apps > Install app from file > `TA-jev-triage-0.9.7.spl`, then restart Splunk.
+1. Apps > Manage Apps > Install app from file > `TA-jev-triage-0.9.8.spl`, then restart Splunk.
 2. Open the app. The first time, it opens **Setup** (also in the app menu and in Manage Apps > Set up).
    Enter the Jev API key, the LLM provider, model and key, and where your CloudTrail and endpoint data
    are; Save; then **Test connection**. Keys go to storage/passwords (realm TA-jev-triage) and are
@@ -182,6 +182,13 @@ LLM explanations cost tokens, so automatic use is limited. Setup page > "Limits 
 - 0.9.7: response action with "Write ES Note" + "Explain with LLM" and Note language "App default": the
   explanation is written in the Note language ([es_note] language) instead of [llm] language, so a
   Japanese Note no longer carries an English explanation.
+
+## Explanation added to an existing Note (0.9.8)
+- If the Note for the current result was written before the LLM explanation, "Write Note to ES" now adds
+  the explanation as a second Note ("Jev triage suggestion — LLM explanation (added)") instead of saying
+  "already written". New KV field `jev_note_expl_for` = `jev_explain_time` of the explanation in the Note
+  (older records: the Note had the explanation if it was made before the Note). A new explanation
+  ("Explain again") can be added the same way.
 
 ## UI (0.8.0)
 - The Jev Triage page and the Setup page are React pages built with Splunk UI Toolkit

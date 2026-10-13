@@ -197,6 +197,7 @@ function Pane({ T, lang, id, listRow, onClose, onChanged }) {
       + ' | table jev_note_status jev_note_id jev_persist_error');
     const x = rows[0] || {};
     if (x.jev_note_status === 'ok') { return { ok: true, msg: `${T.noteDone} (${x.jev_note_id || ''})` }; }
+    if (x.jev_note_status === 'ok (explanation added)') { return { ok: true, msg: `${T.noteExplAdded} (${x.jev_note_id || ''})` }; }
     if (x.jev_note_status === 'already written') { return { ok: true, msg: T.noteAlready }; }
     return { ok: false, msg: `${T.failed}: ${x.jev_note_status || x.jev_persist_error || ''}` };
   });

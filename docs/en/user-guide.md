@@ -26,7 +26,7 @@ From ES you can open a finding directly: finding menu (⋯) > **Open in Jev Tria
 | Button | What it does |
 |---|---|
 | **Explain with LLM** | Asks the LLM to explain the current suggestion (about 5 s). The text is kept; **Explain again** makes a new one |
-| **Write Note to ES** | Adds the suggestion (and the explanation, if there is one) as a Note on the ES finding. One Note per result: pressing again says *already written* |
+| **Write Note to ES** | Adds the suggestion (and the explanation, if there is one) as a Note on the ES finding. One Note per result. If you make the explanation after the Note was written (or make a new one with **Explain again**), pressing the button again adds the explanation as a second Note ("LLM explanation (added)"); otherwise it says *already written* |
 | **Re-run triage** | Sends the finding to Jev again and replaces the result. The old explanation and Note record are cleared (they belonged to the old result); the pane shows *Triaged again* with the previous result. Ask the LLM again if you need an explanation |
 | **Open in ES** | Opens the finding in the ES Analyst Queue |
 

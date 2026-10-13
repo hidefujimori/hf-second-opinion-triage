@@ -3,7 +3,8 @@
 
 Input: rows from the jev_triage_latest KV store. Uses the ES public API:
   POST /servicesNS/nobody/missioncontrol/public/v2/investigations/{finding_id}/notes
-Output: jev_note_status, jev_note_id, jev_note_time, jev_note_for (one note per triage result; force=true writes again).
+Output: jev_note_status, jev_note_id, jev_note_time, jev_note_for, jev_note_expl_for (one note per triage result;
+an explanation made after that Note is added as a second, explanation-only Note; force=true writes again).
 Typical use:  | `jev_note("<event_id>")`
 Requires mc_investigation_write for the user running the search.
 """
@@ -45,20 +46,24 @@ class JevNoteCommand(StreamingCommand):
                 out["jev_note_status"] = "skipped (no Jev result)"
                 yield out
                 continue
+            only_expl = False
             if rec.get("jev_note_for") == rec.get("jev_time") and rec.get("jev_note_id") and not self.force:
-                out["jev_note_status"] = "already written"
-                yield out
-                continue
+                if note.explanation_in_note(rec):
+                    out["jev_note_status"] = "already written"
+                    yield out
+                    continue
+                only_expl = True   # the Note was written before the explanation: add the explanation
             fid = rec.get("event_id") or ""
-            title, content = note.build(rec, lang)
+            title, content = note.build_explanation(rec, lang) if only_expl else note.build(rec, lang)
             # splunklib URL-encodes the path itself; '@' must stay as is (pre-encoding gives %2540 -> 404)
             path = "/servicesNS/nobody/missioncontrol/public/v2/investigations/%s/notes" % quote(fid, safe="@")
             try:
                 resp = self.service.post(path, headers=[("Content-Type", "application/json")],
                                          body=json.dumps({"title": title, "content": content}))
                 body = json.loads(resp.body.read().decode("utf-8") or "{}")
-                out["jev_note_status"] = "ok"
+                out["jev_note_status"] = "ok (explanation added)" if only_expl else "ok"
                 out["jev_note_id"] = body.get("id", "")
+                out["jev_note_expl_for"] = rec.get("jev_explain_time") if note.has_explanation(rec) else ""
                 out["jev_note_time"] = int(time.time())
                 out["jev_note_for"] = rec.get("jev_time")
             except Exception as e:
