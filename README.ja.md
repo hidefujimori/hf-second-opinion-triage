@@ -12,8 +12,10 @@ Splunk アプリ（`TA-jev-triage`）です。選んだ LLM に提案を口語�
 - SPL による情報収集（ID、資産、クラウドアカウントの挙動、結果、関連アラート）
 - LLM は差し替え可能: Anthropic、Amazon Bedrock、OpenAI 互換、Google Gemini。Ollama のローカルモデルや
   Apple Foundation Models（macOS の `fm serve`）も使えます
+- セカンドオピニオン: ES AI SOC Analyst の結果を Jev と並べて表示し、判断ガイドを Note として ES に書き込める
+- トリアージ画面からまとめて再トリアージ
 - 自動実行での Jev・LLM の1日の上限
-- Splunk Cloud 対応の準備: AppInspect の Cloud 向け審査に合格（実際の Cloud 環境では未検証）
+- Splunk Cloud 対応: AppInspect の Cloud 向け審査に合格し、Splunk Cloud で動作確認済み
 
 ## ドキュメント
 
@@ -39,7 +41,8 @@ Splunk アプリ（`TA-jev-triage`）です。選んだ LLM に提案を口語�
 
 ## 状況
 
-β版。Splunk Enterprise 10.4.2 ＋ Enterprise Security 8.7.1 で検証済み。
+β版。Splunk Enterprise 10.4.2 ＋ Enterprise Security 8.7.1、および Splunk Cloud 10.4.2604 ＋ Enterprise Security 8.7.0
+（ES AI SOC Analyst 有効）で検証済み。リリースノート: [docs/release-notes](docs/release-notes)。
 評価データでの精度: Disposition 32/33、TP の見逃しなし、Urgency 完全一致 31/33・1段階以内 33/33。
 
 ## ライセンス

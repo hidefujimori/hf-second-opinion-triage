@@ -13,8 +13,10 @@ written to the ES finding as a Note. ES fields are never changed: analysts decid
 - Context collection with SPL (identity, asset, cloud account behaviour, outcomes, related alerts)
 - Pluggable LLM: Anthropic, Amazon Bedrock, OpenAI-compatible, Google Gemini — including local
   models on Ollama and Apple Foundation Models (macOS `fm serve`)
+- Second opinion: the ES AI SOC Analyst result next to Jev's, with a decision guide that can be written to ES as a Note
+- Bulk re-run from the triage page
 - Daily limits for automatic Jev and LLM use
-- Splunk Cloud ready: passes AppInspect cloud vetting (not yet tested on a live Cloud stack)
+- Splunk Cloud: passes AppInspect cloud vetting and runs on Splunk Cloud
 
 ## Documentation
 
@@ -40,7 +42,8 @@ Release packages (`TA-jev-triage-<version>.spl`) are attached to GitHub Releases
 
 ## Status
 
-Beta. Tested on Splunk Enterprise 10.4.2 with Enterprise Security 8.7.1.
+Beta. Tested on Splunk Enterprise 10.4.2 with Enterprise Security 8.7.1, and on Splunk Cloud 10.4.2604 with
+Enterprise Security 8.7.0 (ES AI SOC Analyst enabled). Release notes: [docs/release-notes](docs/release-notes).
 Accuracy on the evaluation set: disposition 32/33, no true positive missed, urgency exact 31/33,
 within one level 33/33.
 
