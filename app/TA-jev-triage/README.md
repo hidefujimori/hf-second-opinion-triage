@@ -1,11 +1,11 @@
-# TA-jev-triage 0.9.10 (prototype)
+# TA-jev-triage 0.9.11 (prototype)
 
 Triage Splunk Enterprise Security 8.7+ findings with TypeSafe Jev. Jev suggests a disposition
 (TP / FP / Benign / Undetermined) and an urgency (low / medium / high / critical). Analysts make
 the final decision in ES; this app does not change ES fields.
 
 ## Install (test environment)
-1. Apps > Manage Apps > Install app from file > `TA-jev-triage-0.9.10.spl`, then restart Splunk.
+1. Apps > Manage Apps > Install app from file > `TA-jev-triage-0.9.11.spl`, then restart Splunk.
 2. Open the app. The first time, it opens **Setup** (also in the app menu and in Manage Apps > Set up).
    Enter the Jev API key, the LLM provider, model and key, and where your CloudTrail and endpoint data
    are; Save; then **Test connection**. Keys go to storage/passwords (realm TA-jev-triage) and are
@@ -199,6 +199,19 @@ LLM explanations cost tokens, so automatic use is limited. Setup page > "Limits 
 - Anyone who can open the Setup page can make it (beta). Steps the user may not run (for example no
   access to `_internal`) are listed as not collected; the rest is still saved.
 - LLM calls that time out are tried once more (a busy server).
+
+## Cloud account facts (0.9.11)
+- Permission changes: AttachUserPolicy, PutUserPolicy (also Group / Role), AddUserToGroup, CreatePolicyVersion,
+  SetDefaultPolicyVersion, UpdateAssumeRolePolicy. The fact also says when full administrator permissions
+  (AdministratorAccess / IAMFullAccess) were attached and when the account gave permissions to its own user
+- MFA: enrolling an MFA device (CreateVirtualMFADevice, EnableMFADevice; "after signing in" when it follows the
+  console login) and removing one (DeactivateMFADevice, DeleteVirtualMFADevice)
+- "the only changes were setting up MFA for its own user" when MFA enrolment is the only change
+- Shared source IP (only when other accounts used it): how many other cloud accounts used the same source IP address (one / 2 to 9 / 10 or more),
+  whether they signed in with MFA, and whether there were failed sign-ins from it (new search `cloud_ip_peers`,
+  only when the account used 5 or fewer IP addresses)
+- ConsoleLogin is no longer counted as a change
+- `jev_version` now records the app version (it stayed at 0.9.3 before)
 
 ## UI (0.8.0)
 - The Jev Triage page and the Setup page are React pages built with Splunk UI Toolkit

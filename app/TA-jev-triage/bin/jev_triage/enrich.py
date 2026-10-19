@@ -146,11 +146,61 @@ class Enricher(object):
             facts.append("the account launched many cloud instances (10 or more)")
         if regions >= 10:
             facts.append("activity spans many cloud regions (10 or more)")
-        facts.append("calls are read-only (Describe, Get, List)" if writes == 0 else "calls include changes, not only reads")
+        mfa_writes = int(float(_one(r.get("mfa_writes")) or 0))
+        mfa_own = str(_one(r.get("mfa_for_other")) or "0") != "1"
+        if writes == 0:
+            facts.append("calls are read-only (Describe, Get, List)")
+        elif writes <= mfa_writes and mfa_own:
+            facts.append("calls include changes, but the only changes were setting up MFA for its own user")
+        else:
+            facts.append("calls include changes, not only reads")
         iam = _mv(r.get("iam_changes"))
         if iam:
             facts.append("the account made identity changes: " + ", ".join(iam))
+        grants = _mv(r.get("priv_grants"))
+        if grants:
+            admin = str(_one(r.get("admin_grant")) or "0") == "1"
+            own = str(_one(r.get("self_grant")) or "0") == "1"
+            facts.append("the account changed permissions: %s%s%s" % (
+                ", ".join(grants[:4]),
+                "; it attached full administrator permissions (AdministratorAccess or IAMFullAccess)" if admin else "",
+                "; it gave permissions to its own user" if own else ""))
+        mfa_off = _mv(r.get("mfa_removed"))
+        if mfa_off:
+            facts.append("the account removed or deactivated an MFA device: " + ", ".join(mfa_off))
+        mfa_on = _mv(r.get("mfa_setup"))
+        if mfa_on:
+            try:
+                after = float(_one(r.get("first_mfa"))) >= float(_one(r.get("first_login")))
+            except (TypeError, ValueError):
+                after = False
+            facts.append("%s the account enrolled an MFA device for %s (%s), so later sign-ins can require MFA" % (
+                "after signing in," if after else "during this period", "its own user" if mfa_own else "another user", ", ".join(mfa_on)))
+        facts += self.ip_peer_facts(user, now_ips, e, l)
         return facts
+
+    def ip_peer_facts(self, user, ips, e, l):
+        """Is the source IP address used only by this account, or shared (office NAT, proxy, lab)?"""
+        ips = sorted(ip for ip in ips if is_ip(ip))
+        if not ips or len(ips) > 5:
+            return []
+        rows = self._q("cloud_ip_peers", user, e, l, ips=", ".join('"%s"' % esc(ip) for ip in ips))
+        if not rows:
+            return []
+        r = rows[0]
+        num = lambda k: int(float(_one(r.get(k)) or 0))
+        n, logins, mfa, failed = num("other_accounts"), num("other_logins"), num("other_mfa_logins"), num("failed_logins")
+        addr = "that address" if len(ips) == 1 else "those addresses"
+        if n == 0:
+            return []  # tested: "no other account" reads as reassurance and lowered TP confidence (0.9.11 regression run)
+        fact = "%s also used the same source IP address%s in this period" % (
+            "one other cloud account" if n == 1 else
+            "several other cloud accounts (2 to 9)" if n < 10 else "many other cloud accounts (10 or more)",
+            "" if len(ips) == 1 else "es")
+        if logins:
+            fact += "; %s of those accounts signed in with MFA" % ("all" if mfa >= logins else "some" if mfa else "none")
+        fact += "; there were %s from %s" % ("no failed sign-ins" if failed == 0 else "failed sign-ins", addr)
+        return [fact]
 
     def workstation_facts(self, hosts, e, l, owner_label):
         facts = []
