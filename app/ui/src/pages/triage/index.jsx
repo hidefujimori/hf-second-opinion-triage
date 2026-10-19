@@ -11,19 +11,20 @@ import { useLang, fmt, ensureLocale } from '../../common/i18n';
 import { injectCss } from '../../common/styles';
 import LangSwitch from '../../common/LangSwitch';
 import { TEXT } from './text';
+import { EsAiColumn, loadAiIndex, compare } from './esai';
 
 const URG = ['critical', 'high', 'medium', 'low'];
 const DISP = ['TP', 'FP', 'Benign', 'Undetermined'];
 
 const LIST_SPL = 'search `notable`'
-  + ' | lookup jev_triage_latest event_id OUTPUT jev_status jev_error jev_disposition jev_disposition_confidence jev_es_disposition'
+  + ' | lookup jev_triage_latest event_id OUTPUT jev_status jev_error jev_disposition jev_disposition_raw jev_disposition_confidence jev_es_disposition'
   + ' jev_urgency jev_urgency_confidence jev_escalate jev_tactic jev_policy jev_time jev_rerun_count'
   + ' | where isnotnull(jev_status)'
   + ' | eval analyst_decided=if(disposition_default="false" OR status_label IN ("Resolved","Closed"), 1, 0)'
   + ' | eval agree=case(analyst_decided=0, null(), jev_es_disposition=disposition, 1, true(), 0)'
   + ' | eval entity=coalesce(user, src, dest, risk_object)'
   + ' | table _time event_id rule_name security_domain entity urgency disposition_label status_label analyst_decided agree'
-  + ' jev_status jev_error jev_disposition jev_disposition_confidence jev_urgency jev_urgency_confidence jev_escalate jev_tactic jev_policy jev_time jev_rerun_count'
+  + ' jev_status jev_error jev_disposition jev_disposition_raw jev_disposition_confidence jev_urgency jev_urgency_confidence jev_escalate jev_tactic jev_policy jev_time jev_rerun_count'
   + ' | head 1000';
 
 // ---------- small helpers ----------
@@ -63,8 +64,14 @@ function Conf({ v, wide, hot, label }) {
   return <span className="jev-conf"><Meter v={v} wide={wide} hot={hot} /><span>{label ? `${label} ` : ''}{n == null ? '' : n.toFixed(2)}</span></span>;
 }
 
+const CMP_MARK = { agree: '=', lean: '~', disagree: '!=', none: '' };
+function CmpMark({ c, T }) {
+  if (!c || c === 'none') { return null; }
+  return <span className={`jev-cmp ${c}`} title={T[`cmp_${c}`]}>{T[`cmpShort_${c}`] || CMP_MARK[c]}</span>;
+}
+
 // ---------- filters, tiles, list ----------
-function Filters({ T, f, setF, onRefresh }) {
+function Filters({ T, f, setF, onRefresh, hasAi }) {
   const set = (k) => (e, { value }) => setF({ ...f, [k]: value });
   return (
     <div className="jev-bar">
@@ -88,6 +95,11 @@ function Filters({ T, f, setF, onRefresh }) {
         <Select value={f.es} onChange={set('es')}>
           <Select.Option value="*" label={T.all} /><Select.Option value="0" label={T.undecided} /><Select.Option value="1" label={T.decided} />
         </Select></label>
+      {hasAi && <label className="f">{T.aiCmp}
+        <Select value={f.ai} onChange={set('ai')}>
+          <Select.Option value="*" label={T.all} />
+          {['disagree', 'lean', 'agree', 'none'].map((k) => <Select.Option key={k} value={k} label={T[`cmp_${k}`]} />)}
+        </Select></label>}
       <label className="f" style={{ minWidth: 220 }}>{T.find}
         <Text value={f.text} onChange={set('text')} canClear /></label>
       <Button label={T.refresh} onClick={onRefresh} />
@@ -115,7 +127,7 @@ function Tiles({ T, rows, f, setF }) {
   );
 }
 
-function FindingsTable({ T, rows, sel, onSelect, checked, setChecked, lock }) {
+function FindingsTable({ T, rows, sel, onSelect, checked, setChecked, lock, ai }) {
   if (!rows.length) { return <div className="jev-empty">{T.none}</div>; }
   const allOn = rows.every((r) => checked.has(r.event_id));
   const toggleAll = () => setChecked(() => (allOn ? new Set() : new Set(rows.map((r) => r.event_id))));
@@ -124,7 +136,7 @@ function FindingsTable({ T, rows, sel, onSelect, checked, setChecked, lock }) {
     <table className="jev-findings">
       <thead><tr>
         <th className="jev-chk"><input type="checkbox" aria-label={T.selAll} title={T.selAll} checked={allOn} disabled={lock} onChange={toggleAll} /></th>
-        {[T.cUrg, T.cDisp, T.cRule, T.cEntity, T.cTime, T.cEs, T.cAnalyst].map((h) => <th key={h}>{h}</th>)}</tr></thead>
+        {[T.cUrg, T.cDisp, ...(ai ? [T.cAi] : []), T.cRule, T.cEntity, T.cTime, T.cEs, T.cAnalyst].map((h) => <th key={h}>{h}</th>)}</tr></thead>
       <tbody>
         {rows.map((r) => (
           <tr key={r.event_id} className={`row u-${r.jev_urgency || 'none'}${sel === r.event_id ? ' selected' : ''}${checked.has(r.event_id) ? ' checked' : ''}`} onClick={() => onSelect(r.event_id)}>
@@ -132,6 +144,7 @@ function FindingsTable({ T, rows, sel, onSelect, checked, setChecked, lock }) {
               <input type="checkbox" aria-label={T.selOne} checked={checked.has(r.event_id)} disabled={lock} onChange={() => toggle(r.event_id)} /></td>
             <td><Badge u={r.jev_status === 'ok' ? r.jev_urgency : ''} T={T} /></td>
             <td><Chip d={r.jev_disposition} status={r.jev_status} T={T} /> {r.jev_status === 'ok' && <Conf v={r.jev_disposition_confidence} />}</td>
+            {ai && <td className="nowrap">{ai[r.event_id] ? <><Chip d={ai[r.event_id].cat} T={T} /> <CmpMark c={r.cmp} T={T} /></> : <span className="sub">–</span>}</td>}
             <td><div className="rule">{r.rule_name}{num(r.jev_rerun_count) ? <span className="jev-tag">{T.rerunTag}</span> : null}</div>
               {r.jev_policy && <div className="sub">{r.jev_policy}</div>}</td>
             <td>{mv(r.entity).slice(0, 2).join(', ')}</td>
@@ -222,7 +235,7 @@ function useAction() {
   return [st, run];
 }
 
-function Pane({ T, lang, id, listRow, onClose, onChanged }) {
+function Pane({ T, lang, id, onChanged }) {
   const [rec, setRec] = useState(undefined);
   const [err, setErr] = useState('');
   const [expl, setExpl] = useState(null);
@@ -274,15 +287,10 @@ function Pane({ T, lang, id, listRow, onClose, onChanged }) {
     return { ok: false, msg: `${T.failed}: ${x.jev_error || x.jev_persist_error || x.jev_status || 'no finding'}` };
   });
 
-  const u = ok ? r.jev_urgency : '';
   const esUrl = createURL('/app/SplunkEnterpriseSecuritySuite/incident_review', { search: `event_id=${q(id)}` });
   return (
-    <div className="jev-pane">
-      <div className={`jev-pane-head ${u || ''}`}>
-        <button type="button" className="jev-close" title={T.close} aria-label={T.close} onClick={onClose}>×</button>
-        <h2>{r.rule_name || r.rule_title || listRow.rule_name || id}</h2>
-        <div className="sub">{[fmtTime(listRow._time || epochFromId(id)), mv(listRow.entity || r.user || r.src || r.dest || r.risk_object).join(', ')].filter(Boolean).join(' · ')}</div>
-      </div>
+    <div className="jev-col jev-jevcol">
+      <div className="jev-col-head">{T.jevTitle}</div>
       <div className="jev-pane-body">
         {err && <Message type="error">{err}</Message>}
         {rec === undefined && !err && <div className="sub">{T.loading}</div>}
@@ -351,20 +359,54 @@ function Pane({ T, lang, id, listRow, onClose, onChanged }) {
   );
 }
 
+// ---------- detail: ES AI (left) and Jev (right) ----------
+function Detail({ T, lang, id, listRow, onClose, onChanged }) {
+  const [ai, setAi] = useState(null);
+  const u = listRow.jev_status === 'ok' ? listRow.jev_urgency : '';
+  const c = ai ? compare(listRow.jev_disposition, listRow.jev_disposition_raw, ai.has ? ai.cat : '') : null;
+  const ui = ['low', 'medium', 'high', 'critical'];
+  const du = ai && ai.sev && u ? Math.abs(ui.indexOf(ai.sev) - ui.indexOf(u)) : null;
+  return (
+    <div className="jev-detail">
+      <div className={`jev-pane-head ${u || ''}`}>
+        <button type="button" className="jev-close" title={T.close} aria-label={T.close} onClick={onClose}>×</button>
+        <h2>{listRow.rule_name || id}</h2>
+        <div className="sub">{[fmtTime(listRow._time || epochFromId(id)), mv(listRow.entity).join(', ')].filter(Boolean).join(' · ')}</div>
+        {c && (
+          <div className="jev-cmpbar">
+            {c === 'none' ? <span className="sub">{T.cmpNoAi}</span> : (
+              <>
+                <span className={`jev-cmp ${c}`}>{T.cDisp}: {T[`cmp_${c}`]}</span>
+                {du != null && <span className={`jev-cmp ${du === 0 ? 'agree' : du === 1 ? 'lean' : 'disagree'}`}>
+                  {T.cUrg}: {du === 0 ? T.cmp_agree : fmt(T.cmpUrgDiff, { n: du })}</span>}
+                <span className="sub">{T.cmpHint}</span>
+              </>)}
+          </div>)}
+      </div>
+      <div className="jev-cols">
+        <EsAiColumn key={`ai-${id}`} T={T} id={id} Badge={Badge} Chip={Chip} onData={setAi} />
+        <Pane key={id} T={T} lang={lang} id={id} onChanged={onChanged} />
+      </div>
+    </div>
+  );
+}
+
 // ---------- page ----------
 function TriagePage({ theme }) {
   const [lang, setLang] = useLang();
   const T = TEXT[lang];
-  const [f, setF] = useState({ time: '-90d', disp: '*', urg: '*', conf: '0', es: '*', text: '' });
+  const [f, setF] = useState({ time: '-90d', disp: '*', urg: '*', conf: '0', es: '*', ai: '*', text: '' });
   const [rows, setRows] = useState(null);
   const [err, setErr] = useState('');
   const [sel, setSel] = useState(() => urlParam('event_id') || urlParam('form.event_id'));
   const [checked, setChecked] = useState(() => new Set());
+  const [ai, setAi] = useState({});
   const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = useCallback(() => {
     setErr(''); setRows(null);
     search(LIST_SPL, f.time === '0' ? '0' : f.time, 'now').then(setRows, (e) => { setErr(e.message); setRows([]); });
+    loadAiIndex(f.time).then(setAi);
   }, [f.time]);
   useEffect(load, [load]);
 
@@ -374,7 +416,11 @@ function TriagePage({ theme }) {
 
   const shown = useMemo(() => {
     const minc = parseFloat(f.conf); const text = (f.text || '').toLowerCase();
-    return (rows || []).filter((r) => {
+    return (rows || []).map((r) => {
+      const a = ai[r.event_id];
+      return { ...r, cmp: a ? compare(r.jev_disposition, r.jev_disposition_raw, a.cat) : 'none' };
+    }).filter((r) => {
+      if (f.ai !== '*' && r.cmp !== f.ai) { return false; }
       if (f.disp !== '*' && r.jev_disposition !== f.disp) { return false; }
       if (f.urg !== '*' && r.jev_urgency !== f.urg) { return false; }
       if (f.es !== '*' && String(r.analyst_decided) !== f.es) { return false; }
@@ -386,7 +432,7 @@ function TriagePage({ theme }) {
       ua = ua < 0 ? 9 : ua; ub = ub < 0 ? 9 : ub;
       return ua !== ub ? ua - ub : (num(b.jev_disposition_confidence) || 0) - (num(a.jev_disposition_confidence) || 0);
     });
-  }, [rows, f]);
+  }, [rows, f, ai]);
 
   const listRow = (rows || []).find((x) => x.event_id === sel) || {};
   return (
@@ -395,15 +441,16 @@ function TriagePage({ theme }) {
         <div><h1>{T.title}</h1><div className="desc">{T.desc}</div></div>
         <LangSwitch lang={lang} onChange={setLang} />
       </div>
-      <Filters T={T} f={f} setF={setF} onRefresh={load} />
+      <Filters T={T} f={f} setF={setF} onRefresh={load} hasAi={Object.keys(ai).length > 0} />
       {err && <Message type="error">{err}</Message>}
       <Tiles T={T} rows={rows || []} f={f} setF={setF} />
       <BulkBar T={T} checked={checked} rows={rows || []} earliest={f.time === '0' ? '0' : f.time}
         onBusy={setBulkBusy} onClear={() => setChecked(new Set())} onDone={load} />
-      <div className="jev-split">
+      <div className={`jev-split${sel ? ' open' : ''}`}>
         <div className="jev-list">{rows == null ? <div className="jev-empty">{T.loading}</div>
-          : <FindingsTable T={T} rows={shown} sel={sel} onSelect={setSel} checked={checked} setChecked={setChecked} lock={bulkBusy} />}</div>
-        {sel && <Pane key={sel} T={T} lang={lang} id={sel} listRow={listRow} onClose={() => setSel(null)} onChanged={load} />}
+          : <FindingsTable T={T} rows={shown} sel={sel} onSelect={setSel} checked={checked} setChecked={setChecked} lock={bulkBusy}
+            ai={Object.keys(ai).length ? ai : null} />}</div>
+        {sel && <Detail key={sel} T={T} lang={lang} id={sel} listRow={listRow} onClose={() => setSel(null)} onChanged={load} />}
       </div>
     </div>
   );

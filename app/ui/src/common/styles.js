@@ -36,6 +36,25 @@ table.jev-findings tr.row.checked { background:var(--sel); }
 .jev-bulk .cnt { font-weight:600; }
 .jev-bulk .warn { color:var(--err); font-weight:600; flex:1 1 320px; }
 .jev-bulk .fails { flex-basis:100%; font-size:12px; color:var(--muted); }
+.jev-split.open { flex-direction:column; align-items:stretch; }
+.jev-split.open .jev-list { max-height:34vh; }
+.jev-detail { background:var(--card); border:1px solid var(--line); border-radius:6px; animation:jevslide .15s ease-out; }
+.jev-detail .jev-pane-head { position:relative; }
+.jev-cols { display:grid; grid-template-columns:1fr 1fr; }
+.jev-col { min-width:0; }
+.jev-col + .jev-col { border-left:1px solid var(--line); }
+.jev-col-head { padding:8px 14px; font-weight:700; border-bottom:1px solid var(--line); background:var(--bg); }
+.jev-esai .jev-col-head { border-top:3px solid #475569; }
+.jev-jevcol .jev-col-head { border-top:3px solid #7c3aed; }
+.jev-cmpbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:8px; }
+.jev-cmp { display:inline-block; padding:1px 8px; border-radius:10px; font-size:12px; font-weight:600; white-space:nowrap; }
+.jev-cmp.agree { background:#dcfce7; color:#166534; } .jev-cmp.lean { background:#fef9c3; color:#854d0e; } .jev-cmp.disagree { background:#fee2e2; color:#991b1b; }
+.jev-root.dark .jev-cmp.agree { background:#14532d; color:#bbf7d0; } .jev-root.dark .jev-cmp.lean { background:#713f12; color:#fef08a; } .jev-root.dark .jev-cmp.disagree { background:#7f1d1d; color:#fecaca; }
+table.jev-findings td.nowrap { white-space:nowrap; }
+ul.jev-tools li.bad { color:var(--err); }
+ul.jev-tools .st { display:inline-block; width:1.2em; }
+.jev-detail details summary { cursor:pointer; color:var(--muted); font-size:12px; margin-bottom:4px; }
+@media (max-width: 1000px) { .jev-cols { grid-template-columns:1fr; } .jev-col + .jev-col { border-left:none; border-top:1px solid var(--line); } }
 table.jev-findings tr.row:hover { background:var(--hover); }
 table.jev-findings tr.row.selected { background:var(--sel); }
 table.jev-findings tr.row td:first-child { border-left:4px solid transparent; }

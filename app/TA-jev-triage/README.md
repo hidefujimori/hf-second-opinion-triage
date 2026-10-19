@@ -1,11 +1,11 @@
-# TA-jev-triage 0.9.12 (prototype)
+# TA-jev-triage 0.9.13 (prototype)
 
 Triage Splunk Enterprise Security 8.7+ findings with TypeSafe Jev. Jev suggests a disposition
 (TP / FP / Benign / Undetermined) and an urgency (low / medium / high / critical). Analysts make
 the final decision in ES; this app does not change ES fields.
 
 ## Install (test environment)
-1. Apps > Manage Apps > Install app from file > `TA-jev-triage-0.9.12.spl`, then restart Splunk.
+1. Apps > Manage Apps > Install app from file > `TA-jev-triage-0.9.13.spl`, then restart Splunk.
 2. Open the app. The first time, it opens **Setup** (also in the app menu and in Manage Apps > Set up).
    Enter the Jev API key, the LLM provider, model and key, and where your CloudTrail and endpoint data
    are; Save; then **Test connection**. Keys go to storage/passwords (realm TA-jev-triage) and are
@@ -212,6 +212,19 @@ LLM explanations cost tokens, so automatic use is limited. Setup page > "Limits 
   only when the account used 5 or fewer IP addresses)
 - ConsoleLogin is no longer counted as a change
 - `jev_version` now records the app version (it stayed at 0.9.3 before)
+
+## Second opinion: ES AI SOC Analyst next to Jev (0.9.13)
+- When ES runs its AI SOC Analyst (AI triage), the dashboard shows its result next to Jev's. Read only;
+  Jev never sees the ES AI result (the two stay independent)
+- Data: KV `missioncontrol/mc_ai_analysis` (lookup `mc_ai_analysis_lookup`, one record per finding,
+  `incident_id` = finding `event_id`; Determination / Severity / Confidence come from the table at the end of
+  `summary`) and `ai_suggested_disposition_label` from the ES API `public/v2/findings/{id}`
+- List: an "ES AI" column with the ES AI disposition and a mark (= agree, ~ partly: Jev undetermined but leaning
+  the same way, != disagree), and a "Compared with ES AI" filter. Both appear only when ES AI results exist
+- Clicking a row opens the detail below the list: ES AI on the left (disposition, severity, confidence, summary,
+  justification, evidence, the checks it ran with failed ones marked, analysis details) and Jev on the right.
+  The header shows agreement for disposition and urgency
+- Environments without ES AI triage (on-premises) show "No ES AI result" and work as before
 
 ## Bulk re-run (0.9.12)
 - Dashboard: check boxes on the rows (header box = all shown rows) and "Re-run triage for selected".

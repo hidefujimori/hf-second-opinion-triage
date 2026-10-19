@@ -13,6 +13,11 @@ shows Jev's **suggested disposition** (TP, FP, Benign, Undetermined) and **sugge
   analysts' final dispositions. Click a tile to filter the list; click again to clear it.
 - **List**: highest urgency first. Critical rows have a red edge, High rows an orange one.
   A small **re-run** tag marks findings that were triaged again.
+- **Second opinion from the ES AI SOC Analyst** (0.9.13): when ES's AI triage has a result for a finding, the
+  list shows it in the *ES AI* column with = (agree), ~ (partly: Jev undetermined but leaning the same way) or != (disagree),
+  and *Compared with ES AI* filters the list. Clicking a row opens the detail below the list with ES AI on the left and
+  Jev on the right. Checks the ES AI could not complete are marked: its conclusion may rest on less evidence.
+  Jev never uses the ES AI result.
 - **Re-run several findings at once** (0.9.12): tick the check boxes on the left of the rows (the box in the
   header selects all shown rows), then *Re-run triage for selected* and confirm. Progress and the number of
   failures are shown above the list. As with the single button, each result is replaced and its explanation cleared.
