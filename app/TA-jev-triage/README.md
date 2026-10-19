@@ -1,11 +1,11 @@
-# TA-jev-triage 0.9.13 (prototype)
+# TA-jev-triage 0.9.14 (prototype)
 
 Triage Splunk Enterprise Security 8.7+ findings with TypeSafe Jev. Jev suggests a disposition
 (TP / FP / Benign / Undetermined) and an urgency (low / medium / high / critical). Analysts make
 the final decision in ES; this app does not change ES fields.
 
 ## Install (test environment)
-1. Apps > Manage Apps > Install app from file > `TA-jev-triage-0.9.13.spl`, then restart Splunk.
+1. Apps > Manage Apps > Install app from file > `TA-jev-triage-0.9.14.spl`, then restart Splunk.
 2. Open the app. The first time, it opens **Setup** (also in the app menu and in Manage Apps > Set up).
    Enter the Jev API key, the LLM provider, model and key, and where your CloudTrail and endpoint data
    are; Save; then **Test connection**. Keys go to storage/passwords (realm TA-jev-triage) and are
@@ -212,6 +212,18 @@ LLM explanations cost tokens, so automatic use is limited. Setup page > "Limits 
   only when the account used 5 or fewer IP addresses)
 - ConsoleLogin is no longer counted as a change
 - `jev_version` now records the app version (it stayed at 0.9.3 before)
+
+## Decision guide (0.9.14)
+- Third column to the right of ES AI and Jev. A fixed table compares the two suggestions
+  (both TP / both not a threat / disagree / Jev undetermined leaning the same or another way / ES AI undetermined)
+  and gives a suggested course of action, the urgency to act on, cautions (failed ES AI checks, low confidence)
+  and suggested checks. The table is in `bin/jev_triage/guide.py` and mirrored in `ui/src/pages/triage/guide.js`
+- "Write the guide with LLM": new command `jevguide` (reads the ES AI result itself, prompts `prompts/guide_*.txt`).
+  The LLM explains why the two differ and how to decide; it does not change either suggestion. ES AI texts are
+  passed as data. Counted as manual LLM use. Stored in `jev_guide*` fields (cleared by a re-run)
+- "Write the guide to ES as a Note": `jevnote kind=guide` adds a Note (comparison, course of action, cautions,
+  LLM guide). ES disposition / urgency are not changed. Written once per Jev result + ES AI result + guide
+  (`jev_note_guide_*` fields)
 
 ## Second opinion: ES AI SOC Analyst next to Jev (0.9.13)
 - When ES runs its AI SOC Analyst (AI triage), the dashboard shows its result next to Jev's. Read only;

@@ -13,6 +13,9 @@ shows Jev's **suggested disposition** (TP, FP, Benign, Undetermined) and **sugge
   analysts' final dispositions. Click a tile to filter the list; click again to clear it.
 - **List**: highest urgency first. Critical rows have a red edge, High rows an orange one.
   A small **re-run** tag marks findings that were triaged again.
+- **Decision guide** (0.9.14): a third column to the right of ES AI and Jev. It compares the two (a fixed table) and
+  suggests a course of action, the urgency to act on, cautions and checks. *Write the guide with LLM* explains why
+  the two differ and how to decide; *Write the guide to ES as a Note* adds it to the finding. Neither ES value is changed.
 - **Second opinion from the ES AI SOC Analyst** (0.9.13): when ES's AI triage has a result for a finding, the
   list shows it in the *ES AI* column with = (agree), ~ (partly: Jev undetermined but leaning the same way) or != (disagree),
   and *Compared with ES AI* filters the list. Clicking a row opens the detail below the list with ES AI on the left and

@@ -12,6 +12,7 @@ import { injectCss } from '../../common/styles';
 import LangSwitch from '../../common/LangSwitch';
 import { TEXT } from './text';
 import { EsAiColumn, loadAiIndex, compare } from './esai';
+import { verdict } from './guide';
 
 const URG = ['critical', 'high', 'medium', 'low'];
 const DISP = ['TP', 'FP', 'Benign', 'Undetermined'];
@@ -359,7 +360,82 @@ function Pane({ T, lang, id, onChanged }) {
   );
 }
 
-// ---------- detail: ES AI (left) and Jev (right) ----------
+// ---------- decision guide (third column) ----------
+function GuideColumn({ T, lang, id, listRow, ai }) {
+  const [rec, setRec] = useState(undefined);
+  const [text, setText] = useState(null);
+  const [gSt, runG] = useAction();
+  const [nSt, runN] = useAction();
+  const load = useCallback(() => {
+    search(`| inputlookup jev_triage_latest where event_id=${q(id)} | table jev_time jev_guide jev_guide_for jev_guide_ai_time jev_guide_lang jev_guide_model jev_note_guide_status jev_note_guide_time`)
+      .then((rows) => setRec(rows[0] || {}), () => setRec({}));
+  }, [id]);
+  useEffect(load, [load]);
+  if (!ai) { return <div className="jev-col jev-guide"><div className="jev-col-head">{T.gTitle}</div><div className="jev-pane-body"><div className="sub">{T.loading}</div></div></div>; }
+  const ok = listRow.jev_status === 'ok';
+  const v = verdict(listRow.jev_disposition, listRow.jev_disposition_raw, listRow.jev_disposition_confidence, listRow.jev_urgency,
+    ai.has ? ai.label : '', ai.sev, ai.conf, ai.failed || 0);
+  const r = rec || {};
+  const current = r.jev_guide && String(r.jev_guide_for) === String(r.jev_time);
+  const stale = current && ai.time && String(r.jev_guide_ai_time || '') !== String(ai.time);
+  const shown = text != null ? text : (current ? r.jev_guide : null);
+  const make = () => runG(async () => {
+    const rows = await search(`| inputlookup jev_triage_latest where event_id=${q(id)} | jevguide persist=true lang=${lang}${shown ? ' force=true' : ''}`
+      + ' | table jev_guide jev_guide_status jev_guide_model jev_guide_ms jev_persist_error');
+    const x = rows[0] || {};
+    if (x.jev_guide_status === 'ok' || x.jev_guide_status === 'cached') {
+      setText(x.jev_guide || ''); load();
+      return { ok: true, msg: `${T.done} · ${x.jev_guide_model || ''}${x.jev_guide_ms ? ` · ${x.jev_guide_ms} ms` : ''}` };
+    }
+    return { ok: false, msg: `${T.failed}: ${x.jev_guide_status || x.jev_persist_error || ''}` };
+  });
+  const note = () => runN(async () => {
+    const rows = await search(`| inputlookup jev_triage_latest where event_id=${q(id)} | jevnote kind=guide persist=true lang=${lang}`
+      + ' | table jev_note_guide_status jev_note_guide_id jev_persist_error');
+    const x = rows[0] || {};
+    if (x.jev_note_guide_status === 'ok') { load(); return { ok: true, msg: `${T.gNoteDone} (${x.jev_note_guide_id || ''})` }; }
+    if (x.jev_note_guide_status === 'already written') { return { ok: true, msg: T.gNoteAlready }; }
+    return { ok: false, msg: `${T.failed}: ${x.jev_note_guide_status || x.jev_persist_error || ''}` };
+  });
+  return (
+    <div className="jev-col jev-guide">
+      <div className="jev-col-head">{T.gTitle}</div>
+      <div className="jev-pane-body">
+        {!ai.has || !ok ? <p className="jev-explain placeholder">{!ok ? T.gNoJev : T.gNoAi}</p> : (
+          <>
+            <Sec title={T.gVerdict}>
+              <div className={`jev-gcard p-${v.priority}`}>
+                <div className="v">{T[`gv_${v.key}`]}</div>
+                <div className="a">{T[`ga_${v.priority}`]}</div>
+                {v.action_urgency && <div className="sub">{T.gUrg} <Badge u={v.action_urgency} T={T} /></div>}
+              </div>
+              <div className="jev-status">{T.gRuleNote}</div>
+            </Sec>
+            {v.cautions.length > 0 && <Sec title={T.gCaution}><ul className="jev-facts jev-cautions">{v.cautions.map((c) => <li key={c}>{T[`gc_${c}`]}</li>)}</ul></Sec>}
+            {v.checks.length > 0 && <Sec title={T.gChecks}><ol className="jev-facts">{v.checks.map((c) => <li key={c}>{T[`gk_${c}`]}</li>)}</ol></Sec>}
+            <Sec title={T.gLlm}>
+              {stale && <div className="jev-warn">{T.gStale}</div>}
+              <div className={`jev-explain${shown ? '' : ' placeholder'}`}>{shown || T.gNoLlm}</div>
+              <div className="jev-actions" style={{ marginTop: 8 }}>
+                <Button label={shown ? T.gRemake : T.gMake} onClick={make} disabled={gSt.busy} />
+              </div>
+              <div className={`jev-status ${gSt.cls}`}>{gSt.busy ? T.working : gSt.msg}</div>
+            </Sec>
+            <Sec title=" ">
+              <div className="jev-actions">
+                <Button appearance="primary" label={T.gNote} onClick={note} disabled={nSt.busy} />
+              </div>
+              <div className="jev-status">{T.gNoteHint}</div>
+              {r.jev_note_guide_time && <div className="jev-status">{fmt(T.gNoteLast, { at: fmtTime(r.jev_note_guide_time) })}</div>}
+              <div className={`jev-status ${nSt.cls}`}>{nSt.busy ? T.working : nSt.msg}</div>
+            </Sec>
+          </>)}
+      </div>
+    </div>
+  );
+}
+
+// ---------- detail: ES AI (left), Jev (middle), decision guide (right) ----------
 function Detail({ T, lang, id, listRow, onClose, onChanged }) {
   const [ai, setAi] = useState(null);
   const u = listRow.jev_status === 'ok' ? listRow.jev_urgency : '';
@@ -386,6 +462,7 @@ function Detail({ T, lang, id, listRow, onClose, onChanged }) {
       <div className="jev-cols">
         <EsAiColumn key={`ai-${id}`} T={T} id={id} Badge={Badge} Chip={Chip} onData={setAi} />
         <Pane key={id} T={T} lang={lang} id={id} onChanged={onChanged} />
+        <GuideColumn key={`g-${id}`} T={T} lang={lang} id={id} listRow={listRow} ai={ai} />
       </div>
     </div>
   );

@@ -106,10 +106,11 @@ export function EsAiColumn({ T, id, Badge, Chip, onData }) {
   const p = parseSummary(rec && rec.summary);
   const dispLabel = label || p.disp;
   const cat = aiCat(dispLabel);
-  useEffect(() => { if (!loading) { onData({ cat, sev: p.sev, conf: p.conf, label: dispLabel, has: !!(rec || label) }); } },
-    [loading, cat, p.sev, p.conf, dispLabel, rec, label]);  // eslint-disable-line react-hooks/exhaustive-deps
   const tools = (rec && Array.isArray(rec.tools)) ? rec.tools : [];
   const failed = tools.filter((t) => t && t.status === 'failed');
+  useEffect(() => {
+    if (!loading) { onData({ cat, sev: p.sev, conf: p.conf, label: dispLabel, has: !!(rec || label), failed: failed.length, time: rec ? String(rec.create_time || '') : '' }); }
+  }, [loading, cat, p.sev, p.conf, dispLabel, rec, label, failed.length]);  // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="jev-col jev-esai">
       <div className="jev-col-head">{T.aiTitle}{rec && rec.create_time ? <span className="sub"> · {new Date(parseFloat(rec.create_time) * 1000).toLocaleString()}</span> : null}</div>

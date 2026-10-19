@@ -40,7 +40,13 @@ table.jev-findings tr.row.checked { background:var(--sel); }
 .jev-split.open .jev-list { max-height:34vh; }
 .jev-detail { background:var(--card); border:1px solid var(--line); border-radius:6px; animation:jevslide .15s ease-out; }
 .jev-detail .jev-pane-head { position:relative; }
-.jev-cols { display:grid; grid-template-columns:1fr 1fr; }
+.jev-cols { display:grid; grid-template-columns:1fr 1fr 1fr; }
+.jev-guide .jev-col-head { border-top:3px solid #0e7490; }
+.jev-gcard { border:1px solid var(--line); border-left:5px solid var(--und); border-radius:6px; padding:10px 12px; background:var(--bg); }
+.jev-gcard .v { font-weight:700; margin-bottom:4px; } .jev-gcard .a { margin-bottom:6px; }
+.jev-gcard.p-investigate { border-left-color:var(--high); } .jev-gcard.p-urgent_review { border-left-color:var(--crit); }
+.jev-gcard.p-close { border-left-color:var(--fp); } .jev-gcard.p-review { border-left-color:#ca8a04; }
+ul.jev-cautions li { color:var(--err); }
 .jev-col { min-width:0; }
 .jev-col + .jev-col { border-left:1px solid var(--line); }
 .jev-col-head { padding:8px 14px; font-weight:700; border-bottom:1px solid var(--line); background:var(--bg); }
@@ -54,6 +60,7 @@ table.jev-findings td.nowrap { white-space:nowrap; }
 ul.jev-tools li.bad { color:var(--err); }
 ul.jev-tools .st { display:inline-block; width:1.2em; }
 .jev-detail details summary { cursor:pointer; color:var(--muted); font-size:12px; margin-bottom:4px; }
+@media (max-width: 1400px) { .jev-cols { grid-template-columns:1fr 1fr; } .jev-guide { grid-column:1 / -1; border-left:none !important; border-top:1px solid var(--line); } }
 @media (max-width: 1000px) { .jev-cols { grid-template-columns:1fr; } .jev-col + .jev-col { border-left:none; border-top:1px solid var(--line); } }
 table.jev-findings tr.row:hover { background:var(--hover); }
 table.jev-findings tr.row.selected { background:var(--sel); }
