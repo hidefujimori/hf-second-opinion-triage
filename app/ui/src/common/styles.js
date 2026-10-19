@@ -29,6 +29,13 @@ table.jev-findings { width:100%; border-collapse:collapse; }
 table.jev-findings th { position:sticky; top:0; background:var(--bg); text-align:left; font-weight:600; font-size:12px; color:var(--muted); padding:7px 8px; border-bottom:1px solid var(--line); white-space:nowrap; z-index:1; }
 table.jev-findings td { padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:middle; }
 table.jev-findings tr.row { cursor:pointer; }
+table.jev-findings .jev-chk { width:28px; text-align:center; padding-left:4px; padding-right:4px; }
+table.jev-findings .jev-chk input { cursor:pointer; }
+table.jev-findings tr.row.checked { background:var(--sel); }
+.jev-bulk { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 10px; padding:8px 10px; background:var(--card); border:1px solid var(--line); border-left:4px solid #7c3aed; border-radius:6px; }
+.jev-bulk .cnt { font-weight:600; }
+.jev-bulk .warn { color:var(--err); font-weight:600; flex:1 1 320px; }
+.jev-bulk .fails { flex-basis:100%; font-size:12px; color:var(--muted); }
 table.jev-findings tr.row:hover { background:var(--hover); }
 table.jev-findings tr.row.selected { background:var(--sel); }
 table.jev-findings tr.row td:first-child { border-left:4px solid transparent; }

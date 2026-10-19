@@ -1,11 +1,11 @@
-# TA-jev-triage 0.9.11 (prototype)
+# TA-jev-triage 0.9.12 (prototype)
 
 Triage Splunk Enterprise Security 8.7+ findings with TypeSafe Jev. Jev suggests a disposition
 (TP / FP / Benign / Undetermined) and an urgency (low / medium / high / critical). Analysts make
 the final decision in ES; this app does not change ES fields.
 
 ## Install (test environment)
-1. Apps > Manage Apps > Install app from file > `TA-jev-triage-0.9.11.spl`, then restart Splunk.
+1. Apps > Manage Apps > Install app from file > `TA-jev-triage-0.9.12.spl`, then restart Splunk.
 2. Open the app. The first time, it opens **Setup** (also in the app menu and in Manage Apps > Set up).
    Enter the Jev API key, the LLM provider, model and key, and where your CloudTrail and endpoint data
    are; Save; then **Test connection**. Keys go to storage/passwords (realm TA-jev-triage) and are
@@ -212,6 +212,11 @@ LLM explanations cost tokens, so automatic use is limited. Setup page > "Limits 
   only when the account used 5 or fewer IP addresses)
 - ConsoleLogin is no longer counted as a change
 - `jev_version` now records the app version (it stayed at 0.9.3 before)
+
+## Bulk re-run (0.9.12)
+- Dashboard: check boxes on the rows (header box = all shown rows) and "Re-run triage for selected".
+  Asks for confirmation, then runs `jevtriage persist=true` for 8 findings per search and shows progress,
+  the number of failures and up to 5 failed findings. Manual runs are counted but not limited
 
 ## UI (0.8.0)
 - The Jev Triage page and the Setup page are React pages built with Splunk UI Toolkit

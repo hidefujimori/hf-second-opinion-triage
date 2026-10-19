@@ -115,14 +115,21 @@ function Tiles({ T, rows, f, setF }) {
   );
 }
 
-function FindingsTable({ T, rows, sel, onSelect }) {
+function FindingsTable({ T, rows, sel, onSelect, checked, setChecked, lock }) {
   if (!rows.length) { return <div className="jev-empty">{T.none}</div>; }
+  const allOn = rows.every((r) => checked.has(r.event_id));
+  const toggleAll = () => setChecked(() => (allOn ? new Set() : new Set(rows.map((r) => r.event_id))));
+  const toggle = (id) => setChecked((prev) => { const n = new Set(prev); if (n.has(id)) { n.delete(id); } else { n.add(id); } return n; });
   return (
     <table className="jev-findings">
-      <thead><tr>{[T.cUrg, T.cDisp, T.cRule, T.cEntity, T.cTime, T.cEs, T.cAnalyst].map((h) => <th key={h}>{h}</th>)}</tr></thead>
+      <thead><tr>
+        <th className="jev-chk"><input type="checkbox" aria-label={T.selAll} title={T.selAll} checked={allOn} disabled={lock} onChange={toggleAll} /></th>
+        {[T.cUrg, T.cDisp, T.cRule, T.cEntity, T.cTime, T.cEs, T.cAnalyst].map((h) => <th key={h}>{h}</th>)}</tr></thead>
       <tbody>
         {rows.map((r) => (
-          <tr key={r.event_id} className={`row u-${r.jev_urgency || 'none'}${sel === r.event_id ? ' selected' : ''}`} onClick={() => onSelect(r.event_id)}>
+          <tr key={r.event_id} className={`row u-${r.jev_urgency || 'none'}${sel === r.event_id ? ' selected' : ''}${checked.has(r.event_id) ? ' checked' : ''}`} onClick={() => onSelect(r.event_id)}>
+            <td className="jev-chk" onClick={(e) => e.stopPropagation()}>
+              <input type="checkbox" aria-label={T.selOne} checked={checked.has(r.event_id)} disabled={lock} onChange={() => toggle(r.event_id)} /></td>
             <td><Badge u={r.jev_status === 'ok' ? r.jev_urgency : ''} T={T} /></td>
             <td><Chip d={r.jev_disposition} status={r.jev_status} T={T} /> {r.jev_status === 'ok' && <Conf v={r.jev_disposition_confidence} />}</td>
             <td><div className="rule">{r.rule_name}{num(r.jev_rerun_count) ? <span className="jev-tag">{T.rerunTag}</span> : null}</div>
@@ -134,6 +141,63 @@ function FindingsTable({ T, rows, sel, onSelect }) {
           </tr>))}
       </tbody>
     </table>
+  );
+}
+
+// ---------- bulk re-run ----------
+const BULK_BATCH = 8;  // findings per search; jevtriage runs [jev] parallel of them at a time
+
+// Re-run triage for the checked findings in batches, so the user sees progress and one slow batch
+// does not hold everything. Same command as the single "Re-run triage" button (persist=true marks re-runs).
+function BulkBar({ T, checked, rows, earliest, onBusy, onClear, onDone }) {
+  const [phase, setPhase] = useState('idle');  // idle | confirm | run | done
+  const [prog, setProg] = useState({ d: 0, n: 0 });
+  const [res, setRes] = useState(null);
+  const ids = [...checked];
+  const n = ids.length;
+  if (!n && phase !== 'done') { return null; }
+  const run = async () => {
+    setPhase('run'); onBusy(true); setProg({ d: 0, n });
+    const ok = []; const ng = [];
+    for (let i = 0; i < n; i += BULK_BATCH) {
+      const part = ids.slice(i, i + BULK_BATCH);
+      try {
+        const got = await search(`search \`jev_findings\` | search event_id IN (${part.map(q).join(', ')}) | dedup event_id`
+          + ' | jevtriage persist=true | table event_id jev_status jev_error jev_persist_error', earliest, 'now');
+        const seen = new Set();
+        got.forEach((x) => {
+          seen.add(x.event_id);
+          if (x.jev_status === 'ok' && !x.jev_persist_error) { ok.push(x.event_id); } else { ng.push({ id: x.event_id, why: x.jev_error || x.jev_persist_error || x.jev_status }); }
+        });
+        part.filter((id) => !seen.has(id)).forEach((id) => ng.push({ id, why: 'no finding' }));
+      } catch (e) {
+        part.forEach((id) => ng.push({ id, why: e.message }));
+      }
+      setProg({ d: Math.min(n, i + part.length), n });
+    }
+    const names = Object.fromEntries(rows.map((r) => [r.event_id, r.rule_name]));
+    setRes({ ok: ok.length, ng: ng.map((x) => ({ ...x, name: names[x.id] || x.id })) });
+    setPhase('done'); onBusy(false); onClear(); onDone();
+  };
+  return (
+    <div className="jev-bulk">
+      {phase === 'idle' && <>
+        <span className="cnt">{fmt(T.bulkSel, { n })}</span>
+        <Button appearance="primary" label={T.bulkRun} onClick={() => setPhase('confirm')} />
+        <Button appearance="secondary" label={T.bulkClear} onClick={onClear} />
+      </>}
+      {phase === 'confirm' && <>
+        <span className="warn">{fmt(T.bulkConfirm, { n })}</span>
+        <Button appearance="primary" label={fmt(T.bulkGo, { n })} onClick={run} />
+        <Button appearance="secondary" label={T.cancel} onClick={() => setPhase('idle')} />
+      </>}
+      {phase === 'run' && <span className="cnt">{fmt(T.bulkProgress, prog)}</span>}
+      {phase === 'done' && res && <>
+        <span className={res.ng.length ? 'warn' : 'cnt'}>{fmt(T.bulkDone, { ok: res.ok, ng: res.ng.length })}</span>
+        {res.ng.length > 0 && <span className="fails">{T.bulkFailList} {res.ng.slice(0, 5).map((x) => `${x.name} (${x.why})`).join(' / ')}</span>}
+        <Button appearance="secondary" label={T.close} onClick={() => { setRes(null); setPhase('idle'); }} />
+      </>}
+    </div>
   );
 }
 
@@ -295,6 +359,8 @@ function TriagePage({ theme }) {
   const [rows, setRows] = useState(null);
   const [err, setErr] = useState('');
   const [sel, setSel] = useState(() => urlParam('event_id') || urlParam('form.event_id'));
+  const [checked, setChecked] = useState(() => new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = useCallback(() => {
     setErr(''); setRows(null);
@@ -332,9 +398,11 @@ function TriagePage({ theme }) {
       <Filters T={T} f={f} setF={setF} onRefresh={load} />
       {err && <Message type="error">{err}</Message>}
       <Tiles T={T} rows={rows || []} f={f} setF={setF} />
+      <BulkBar T={T} checked={checked} rows={rows || []} earliest={f.time === '0' ? '0' : f.time}
+        onBusy={setBulkBusy} onClear={() => setChecked(new Set())} onDone={load} />
       <div className="jev-split">
         <div className="jev-list">{rows == null ? <div className="jev-empty">{T.loading}</div>
-          : <FindingsTable T={T} rows={shown} sel={sel} onSelect={setSel} />}</div>
+          : <FindingsTable T={T} rows={shown} sel={sel} onSelect={setSel} checked={checked} setChecked={setChecked} lock={bulkBusy} />}</div>
         {sel && <Pane key={sel} T={T} lang={lang} id={sel} listRow={listRow} onClose={() => setSel(null)} onChanged={load} />}
       </div>
     </div>

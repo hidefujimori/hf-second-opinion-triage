@@ -13,6 +13,9 @@ shows Jev's **suggested disposition** (TP, FP, Benign, Undetermined) and **sugge
   analysts' final dispositions. Click a tile to filter the list; click again to clear it.
 - **List**: highest urgency first. Critical rows have a red edge, High rows an orange one.
   A small **re-run** tag marks findings that were triaged again.
+- **Re-run several findings at once** (0.9.12): tick the check boxes on the left of the rows (the box in the
+  header selects all shown rows), then *Re-run triage for selected* and confirm. Progress and the number of
+  failures are shown above the list. As with the single button, each result is replaced and its explanation cleared.
 - **Detail pane** (click a row): the suggestion with confidence bars, policy notes, Jev's signals
   (should be escalated / expected admin activity / detection logic mismatch / likely tactic),
   the context sent to Jev, other alerts on the same entity, the LLM explanation, and the actions.

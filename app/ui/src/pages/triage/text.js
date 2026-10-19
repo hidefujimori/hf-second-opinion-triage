@@ -27,6 +27,10 @@ export const TEXT = {
     autoLimit: 'No automatic explanation: the daily limit for automatic explanations was reached. Use “Explain with LLM” if you need one.',
     autoRule: 'No automatic explanation for this finding ({why}). Use “Explain with LLM” if you need one.',
     jevSkipped: 'Not triaged: the daily limit for automatic Jev triage was reached. Use “Re-run triage” to triage it now.',
+    selAll: 'Select all shown findings', selOne: 'Select this finding',
+    bulkSel: '{n} selected', bulkRun: 'Re-run triage for selected', bulkClear: 'Clear selection', cancel: 'Cancel', bulkGo: 'Re-run {n} findings',
+    bulkConfirm: 'Re-run triage for {n} findings? Each current result is replaced and its LLM explanation is cleared. Jev is called twice per finding (manual runs are not limited by the daily limits).',
+    bulkProgress: 'Re-running… {d} / {n}', bulkDone: 'Re-run finished: {ok} succeeded, {ng} failed.', bulkFailList: 'Failed:',
   },
   ja: {
     title: 'Jev トリアージ', desc: 'ES の Finding に対する Jev の提案です。最終的な Disposition と Urgency は Enterprise Security でアナリストが設定します。',
@@ -56,5 +60,9 @@ export const TEXT = {
     autoLimit: '自動説明の1日の上限に達したため、自動説明は行っていません。必要なら「LLM で説明」で作成できます。',
     autoRule: 'この Finding は自動説明の対象外です（{why}）。必要なら「LLM で説明」で作成できます。',
     jevSkipped: '自動トリアージの1日の上限に達したため、まだトリアージしていません。「再トリアージ」で今すぐ実行できます。',
+    selAll: '表示中の Finding をすべて選択', selOne: 'この Finding を選択',
+    bulkSel: '{n} 件を選択中', bulkRun: '選択した Finding を再トリアージ', bulkClear: '選択を解除', cancel: 'キャンセル', bulkGo: '{n} 件を再トリアージ',
+    bulkConfirm: '{n} 件を再トリアージしますか？ それぞれ現在の結果を置き換え、LLM の説明は消去されます。Jev は1件につき2回呼び出します（手動実行は1日の上限の対象外です）。',
+    bulkProgress: '再トリアージ中… {d} / {n} 件', bulkDone: '再トリアージが終わりました: 成功 {ok} 件、失敗 {ng} 件。', bulkFailList: '失敗:',
   },
 };
