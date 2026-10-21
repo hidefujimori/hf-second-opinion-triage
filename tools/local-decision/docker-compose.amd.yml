@@ -1,0 +1,16 @@
+# AMD GPU (Radeon / Ryzen AI iGPU) with the Vulkan build of llama.cpp. No NVIDIA toolkit needed.
+#   LLAMA_IMAGE=ghcr.io/ggml-org/llama.cpp:server-vulkan docker compose -f docker-compose.yml -f docker-compose.amd.yml up -d
+# The container needs the render devices (/dev/dri) and the video / render groups of the host.
+# (ROCm instead of Vulkan: LLAMA_IMAGE=ghcr.io/ggml-org/llama.cpp:server-rocm and add /dev/kfd to devices.)
+x-amd: &amd
+  deploy: !reset {}
+  devices:
+    - /dev/dri:/dev/dri
+  group_add:
+    - "${VIDEO_GID:-44}"
+    - "${RENDER_GID:-992}"
+services:
+  kev:
+    <<: *amd
+  clef-flash:
+    <<: *amd

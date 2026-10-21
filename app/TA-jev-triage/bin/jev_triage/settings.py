@@ -26,9 +26,10 @@ def secrets(service):
     return {p.username: p.clear_password for p in service.storage_passwords if (p.realm or "") in (APP, "")}
 
 
-def jev_api_key(service):
+def jev_api_key(service, required=True):
+    """The key stored for [jev]. Not required for a local System One server (e.g. llama.cpp without --api-key)."""
     key = secrets(service).get(JEV_SECRET)
-    if not key:
+    if not key and required:
         raise RuntimeError("Jev API key not set: open Jev Triage > Setup (or storage/passwords realm=%s name=%s)"
                            % (APP, JEV_SECRET))
     return key
@@ -42,3 +43,14 @@ def llm_cfg(service, logger=None):
     cfg["aws_secret_access_key"] = sec.get("aws_secret_access_key", "")
     cfg["proxy"] = cfg.get("proxy") or None
     return cfg
+
+
+def can_admin(service):
+    """The current user may change the app's settings (same rule as the Setup page)."""
+    try:
+        import json
+        resp = service.get("/services/authentication/current-context", output_mode="json")
+        caps = json.loads(resp.body.read().decode("utf-8"))["entry"][0]["content"].get("capabilities") or []
+        return "admin_all_objects" in caps or "edit_storage_passwords" in caps
+    except Exception:
+        return False

@@ -1,0 +1,34 @@
+# Local decision models for TA-jev-triage tests (llama.cpp /v1/systemone) with Docker.
+#   GPU (NVIDIA, needs the NVIDIA Container Toolkit):  docker compose up -d
+#   CPU only:                                           LLAMA_IMAGE=ghcr.io/ggml-org/llama.cpp:server docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d
+# Update to a newer llama.cpp:  docker compose pull && docker compose up -d
+# The models are downloaded on the first start into the volume "llama-models" (Kev-4B ~4.5 GB, Clef-Flash ~6.5 GB).
+x-llama: &llama
+  image: ${LLAMA_IMAGE:-ghcr.io/ggml-org/llama.cpp:server-cuda}
+  restart: unless-stopped
+  environment:
+    LLAMA_CACHE: /models
+  volumes:
+    - llama-models:/models
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: all
+            capabilities: [gpu]
+
+services:
+  kev:
+    <<: *llama
+    container_name: llama-kev
+    command: ["-hf", "ggml-org/Kev-4B-GGUF:Q8_0", "--host", "0.0.0.0", "--port", "8080", "-c", "16384", "-ngl", "99", "-b", "4096", "-ub", "4096", "--alias", "kev-4b"]
+    ports: ["8081:8080"]
+  clef-flash:
+    <<: *llama
+    container_name: llama-clef-flash
+    command: ["-hf", "ggml-org/Clef-Flash-GGUF:Q4_K_M", "--host", "0.0.0.0", "--port", "8080", "-c", "16384", "-ngl", "99", "-b", "4096", "-ub", "4096", "--alias", "clef-flash"]
+    ports: ["8082:8080"]
+
+volumes:
+  llama-models:

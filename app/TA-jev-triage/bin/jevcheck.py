@@ -31,19 +31,20 @@ class JevCheckCommand(GeneratingCommand):
     def _jev(self):
         row = {"target": "jev", "version": __version__}
         sec = settings.secrets(self.service)
-        s = settings.stanza(self.service, "jev", {"model": "jev-1.13.0", "timeout": "30", "proxy": ""})
+        s = settings.stanza(self.service, "jev", {"model": "jev-1.13.0", "timeout": "30", "proxy": "", "endpoint": ""})
         row["key_set"] = "yes" if sec.get(settings.JEV_SECRET) else "no"
-        row["model"] = s["model"]
-        if row["key_set"] == "no":
+        native = jev_client.is_typesafe(s["endpoint"] or None)
+        row["model"] = s["model"] if native else "%s (%s)" % (s["model"], s["endpoint"])
+        if row["key_set"] == "no" and native:
             row.update(status="not_configured", detail="Jev API key is not set")
             return row
         t0 = time.time()
         try:
-            out = jev_client.call(sec[settings.JEV_SECRET], s["model"], PING_STATE, PING_Q,
-                                  timeout=int(s["timeout"]), retries=1, proxy=s["proxy"] or None)
+            out = jev_client.call(sec.get(settings.JEV_SECRET), s["model"], PING_STATE, PING_Q,
+                                  timeout=int(s["timeout"]), retries=1, proxy=s["proxy"] or None, endpoint=s["endpoint"] or None)
             ok = "is_test" in (out.get("answers") or {})
             row.update(status="ok" if ok else "error",
-                       detail="Jev answered" if ok else "unexpected response")
+                       detail=("Jev answered" if native else "System One server answered") if ok else "unexpected response")
         except Exception as e:
             row.update(status="error", detail=_short(e))
         row["latency_ms"] = int((time.time() - t0) * 1000)

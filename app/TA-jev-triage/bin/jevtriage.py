@@ -9,6 +9,8 @@ Options:
   dryrun=true        build the state (with enrichment) but do not call Jev
   enrich=false       skip SPL enrichment
   ordercheck=false   skip the second call with reversed disposition options
+  endpoint=<url> model=<name>   evaluation only (admins): use another System One server / model instead of
+                     [jev] endpoint / model. No API key is sent to such an endpoint, and results cannot be persisted.
 """
 import json
 import os
@@ -38,11 +40,13 @@ class JevTriageCommand(StreamingCommand):
     persist = Option(require=False, validate=validators.Boolean(), default=False)
     # auto=true: an automatic run (Adaptive Response queue, scheduled search): [limits] jev_auto_daily applies
     auto = Option(require=False, validate=validators.Boolean(), default=False)
+    endpoint = Option(require=False, default=None)
+    model = Option(require=False, default=None)
 
     def _settings(self):
         s = {"model": "jev-1.13.0", "questions_file": "questions.json", "confidence_threshold": "0.60",
              "escalation_floor": "0.80", "rollup_urgency_cap": "high", "order_check": "true",
-             "timeout": "30", "proxy": "", "parallel": "4", "enrichment_enabled": "true",
+             "timeout": "30", "proxy": "", "parallel": "4", "enrichment_enabled": "true", "endpoint": "",
              "shared_entities": "*.amazonaws.com,*.amazon.com,*.microsoft.com,*.office.com,*.google.com", "max_facts": "12"}
         try:
             conf = self.service.confs["jev_triage"]
@@ -94,7 +98,8 @@ class JevTriageCommand(StreamingCommand):
             if self.dryrun:
                 out["jev_status"] = "dryrun"
                 return out
-            call = lambda q: jev_client.call(key, s["model"], st, q, timeout=int(s["timeout"]), proxy=s["proxy"] or None)
+            call = lambda q: jev_client.call(key, s["model"], st, q, timeout=int(s["timeout"]), proxy=s["proxy"] or None,
+                                             endpoint=s["endpoint"] or None)
             # forward and reversed-option calls run at the same time
             f_rev = pool2.submit(call, Qrev) if do_order else None
             res = call(Q)
@@ -143,7 +148,24 @@ class JevTriageCommand(StreamingCommand):
         Q = qset["questions"]
         Qrev = policy.reversed_disposition(Q)
         enricher = Enricher(self._run_spl, load_templates(), s["shared_entities"].split(","), int(s["max_facts"])) if do_enrich else None
-        key = None if self.dryrun else self._api_key()
+        if self.endpoint or self.model:   # evaluation of another decision model
+            if not settings.can_admin(self.service):
+                raise RuntimeError("endpoint= / model= are for admins (edit_storage_passwords or admin_all_objects)")
+            if self.persist or self.auto:
+                raise RuntimeError("endpoint= / model= are for evaluation: persist=true and auto=true are not allowed")
+            if self.endpoint and not str(self.endpoint).lower().startswith(("http://", "https://")):
+                raise RuntimeError("endpoint must start with http:// or https://")
+        configured = s["endpoint"] or jev_client.API_URL
+        if self.endpoint:
+            s["endpoint"] = self.endpoint
+        if self.model:
+            s["model"] = self.model
+        if self.dryrun:
+            key = None
+        elif self.endpoint and self.endpoint != configured:
+            key = None   # never send the stored key to an endpoint given in the search
+        else:
+            key = settings.jev_api_key(self.service, required=jev_client.is_typesafe(s["endpoint"] or None))
         self._jev_limit = usage.limits(settings.stanza(self.service, "limits", settings.LIMIT_DEFAULTS))["jev_auto"]
         try:
             workers = max(1, min(8, int(s.get("parallel") or 4)))

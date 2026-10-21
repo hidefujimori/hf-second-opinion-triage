@@ -1,11 +1,11 @@
-# TA-jev-triage 0.9.14 (prototype)
+# TA-jev-triage 0.9.15 (prototype)
 
 Triage Splunk Enterprise Security 8.7+ findings with TypeSafe Jev. Jev suggests a disposition
 (TP / FP / Benign / Undetermined) and an urgency (low / medium / high / critical). Analysts make
 the final decision in ES; this app does not change ES fields.
 
 ## Install (test environment)
-1. Apps > Manage Apps > Install app from file > `TA-jev-triage-0.9.14.spl`, then restart Splunk.
+1. Apps > Manage Apps > Install app from file > `TA-jev-triage-0.9.15.spl`, then restart Splunk.
 2. Open the app. The first time, it opens **Setup** (also in the app menu and in Manage Apps > Set up).
    Enter the Jev API key, the LLM provider, model and key, and where your CloudTrail and endpoint data
    are; Save; then **Test connection**. Keys go to storage/passwords (realm TA-jev-triage) and are
@@ -212,6 +212,16 @@ LLM explanations cost tokens, so automatic use is limited. Setup page > "Limits 
   only when the account used 5 or fewer IP addresses)
 - ConsoleLogin is no longer counted as a change
 - `jev_version` now records the app version (it stayed at 0.9.3 before)
+
+## Other decision models (0.9.15)
+- `[jev] endpoint` (Setup page > TypeSafe Jev > Endpoint): TypeSafe Jev by default, or another server with the same
+  System One API, e.g. llama.cpp `/v1/systemone` with Kev-4B or Clef-Flash. The API key may be empty for such a server
+- For non-TypeSafe servers the request is made compatible: the state is sent as a JSON string, score levels and yes/no
+  criteria as plain text, and score probabilities are mapped back to level indices. TypeSafe requests are unchanged
+- Plain-http endpoints never go through the proxy
+- Evaluation without changing settings (admins only, nothing saved, no API key sent):
+  `` `jev_findings` | jevtriage endpoint="http://<host>:8081/v1/systemone" model="kev-4b" ``
+- Test server set-up: `tools/local-decision/` in the repository (llama.cpp build, models, systemd, test request)
 
 ## Decision guide (0.9.14)
 - Third column to the right of ES AI and Jev. A fixed table compares the two suggestions

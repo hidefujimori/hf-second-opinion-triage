@@ -1,0 +1,6 @@
+# CPU only: removes the GPU reservation (needs Docker Compose 2.24 or later for !reset). Use with LLAMA_IMAGE=ghcr.io/ggml-org/llama.cpp:server
+services:
+  kev:
+    deploy: !reset {}
+  clef-flash:
+    deploy: !reset {}
