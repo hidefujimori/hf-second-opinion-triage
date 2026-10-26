@@ -11,6 +11,8 @@ Options:
   ordercheck=false   skip the second call with reversed disposition options
   endpoint=<url> model=<name>   evaluation only (admins): use another System One server / model instead of
                      [jev] endpoint / model. No API key is sent to such an endpoint, and results cannot be persisted.
+  parallel=<1-8> timeout=<seconds>   override [jev] parallel / timeout for this search (e.g. a slow local
+                     model that serves one request at a time: parallel=1 timeout=180)
 """
 import json
 import os
@@ -42,6 +44,8 @@ class JevTriageCommand(StreamingCommand):
     auto = Option(require=False, validate=validators.Boolean(), default=False)
     endpoint = Option(require=False, default=None)
     model = Option(require=False, default=None)
+    parallel = Option(require=False, default=None, validate=validators.Integer(1, 8))
+    timeout = Option(require=False, default=None, validate=validators.Integer(5, 600))
 
     def _settings(self):
         s = {"model": "jev-1.13.0", "questions_file": "questions.json", "confidence_threshold": "0.60",
@@ -155,6 +159,10 @@ class JevTriageCommand(StreamingCommand):
                 raise RuntimeError("endpoint= / model= are for evaluation: persist=true and auto=true are not allowed")
             if self.endpoint and not str(self.endpoint).lower().startswith(("http://", "https://")):
                 raise RuntimeError("endpoint must start with http:// or https://")
+        if self.parallel:
+            s["parallel"] = str(self.parallel)
+        if self.timeout:
+            s["timeout"] = str(self.timeout)
         configured = s["endpoint"] or jev_client.API_URL
         if self.endpoint:
             s["endpoint"] = self.endpoint

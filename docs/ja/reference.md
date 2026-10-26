@@ -29,9 +29,11 @@
 
 | コマンド | 用途 |
 |---|---|
-| `jevtriage [persist=true] [auto=true] [dryrun=true] [enrich=false] [ordercheck=false]` | `` `jev_findings` `` の行をトリアージ |
+| `jevtriage [persist=true] [auto=true] [dryrun=true] [enrich=false] [ordercheck=false] [parallel=1-8] [timeout=秒]` | `` `jev_findings` `` の行をトリアージ |
+| `jevtriage endpoint=<URL> model=<名前>` | 設定を変えずに別の判定モデルを評価（管理者のみ、保存しない、キーは送らない） |
+| `jevguide [lang=en\|ja] [force=true] [persist=true]` | 判断ガイド（Jev と ES AI SOC Analyst の比較）を LLM で作成 |
 | `jevexplain [lang=en\|ja] [force=true] [persist=true] [auto=true min_urgency=… dispositions=…]` | `jev_triage_latest` の行の LLM 説明 |
-| `jevnote [lang=en\|ja] [force=true] [persist=true]` | ES の Finding に Note を書く |
+| `jevnote [lang=en\|ja] [force=true] [persist=true] [kind=guide]` | ES の Finding に Note を書く（提案、または判断ガイド） |
 | `jevcheck [target=jev\|llm\|all]` | 接続テスト（キーは出力しません） |
 | `jevqueue` | レスポンスアクションの依頼を処理（定期検索で使用） |
 
@@ -53,11 +55,41 @@
 | index `cim_modactions` | Finding ごとのレスポンスアクションの状態（`action_name=jev_triage`） |
 | ES の Note | 提案の文章。操作したユーザーの名前で書き込まれます |
 
+## Jev 以外の判定モデル（条件付き、0.9.15 以降）
+
+既定であり基準となるのは Jev です。同じ System One API の別サーバーを `[jev] endpoint`
+（Setup 画面 > TypeSafe Jev > エンドポイント）に設定できます。これまでに十分な結果が出たのは次の1つだけです。
+
+**Cloudflare Clef 27B**（`ggml-org/Clef-GGUF:Q4_K_M`、Apache 2.0）を llama.cpp の `/v1/systemone` で動かす場合、次の条件で使えます。
+
+| 条件 | 内容 |
+|---|---|
+| サーバー | `/v1/systemone` と Clef に対応した新しい llama.cpp。`-b 4096 -ub 4096` で起動（入力全体が1回に入る大きさが必要） |
+| Setup 画面 | エンドポイント `http://<ホスト>:<ポート>/v1/systemone`、モデル `clef-27b`、API キーは空（サーバーに `--api-key` を付けた場合はそのキー） |
+| 判別不可の基準（確信度） | 0.60 ではなく **0.45**。Clef の確信度は Jev より低めに出る |
+| ハードウェア | モデルは約 19 GB。24 GB 以上の NVIDIA GPU を推奨。48 GB の Apple Silicon Mac でも動くが1回約 20 秒: `[jev] parallel = 1`、`timeout = 180` にし、手動トリアージや少量向け |
+| 確認 | 使う前に、自分の環境の正解付き Finding で精度を確かめること |
+
+評価データ（BOTS v3 の Finding 33件、2026-10-26）:
+
+| モデル | Disposition（基準） | 最有力の判定 | FP / Benign の区別 | Urgency（±1） | 1回の時間 |
+|---|---|---|---|---|---|
+| Jev jev-1.13.0 | 32/33（0.60） | 31/33 | できる | 31/33（33/33） | 約 0.15 秒 |
+| Clef 27B Q4_K_M（Mac M4、48 GB） | 30/33（0.45）、23/33（0.60） | 32/33 | できる | 31/33（33/33） | 約 20 秒 |
+| Clef-Flash 9B | 19/33（0.60） | 30/33（ほぼ全件 TP） | できない | 24/33 | 約 0.6 秒 |
+| Kev-27B / 9B / 4B | 33件中 18 / 3 / 2 | 21 / 23 / 16 | 27B のみ | 28 / 15 / 15 | 27 / 0.9 / 0.5 秒 |
+
+Clef 27B が外した Finding（#5）と Urgency の2件（#22、#32）は Jev と同じでした。基準 0.45 は同じ33件で決めた値なので、
+出発点として扱ってください。推奨しない: Clef-Flash、Kev（全サイズ）。
+ローカルのサーバーなら、判定のために Finding の情報がネットワークの外に出ることはありません（LLM の説明は別の設定です）。
+検証用の資材はリポジトリの `tools/local-decision/`、詳細は `poc/decision-models/README.md`。
+
 ## Splunk の外に送るデータ
 
 - **TypeSafe Jev**（`api.typesafe.ai`）へ: Finding の英語の説明（ルール、項目、区分に変換した件数）と、
   情報収集で得た事実（アカウント名・ホスト名、分類、結果）。生のイベントは送りません。
 - **LLM** へ（説明するときだけ）: 同じ説明と Jev の提案。
+- ローカルの判定モデル（自前のサーバーを `[jev] endpoint` に設定）を使う場合、説明は TypeSafe ではなくそのサーバーに送ります。
 - 画面を開くだけでは何も送りません。
 
 ## トラブルシューティング
@@ -79,7 +111,7 @@
 
 ## 既知の制限（β版）
 
-- 検証は Splunk Enterprise 10.4.2 ＋ ES 8.7.1 のみ。Splunk Cloud は審査合格、実環境での動作は未検証
+- 検証は Splunk Enterprise 10.4.2 ＋ ES 8.7.1、および Splunk Cloud 10.4.2604 ＋ ES 8.7.0
   （[導入ガイド](install.md#splunk-cloud-での注意)を参照）。
 - 画面は Splunk 標準のページテンプレート（`pages/splunk_ui_app.html`）を使います。Splunk 9.x 系では未検証です。
 - 残っている AppInspect の警告: Response Queue が毎分動く（意図どおり）、同梱の Splunk SDK for Python が 2.1.1

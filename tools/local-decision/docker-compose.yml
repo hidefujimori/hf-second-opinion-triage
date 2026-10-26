@@ -29,6 +29,14 @@ services:
     container_name: llama-clef-flash
     command: ["-hf", "ggml-org/Clef-Flash-GGUF:Q4_K_M", "--host", "0.0.0.0", "--port", "8080", "-c", "16384", "-ngl", "99", "-b", "4096", "-ub", "4096", "--alias", "clef-flash"]
     ports: ["8082:8080"]
+  # Kev-9B (Q8_0, ~9.5 GB): start alone on a 16 GB GPU (docker compose stop kev clef-flash first)
+  #   docker compose --profile kev9 up -d kev-9b
+  kev-9b:
+    <<: *llama
+    container_name: llama-kev-9b
+    profiles: ["kev9"]
+    command: ["-hf", "ggml-org/Kev-9B-GGUF:Q8_0", "--host", "0.0.0.0", "--port", "8080", "-c", "8192", "-np", "1", "-ngl", "99", "-b", "4096", "-ub", "4096", "--alias", "kev-9b"]
+    ports: ["8083:8080"]
 
 volumes:
   llama-models:

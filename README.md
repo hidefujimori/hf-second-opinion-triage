@@ -15,6 +15,7 @@ written to the ES finding as a Note. ES fields are never changed: analysts decid
   models on Ollama and Apple Foundation Models (macOS `fm serve`)
 - Second opinion: the ES AI SOC Analyst result next to Jev's, with a decision guide that can be written to ES as a Note
 - Bulk re-run from the triage page
+- Decision model: TypeSafe Jev (default), or conditionally a local Cloudflare Clef 27B on llama.cpp (see the Reference)
 - Daily limits for automatic Jev and LLM use
 - Splunk Cloud: passes AppInspect cloud vetting and runs on Splunk Cloud
 

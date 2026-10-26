@@ -14,6 +14,7 @@ Splunk アプリ（`TA-jev-triage`）です。選んだ LLM に提案を口語�
   Apple Foundation Models（macOS の `fm serve`）も使えます
 - セカンドオピニオン: ES AI SOC Analyst の結果を Jev と並べて表示し、判断ガイドを Note として ES に書き込める
 - トリアージ画面からまとめて再トリアージ
+- 判定モデル: TypeSafe Jev（既定）、または条件付きでローカルの Cloudflare Clef 27B（llama.cpp、リファレンス参照）
 - 自動実行での Jev・LLM の1日の上限
 - Splunk Cloud 対応: AppInspect の Cloud 向け審査に合格し、Splunk Cloud で動作確認済み
 

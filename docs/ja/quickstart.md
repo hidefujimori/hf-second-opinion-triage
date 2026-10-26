@@ -83,6 +83,14 @@ Thinking level（`reasoning_effort` として送信）を設定するか、最�
 
 他のモデル、速度、トラブルシューティング: [導入ガイド > ローカルの LLM](install.md#ローカルの-llmollamaapple-foundation-models)
 
+### 任意: Jev の代わりにローカルの判定モデル
+
+推奨は Jev です。Finding の情報をネットワークの外に出せない場合は、自前の llama.cpp サーバーで動かす
+**Cloudflare Clef 27B** を、条件付きで Jev の代わりに使えます。Setup > TypeSafe Jev で、エンドポイント
+`http://<ホスト>:<ポート>/v1/systemone`、モデル `clef-27b`、判別不可の基準 **0.45** にし、24 GB 以上の GPU を用意します
+（48 GB の Mac でも動きますが遅いため、同時実行数 1、タイムアウト 180）。ほかに試したローカルのモデル（Clef-Flash、Kev）は推奨しません。
+条件と結果: [リファレンス > Jev 以外の判定モデル](reference.md#jev-以外の判定モデル条件付き0915-以降)。
+
 ## 3. アナリストが使えるようにする
 
 アナリストのロールに **`jev_triage_user`** ロールを追加します（設定 > ロール > *アナリストのロール* > 継承）。

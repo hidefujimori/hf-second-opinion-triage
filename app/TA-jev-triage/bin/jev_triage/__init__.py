@@ -1,2 +1,2 @@
 """Jev triage core: state building, enrichment, Jev client, policy."""
-__version__ = "0.9.15"
+__version__ = "0.9.17"

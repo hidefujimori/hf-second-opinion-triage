@@ -87,6 +87,14 @@ and answers come back empty, set Thinking level (sent as `reasoning_effort`) or 
 
 More models, timings and troubleshooting: [Installation guide > Local LLMs](install.md#local-llms-ollama-apple-foundation-models).
 
+### Optional: a local decision model instead of Jev
+
+Jev is recommended. If findings must not leave your network, **Cloudflare Clef 27B** on your own llama.cpp server can
+take Jev's place under conditions: Setup > TypeSafe Jev > Endpoint `http://<host>:<port>/v1/systemone`, Model `clef-27b`,
+Disposition confidence threshold **0.45**, and a GPU with 24 GB or more (a 48 GB Mac works but is slow: Parallel 1,
+Timeout 180). Other local models tested (Clef-Flash, Kev) are not recommended.
+Conditions and results: [Reference > Decision models other than Jev](reference.md#decision-models-other-than-jev-conditional-0915).
+
 ## 3. Let analysts use it
 
 Add the role **`jev_triage_user`** to your analyst roles (Settings > Roles > *your analyst role* >

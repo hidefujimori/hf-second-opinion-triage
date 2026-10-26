@@ -29,9 +29,11 @@ Keys: `storage/passwords`, realm `TA-jev-triage`, names `typesafe_api_key`, `llm
 
 | Command | Use |
 |---|---|
-| `jevtriage [persist=true] [auto=true] [dryrun=true] [enrich=false] [ordercheck=false]` | Triage rows of `` `jev_findings` `` |
+| `jevtriage [persist=true] [auto=true] [dryrun=true] [enrich=false] [ordercheck=false] [parallel=1-8] [timeout=s]` | Triage rows of `` `jev_findings` `` |
+| `jevtriage endpoint=<url> model=<name>` | Evaluate another decision model without changing settings (admins; not saved; no key sent) |
+| `jevguide [lang=en\|ja] [force=true] [persist=true]` | Decision guide (Jev vs ES AI SOC Analyst) written by the LLM |
 | `jevexplain [lang=en\|ja] [force=true] [persist=true] [auto=true min_urgency=… dispositions=…]` | LLM explanation of rows of `jev_triage_latest` |
-| `jevnote [lang=en\|ja] [force=true] [persist=true]` | Write a Note on the ES finding |
+| `jevnote [lang=en\|ja] [force=true] [persist=true] [kind=guide]` | Write a Note on the ES finding (the suggestion, or the decision guide) |
 | `jevcheck [target=jev\|llm\|all]` | Connection test (never prints keys) |
 | `jevqueue` | Works the response-action queue (scheduled) |
 
@@ -53,12 +55,42 @@ Examples:
 | index `cim_modactions` | Response-action status per finding (`action_name=jev_triage`) |
 | ES Notes | Text of the suggestion, written by the user who triggered it |
 
+## Decision models other than Jev (conditional, 0.9.15+)
+
+Jev is the default and the reference. Another server with the same System One API can be set as
+`[jev] endpoint` (Setup page > TypeSafe Jev > Endpoint). Only one has been found good enough so far:
+
+**Cloudflare Clef 27B** (`ggml-org/Clef-GGUF:Q4_K_M`, Apache 2.0) served by llama.cpp `/v1/systemone` — usable when:
+
+| Condition | Value |
+|---|---|
+| Server | llama.cpp with `/v1/systemone` and Clef support (recent build), started with `-b 4096 -ub 4096` (the batch must hold the whole input) |
+| Setup page | Endpoint `http://<host>:<port>/v1/systemone`, Model `clef-27b`, API key empty (or the server's `--api-key`) |
+| Confidence threshold | **0.45** instead of 0.60: Clef's confidence runs lower than Jev's |
+| Hardware | ~19 GB model: an NVIDIA GPU with 24 GB or more is recommended. A 48 GB Apple Silicon Mac works but takes ~20 s per call: set `[jev] parallel = 1` and `timeout = 180`, and use it for manual triage or small volumes only |
+| Check | Re-check accuracy with your own labelled findings before relying on it |
+
+Evaluation set (33 BOTS v3 findings, 2026-10-26):
+
+| Model | Disposition (threshold) | Most likely choice | FP / Benign told apart | Urgency (±1) | Time per call |
+|---|---|---|---|---|---|
+| Jev jev-1.13.0 | 32/33 (0.60) | 31/33 | yes | 31/33 (33/33) | ~0.15 s |
+| Clef 27B Q4_K_M (Mac M4, 48 GB) | 30/33 (0.45), 23/33 (0.60) | 32/33 | yes | 31/33 (33/33) | ~20 s |
+| Clef-Flash 9B | 19/33 (0.60) | 30/33 (almost all TP) | no | 24/33 | ~0.6 s |
+| Kev-27B / 9B / 4B | 18 / 3 / 2 of 33 | 21 / 23 / 16 | 27B only | 28 / 15 / 15 | 27 / 0.9 / 0.5 s |
+
+Clef 27B missed the same finding as Jev (#5) and the same two urgencies (#22, #32). The 0.45 threshold was chosen on
+the same 33 findings, so treat it as a starting point. Not recommended: Clef-Flash, Kev (any size).
+With a local server no finding data leaves your network for the decision (the LLM explanation is configured separately).
+Set-up files for tests: `tools/local-decision/` in the repository; details: `poc/decision-models/README.md`.
+
 ## Data sent outside Splunk
 
 - **To TypeSafe Jev** (`api.typesafe.ai`): an English description of the finding (rule, fields,
   bucketed counts) and the facts collected by enrichment (account / host names, categories,
   outcomes). No raw events.
 - **To the LLM** (only when explaining): the same description plus Jev's suggestion.
+- With a local decision model (`[jev] endpoint` on your own server) the description goes to that server instead of TypeSafe.
 - Nothing is sent when you only open the page.
 
 ## Troubleshooting
@@ -81,8 +113,8 @@ contains API keys, and the endpoint and proxy hosts are hidden.
 
 ## Known limitations (beta)
 
-- Tested on Splunk Enterprise 10.4.2 + ES 8.7.1 only. Splunk Cloud: vetting passes; behaviour on
-  a live stack not yet verified (see the [Installation guide](install.md#splunk-cloud-notes)).
+- Tested on Splunk Enterprise 10.4.2 + ES 8.7.1 and Splunk Cloud 10.4.2604 + ES 8.7.0 (see the
+  [Installation guide](install.md#splunk-cloud-notes)).
 - The pages use Splunk's built-in page template (`pages/splunk_ui_app.html`); older Splunk 9.x
   versions were not tested.
 - AppInspect warnings that remain: the Response Queue runs every minute (by design), the bundled

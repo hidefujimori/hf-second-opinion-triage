@@ -43,6 +43,14 @@ Decision models score the whole input in one pass: the physical batch size must 
 (`-b 4096 -ub 4096` in the commands; otherwise "input (N tokens) is too large to process").
 To require a key, add `"--api-key", "<key>"` to each `command` and put the same key in the app's Setup page.
 
+## Larger models
+
+- **Kev-9B on the 16 GB GPU** (alone): `docker compose stop kev clef-flash && docker compose --profile kev9 up -d kev-9b` → port 8083.
+- **27B models on an Apple Silicon Mac** (48 GB): `bash mac_llamacpp.sh clef27` (Clef 27B Q4_K_M, port 8084) or
+  `bash mac_llamacpp.sh kev27` (Kev-27B v2 Q4_K_M, community GGUF, port 8085). One model at a time; Homebrew llama.cpp,
+  Metal, `caffeinate` keeps the Mac awake. Allow incoming connections for llama-server when macOS asks.
+  For evaluation only: a desktop Mac is not a server.
+
 ## Option B: native build (steps below)
 
 ## Steps (on the test server, e.g. Ubuntu 172.26.1.20)

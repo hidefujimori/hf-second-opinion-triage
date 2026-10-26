@@ -1,11 +1,11 @@
-# TA-jev-triage 0.9.15 (prototype)
+# TA-jev-triage 0.9.17 (prototype)
 
 Triage Splunk Enterprise Security 8.7+ findings with TypeSafe Jev. Jev suggests a disposition
 (TP / FP / Benign / Undetermined) and an urgency (low / medium / high / critical). Analysts make
 the final decision in ES; this app does not change ES fields.
 
 ## Install (test environment)
-1. Apps > Manage Apps > Install app from file > `TA-jev-triage-0.9.15.spl`, then restart Splunk.
+1. Apps > Manage Apps > Install app from file > `TA-jev-triage-0.9.17.spl`, then restart Splunk.
 2. Open the app. The first time, it opens **Setup** (also in the app menu and in Manage Apps > Set up).
    Enter the Jev API key, the LLM provider, model and key, and where your CloudTrail and endpoint data
    are; Save; then **Test connection**. Keys go to storage/passwords (realm TA-jev-triage) and are
@@ -221,7 +221,14 @@ LLM explanations cost tokens, so automatic use is limited. Setup page > "Limits 
 - Plain-http endpoints never go through the proxy
 - Evaluation without changing settings (admins only, nothing saved, no API key sent):
   `` `jev_findings` | jevtriage endpoint="http://<host>:8081/v1/systemone" model="kev-4b" ``
-- Test server set-up: `tools/local-decision/` in the repository (llama.cpp build, models, systemd, test request)
+- 0.9.16: `jevtriage parallel=<1-8> timeout=<s>` for slow servers that serve one request at a time
+  (e.g. a 27B model on a Mac: `parallel=1 timeout=180`)
+- Test server set-up: `tools/local-decision/` in the repository (llama.cpp with Docker or a native build, Mac script, test request)
+- Evaluated (33 findings): only **Cloudflare Clef 27B** (Q4_K_M) comes close to Jev - most likely choice 32/33, FP and
+  Benign told apart, urgency 31/33 - with `confidence_threshold = 0.45` (30/33). Needs ~19 GB (GPU with 24 GB+, or a
+  48 GB Mac at ~20 s per call with parallel 1 / timeout 180). Clef-Flash and Kev are not recommended.
+  See docs/en/reference.md "Decision models other than Jev"
+- 0.9.17: the ES Note footer names the decision model actually used (it said "Jev" before)
 
 ## Decision guide (0.9.14)
 - Third column to the right of ES AI and Jev. A fixed table compares the two suggestions
