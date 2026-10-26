@@ -50,3 +50,38 @@ export async function search(spl, earliest = '', latest = '') {
 
 /** Quote a value for SPL. */
 export function q(v) { return `"${String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`; }
+
+/** Run a long search as a normal job (no HTTP timeout), poll until done, return its result rows. */
+export async function job(spl, { earliest = '', latest = '', onProgress = null, pollMs = 2000 } = {}) {
+  const params = { search: spl.startsWith('|') ? spl : `search ${spl}`, output_mode: 'json' };
+  if (earliest) { params.earliest_time = earliest; }
+  if (latest) { params.latest_time = latest; }
+  const base = createRESTURL('search/jobs', { app: APP, owner: username || 'nobody' });
+  const created = await parse(await fetch(base, init('POST', new URLSearchParams(params).toString(), 'application/x-www-form-urlencoded')));
+  const sid = created.sid;
+  const t0 = Date.now();
+  for (;;) {
+    await new Promise((r) => setTimeout(r, pollMs));   // eslint-disable-line no-await-in-loop
+    const st = await parse(await fetch(`${base}/${encodeURIComponent(sid)}?output_mode=json`, init('GET')));   // eslint-disable-line no-await-in-loop
+    const c = ((st.entry || [])[0] || {}).content || {};
+    if (onProgress) { onProgress(Math.round((Date.now() - t0) / 1000)); }
+    if (c.isFailed || (c.dispatchState === 'FAILED')) {
+      const m = (c.messages || []).map((x) => x.text).join(' ') || 'search failed';
+      throw new Error(m);
+    }
+    if (c.isDone) {
+      const res = await parse(await fetch(`${base}/${encodeURIComponent(sid)}/results?output_mode=json&count=0`, init('GET')));   // eslint-disable-line no-await-in-loop
+      const errs = (c.messages || []).filter((x) => x.type === 'FATAL' || x.type === 'ERROR').map((x) => x.text);
+      if (errs.length && !((res && res.results) || []).length) { throw new Error(errs.join(' ')); }
+      return (res && res.results) || [];
+    }
+  }
+}
+
+/** UTF-8 text -> base64 (for passing JSON to a search command option). */
+export function b64(text) {
+  const bytes = new TextEncoder().encode(text);
+  let s = '';
+  bytes.forEach((b) => { s += String.fromCharCode(b); });
+  return window.btoa(s);
+}

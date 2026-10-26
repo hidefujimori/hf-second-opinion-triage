@@ -17,3 +17,10 @@ access = read : [ * ], write : [ admin, sc_admin, ess_admin, ess_analyst, jev_tr
 
 [collections/jev_usage]
 access = read : [ * ], write : [ admin, sc_admin, ess_admin, ess_analyst, jev_triage_user ]
+
+# Support mode (prompts): everyone reads (triage uses the version in use), only admins write (through | jevprompt)
+[collections/jev_prompt_versions]
+access = read : [ * ], write : [ admin, sc_admin ]
+
+[collections/jev_prompt_state]
+access = read : [ * ], write : [ admin, sc_admin ]

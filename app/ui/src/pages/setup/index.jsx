@@ -15,6 +15,7 @@ import { useLang, ensureLocale } from '../../common/i18n';
 import { injectCss } from '../../common/styles';
 import { collect, download } from './support';
 import LangSwitch from '../../common/LangSwitch';
+import PromptPanel from './prompts';
 
 const REALM = APP;
 const L = {
@@ -323,6 +324,7 @@ function SetupPage({ theme }) {
           <tbody>{check.map((r) => (
             <tr key={r.target}>{[r.target === 'jev' ? 'Jev' : 'LLM', r.key_set, r.model, r.status, r.detail, r.latency_ms || ''].map((v, i) => <td key={i}>{v}</td>)}</tr>))}
           </tbody></table>)}
+      <PromptPanel lang={lang} />
       <h2 style={{ marginTop: 32 }}>{T.supTitle}</h2>
       <div className="hint">{T.supDesc}</div>
       <div className="jev-actions" style={{ margin: '10px 0' }}>

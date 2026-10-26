@@ -11,6 +11,8 @@ Options:
   ordercheck=false   skip the second call with reversed disposition options
   endpoint=<url> model=<name>   evaluation only (admins): use another System One server / model instead of
                      [jev] endpoint / model. No API key is sent to such an endpoint, and results cannot be persisted.
+  questions=<version id>|default   evaluation only (admins): use this version of the questions (support mode
+                     test) instead of the one in use for the model. Results cannot be persisted.
   parallel=<1-8> timeout=<seconds>   override [jev] parallel / timeout for this search (e.g. a slow local
                      model that serves one request at a time: parallel=1 timeout=180)
 """
@@ -27,7 +29,7 @@ sys.path.insert(0, HERE)
 from splunklib import results  # noqa: E402
 from splunklib.searchcommands import Configuration, Option, StreamingCommand, dispatch, validators  # noqa: E402
 
-from jev_triage import __version__, jev_client, persist, policy, settings, state, usage  # noqa: E402
+from jev_triage import __version__, jev_client, persist, policy, prompts_store, settings, state, usage  # noqa: E402
 from jev_triage.enrich import Enricher, load_templates  # noqa: E402
 
 APP = "TA-jev-triage"
@@ -46,6 +48,7 @@ class JevTriageCommand(StreamingCommand):
     model = Option(require=False, default=None)
     parallel = Option(require=False, default=None, validate=validators.Integer(1, 8))
     timeout = Option(require=False, default=None, validate=validators.Integer(5, 600))
+    questions = Option(require=False, default=None)
 
     def _settings(self):
         s = {"model": "jev-1.13.0", "questions_file": "questions.json", "confidence_threshold": "0.60",
@@ -62,13 +65,41 @@ class JevTriageCommand(StreamingCommand):
             self.logger.warning("jev_triage.conf not read: %s", e)
         return s
 
+    def _load_questions(self, s):
+        """The questions for this run: the version in use for the model (support mode), or the shipped file."""
+        default = prompts_store.load_default(s["questions_file"])
+        if self.questions and self.questions != "default":
+            v = prompts_store.kv_get(self.service, prompts_store.VERSIONS, self.questions)
+            if not v:
+                raise RuntimeError("questions version %s not found" % self.questions)
+            q = json.loads(v["content"])
+            errs = prompts_store.validate(q, default["questions"])
+            if errs:
+                raise RuntimeError("questions version %s: %s" % (self.questions, errs[0]))
+            return {"version": "%s+%s" % (v.get("base") or default.get("version"), self.questions), "questions": q}, ""
+        if self.questions == "default":
+            return default, ""
+        qset, warn = prompts_store.questions_for(self.service, s["model"], default)
+        if warn:
+            self.logger.warning(warn)
+        return qset, warn
+
     def _api_key(self):
         return settings.jev_api_key(self.service)
 
     def _run_spl(self, spl, earliest, latest):
-        stream = self.service.jobs.oneshot(spl, earliest_time=earliest, latest_time=latest,
-                                           output_mode="json", count=0)
-        return [r for r in results.JSONResultsReader(stream) if isinstance(r, dict)]
+        # Busy search heads refuse new searches ("maximum number of concurrent historical searches"):
+        # wait and retry, so that facts are not silently missing from the state.
+        for attempt in range(6):
+            try:
+                stream = self.service.jobs.oneshot(spl, earliest_time=earliest, latest_time=latest,
+                                                   output_mode="json", count=0)
+                return [r for r in results.JSONResultsReader(stream) if isinstance(r, dict)]
+            except Exception as e:
+                if attempt < 5 and ("concurrent" in str(e) or "503" in str(e)):
+                    time.sleep(1.5 * (attempt + 1))
+                    continue
+                raise
 
     def _budget_ok(self):
         """Count this finding; False when the daily limit for automatic runs is reached."""
@@ -91,6 +122,8 @@ class JevTriageCommand(StreamingCommand):
         out = dict(rec)
         out.update({"jev_version": __version__, "jev_model": s["model"], "jev_questions": qset.get("version"),
                     "jev_time": int(time.time())})
+        if self._q_warn:
+            out["jev_enrich_errors"] = self._q_warn
         try:
             t0 = time.time()
             facts, related = enricher.collect(rec) if enricher else ([], [])
@@ -98,7 +131,7 @@ class JevTriageCommand(StreamingCommand):
             st = state.build_state(rec, facts, related)
             out["jev_state"] = json.dumps(st, ensure_ascii=False)
             if enricher and enricher.errors:
-                out["jev_enrich_errors"] = " | ".join(enricher.errors[-3:])
+                out["jev_enrich_errors"] = " | ".join(([self._q_warn] if self._q_warn else []) + enricher.errors[-3:])
             if self.dryrun:
                 out["jev_status"] = "dryrun"
                 return out
@@ -147,16 +180,12 @@ class JevTriageCommand(StreamingCommand):
         truthy = lambda v: str(v).lower() in ("1", "true", "yes")
         do_enrich = truthy(s["enrichment_enabled"]) if self.enrich is None else self.enrich
         do_order = truthy(s["order_check"]) if self.ordercheck is None else self.ordercheck
-        with open(os.path.join(HERE, "jev_triage", s["questions_file"]), encoding="utf-8") as fh:
-            qset = json.load(fh)
-        Q = qset["questions"]
-        Qrev = policy.reversed_disposition(Q)
         enricher = Enricher(self._run_spl, load_templates(), s["shared_entities"].split(","), int(s["max_facts"])) if do_enrich else None
-        if self.endpoint or self.model:   # evaluation of another decision model
+        if self.endpoint or self.model or self.questions:   # evaluation of another decision model / questions
             if not settings.can_admin(self.service):
-                raise RuntimeError("endpoint= / model= are for admins (edit_storage_passwords or admin_all_objects)")
+                raise RuntimeError("endpoint= / model= / questions= are for admins (edit_storage_passwords or admin_all_objects)")
             if self.persist or self.auto:
-                raise RuntimeError("endpoint= / model= are for evaluation: persist=true and auto=true are not allowed")
+                raise RuntimeError("endpoint= / model= / questions= are for evaluation: persist=true and auto=true are not allowed")
             if self.endpoint and not str(self.endpoint).lower().startswith(("http://", "https://")):
                 raise RuntimeError("endpoint must start with http:// or https://")
         if self.parallel:
@@ -168,6 +197,9 @@ class JevTriageCommand(StreamingCommand):
             s["endpoint"] = self.endpoint
         if self.model:
             s["model"] = self.model
+        qset, self._q_warn = self._load_questions(s)
+        Q = qset["questions"]
+        Qrev = policy.reversed_disposition(Q)
         if self.dryrun:
             key = None
         elif self.endpoint and self.endpoint != configured:

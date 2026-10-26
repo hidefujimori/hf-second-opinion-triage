@@ -17,6 +17,7 @@ written to the ES finding as a Note. ES fields are never changed: analysts decid
 - Bulk re-run from the triage page
 - Decision model: TypeSafe Jev (default), or conditionally a local Cloudflare Clef 27B on llama.cpp (see the Reference)
 - Daily limits for automatic Jev and LLM use
+- Support mode (0.10.0): admins can edit the wording of the Jev questions for a limited time, per decision model, with versioning, a test before applying, export / import and an audit log
 - Splunk Cloud: passes AppInspect cloud vetting and runs on Splunk Cloud
 
 ## Documentation

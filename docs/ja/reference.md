@@ -31,6 +31,8 @@
 |---|---|
 | `jevtriage [persist=true] [auto=true] [dryrun=true] [enrich=false] [ordercheck=false] [parallel=1-8] [timeout=秒]` | `` `jev_findings` `` の行をトリアージ |
 | `jevtriage endpoint=<URL> model=<名前>` | 設定を変えずに別の判定モデルを評価（管理者のみ、保存しない、キーは送らない） |
+| `jevtriage questions=<版 ID>\|default` | 指定した版の Jev の質問でトリアージ（管理者のみ、保存しない、サポートモードの試験で使用） |
+| `jevprompt action=status\|support_on\|support_off\|get\|save\|test\|apply\|revert\|export\|import\|evalset_prompt` | Jev の質問のサポートモード（下記）。`status` 以外は管理者のみ |
 | `jevguide [lang=en\|ja] [force=true] [persist=true]` | 判断ガイド（Jev と ES AI SOC Analyst の比較）を LLM で作成 |
 | `jevexplain [lang=en\|ja] [force=true] [persist=true] [auto=true min_urgency=… dispositions=…]` | `jev_triage_latest` の行の LLM 説明 |
 | `jevnote [lang=en\|ja] [force=true] [persist=true] [kind=guide]` | ES の Finding に Note を書く（提案、または判断ガイド） |
@@ -52,8 +54,45 @@
 | KV ストア `jev_usage` | 日ごとの件数（`jev_auto`、`jev_manual`、`llm_auto`、`llm_manual`） |
 | KV ストア `jev_triage_queue` | 検知からの依頼。完了した依頼は1日後に削除 |
 | index `jev_triage` | 履歴（自動実行は `jev:triage:result`、再トリアージは `jev:triage:json`） |
+| KV ストア `jev_prompt_versions` | 編集した Jev の質問の版（サポートモード） |
+| KV ストア `jev_prompt_state` | サポートモードの状態と、判定モデルごとの使用中の版 |
+| index `jev_triage` sourcetype `jev:prompt:audit` | 誰が、いつ、なぜ、どの版でサポートモードの開始・保存・試験・適用・戻す・書き出し・読み込みを行ったか |
 | index `cim_modactions` | Finding ごとのレスポンスアクションの状態（`action_name=jev_triage`） |
 | ES の Note | 提案の文章。操作したユーザーの名前で書き込まれます |
+
+## Jev の質問の編集（サポートモード、0.10.0 以降）
+
+Jev に送る質問（`bin/jev_triage/questions.json`）には鍵がかかっています。サポートで文言を変える必要があるときは、
+管理者（`edit_storage_passwords` または `admin_all_objects`）が **Setup >「プロンプト（サポート用）」** を開きます。
+
+1. 理由と期限（既定 4 時間、最大 24 時間）を入れて **サポートモードを開始**。期限が来るか「サポートモードを終了」を押すと
+   鍵が戻ります。適用済みの版はそのまま使われます。
+2. 既定の質問か保存済みの版を元に **編集** して **下書きを保存**。変えられるのは文言だけです（`instructions`、選択肢の説明、
+   Urgency の各段階の `what` と `examples`、yes/no の基準）。質問の名前と種類、選択肢のキー（`true_positive` など）、
+   Urgency の4段階は、提案のルールが前提にしているため既定のままです。文言は英語（ASCII）のみ、上限は instructions 500 字、
+   ほかの文 300 字、質問全体 6,000 字です。
+3. **試験**: 試験用の各 Finding を、使用中の版と下書きの両方でトリアージします（1件あたり Jev を4回、手動の利用として数えます）。
+   `jev_eval_set.csv` があれば変更前後の正解数を表示し、**TP の見逃しが増える下書きは適用できません**。ない場合は直近に
+   トリアージした33件で、変わった件を一覧にします。
+4. **適用**（理由が必要）。新しいトリアージ結果に版が記録されます（例 `jev_questions =
+   q-2026-10-06-r2a+c-20261026-153000`）。独自の質問を使っている間は、トリアージ画面の上部に表示が出ます。
+   **既定に戻す** は、サポートモードが終了していても管理者ならいつでも使えます。
+
+版は判定モデルごとです（保存したときの `[jev] model` の値。例 `jev-1.13.0`、`clef-27b`）。トリアージは使用中のモデル向けに
+適用した版だけを使い、ほかのモデルは既定の質問のままです。試験は設定済みのエンドポイントで行うため、別のモデル向けの版は
+`[jev]` をそのモデルに切り替えてから試験します。使用中の版が読めない、またはチェックに合わなくなった場合は既定の質問に
+戻してトリアージを続け、理由を `jev_enrich_errors` に残します。
+
+**書き出し・読み込み**: 「書き出し」で版を JSON（質問、モデル、元の版、ハッシュ、作成者、理由、試験結果）としてダウンロード
+できます。別の環境で「読み込み」すると、ハッシュと構造を確認して下書きとして追加します。適用するには試験が必要です。
+診断ファイルにも、使用中の版（書き出しと同じ形式）と直近30日の監査記録が入ります。
+
+**試験の正解表（`jev_eval_set.csv`）**: 正解はお客様のデータで変わるため同梱していません。列
+`finding_id,disposition,urgency,note`（disposition は `TP` / `FP` / `Benign` / `Undetermined`、urgency は
+`low` / `medium` / `high` / `critical`）の CSV を作り、設定 > ルックアップ > ルックアップテーブルファイル（アプリ
+TA-jev-triage）にアップロードしてください。作り始めるときは「正解表を作る LLM 用プロンプトを作成」で、直近にトリアージした
+33件の事実（Jev に送った事実。Jev の回答は含みません）入りのプロンプトをコピーし、LLM に貼って、**全行を自分で確認してから**
+CSV をアップロードします。自分でプロンプトを組み立てる場合は `bin/jev_triage/prompts/evalset_ja.txt`（英語は `_en`）を使えます。
 
 ## Jev 以外の判定モデル（条件付き、0.9.15 以降）
 

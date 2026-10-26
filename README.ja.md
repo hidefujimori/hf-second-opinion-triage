@@ -16,6 +16,7 @@ Splunk アプリ（`TA-jev-triage`）です。選んだ LLM に提案を口語�
 - トリアージ画面からまとめて再トリアージ
 - 判定モデル: TypeSafe Jev（既定）、または条件付きでローカルの Cloudflare Clef 27B（llama.cpp、リファレンス参照）
 - 自動実行での Jev・LLM の1日の上限
+- サポートモード（0.10.0）: 管理者が期限付きで Jev の質問の文言を判定モデルごとに編集できる（版管理、適用前の試験、書き出し・読み込み、監査ログ）
 - Splunk Cloud 対応: AppInspect の Cloud 向け審査に合格し、Splunk Cloud で動作確認済み
 
 ## ドキュメント

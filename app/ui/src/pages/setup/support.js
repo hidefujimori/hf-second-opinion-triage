@@ -88,6 +88,27 @@ export async function collect({ hours = 24, onStep = () => {} } = {}) {
     return { list, runs_in_period: runs };
   });
 
+  // Support mode (prompts): versions in use per model, in the export format, with their diff and the audit log
+  await step('prompts', async () => {
+    const rows = await search('| jevprompt action=status');
+    const active = rows.filter((r) => r.row === 'active');
+    const inUse = [];
+    for (const a of active) {   // eslint-disable-line no-restricted-syntax
+      try {
+        const v = await rest(`storage/collections/data/jev_prompt_versions/${encodeURIComponent(a.id)}`);   // eslint-disable-line no-await-in-loop
+        inUse.push({ model: a.model, applied_by: a.applied_by, applied_at: a.applied_at, diff: JSON.parse(v.diff || '[]'),
+          export: { format: 'jev-triage-questions/1', id: v._key, kind: v.kind, model: v.model, base: v.base, hash: v.hash, author: v.author,
+            created: v.created, reason: v.reason, status: v.status, test: v.test, questions: JSON.parse(v.content) } });
+      } catch (e) { inUse.push({ model: a.model, id: a.id, error: e.message }); }
+    }
+    let audit = [];
+    try {
+      audit = await search(`search index=jev_triage sourcetype=jev:prompt:audit earliest=-30d | head 50 | eval time=strftime(_time, "%F %T %z")`
+        + ' | table time action user id model reason summary blocked previous');
+    } catch (e) { audit = { error: e.message }; }
+    return { state: rows.find((r) => r.row === 'state'), in_use: inUse, versions: rows.filter((r) => r.row === 'version'), audit_30d: audit };
+  });
+
   await step('results_summary', async () => search('| inputlookup jev_triage_latest'
     + ' | eval explain=replace(coalesce(jev_explain_status,"-"), ":.*", ""), note=replace(coalesce(jev_note_status,"-"), ":.*", "")'
     + ' | stats count by jev_status explain note'));

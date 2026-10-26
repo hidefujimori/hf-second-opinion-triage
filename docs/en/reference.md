@@ -31,6 +31,8 @@ Keys: `storage/passwords`, realm `TA-jev-triage`, names `typesafe_api_key`, `llm
 |---|---|
 | `jevtriage [persist=true] [auto=true] [dryrun=true] [enrich=false] [ordercheck=false] [parallel=1-8] [timeout=s]` | Triage rows of `` `jev_findings` `` |
 | `jevtriage endpoint=<url> model=<name>` | Evaluate another decision model without changing settings (admins; not saved; no key sent) |
+| `jevtriage questions=<version id>\|default` | Triage with a given version of the Jev questions (admins; not saved; used by the support-mode test) |
+| `jevprompt action=status\|support_on\|support_off\|get\|save\|test\|apply\|revert\|export\|import\|evalset_prompt` | Support mode for the Jev questions (see below). Everything but `status` is for admins |
 | `jevguide [lang=en\|ja] [force=true] [persist=true]` | Decision guide (Jev vs ES AI SOC Analyst) written by the LLM |
 | `jevexplain [lang=en\|ja] [force=true] [persist=true] [auto=true min_urgency=… dispositions=…]` | LLM explanation of rows of `jev_triage_latest` |
 | `jevnote [lang=en\|ja] [force=true] [persist=true] [kind=guide]` | Write a Note on the ES finding (the suggestion, or the decision guide) |
@@ -52,8 +54,49 @@ Examples:
 | KV store `jev_usage` | Daily counters (`jev_auto`, `jev_manual`, `llm_auto`, `llm_manual`) |
 | KV store `jev_triage_queue` | Requests from detections; done requests are removed after a day |
 | index `jev_triage` | History (`jev:triage:result` from automatic runs, `jev:triage:json` from Re-run) |
+| KV store `jev_prompt_versions` | Edited versions of the Jev questions (support mode) |
+| KV store `jev_prompt_state` | Support mode on/off and the version in use per decision model |
+| index `jev_triage` sourcetype `jev:prompt:audit` | Who started support mode, saved, tested, applied, reverted, exported or imported which version, when and why |
 | index `cim_modactions` | Response-action status per finding (`action_name=jev_triage`) |
 | ES Notes | Text of the suggestion, written by the user who triggered it |
+
+## Editing the Jev questions (support mode, 0.10.0+)
+
+The questions sent to Jev (`bin/jev_triage/questions.json`) are locked. When support needs to change their wording,
+an admin (`edit_storage_passwords` or `admin_all_objects`) opens **Setup > Prompts (support)**:
+
+1. **Start support mode** with a reason and a time limit (default 4 hours, at most 24). The lock comes back when the
+   time is up or someone clicks *End support mode*. Versions already applied stay in use.
+2. **Edit** from the shipped questions or from a saved version, and **Save draft**. Only the texts can change:
+   `instructions`, the choice descriptions, the urgency levels (`what`, `examples`) and the yes/no criteria.
+   Question names and types, the choice keys (`true_positive` …) and the four urgency levels stay as shipped,
+   because the suggestion rules depend on them. Texts must be English (ASCII); limits: 500 characters for
+   instructions, 300 for other texts, 6,000 for all questions.
+3. **Test**: every test finding is triaged with the version in use and with the draft (Jev is called 4 times per
+   finding; counted as manual use). With `jev_eval_set.csv` the result shows correct dispositions and urgencies
+   before and after; **a draft that misses more TP findings cannot be applied**. Without it, the last 33 triaged
+   findings are used and the changes are listed.
+4. **Apply** (reason required). New triage results record the version, e.g. `jev_questions =
+   q-2026-10-06-r2a+c-20261026-153000`, and the triage page shows a banner while custom questions are in use.
+   **Back to shipped** is always available to admins, also when support mode is off.
+
+Versions belong to a decision model (the `[jev] model` value when they are saved, e.g. `jev-1.13.0` or `clef-27b`).
+Triage uses only the version applied for the model in use; other models keep the shipped questions. A test runs
+on the configured endpoint, so a version for another model is tested after switching `[jev]` to that model.
+If the version in use cannot be read or no longer passes the checks, triage falls back to the shipped questions
+and records the reason in `jev_enrich_errors`.
+
+**Export / import**: *Export* downloads a version as JSON (questions, model, base, hash, author, reason, test result).
+*Import* on another environment checks the hash and the structure and adds it as a draft, which must be tested
+before it can be applied. The diagnostics file includes the versions in use (in the export format) and the last
+30 days of the audit log.
+
+**Test answers (`jev_eval_set.csv`)**: not shipped, because the answers depend on your data. Create a CSV with the
+columns `finding_id,disposition,urgency,note` (disposition `TP` / `FP` / `Benign` / `Undetermined`, urgency
+`low` / `medium` / `high` / `critical`) and upload it in Settings > Lookups > Lookup table files, app TA-jev-triage.
+To start it, *Make LLM prompt for test answers* copies a prompt with the facts of the last 33 triaged findings
+(the same facts sent to Jev, not Jev's answers); paste it into an LLM, **check every row yourself**, then upload
+the CSV. The prompt is in `bin/jev_triage/prompts/evalset_en.txt` (and `_ja`) if you prefer to build it yourself.
 
 ## Decision models other than Jev (conditional, 0.9.15+)
 

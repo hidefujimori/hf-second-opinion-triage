@@ -479,6 +479,14 @@ function TriagePage({ theme }) {
   const [checked, setChecked] = useState(() => new Set());
   const [ai, setAi] = useState({});
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [pstate, setPstate] = useState(null);   // support mode / custom questions in use
+  useEffect(() => {
+    search('| jevprompt action=status | where row="state" OR row="active"').then((rs) => {
+      const st = rs.find((r) => r.row === 'state') || {};
+      const act = rs.find((r) => r.row === 'active' && r.model === st.model_in_use);
+      setPstate({ st, act });
+    }, () => setPstate(null));
+  }, []);
 
   const load = useCallback(() => {
     setErr(''); setRows(null);
@@ -518,6 +526,8 @@ function TriagePage({ theme }) {
         <div><h1>{T.title}</h1><div className="desc">{T.desc}</div></div>
         <LangSwitch lang={lang} onChange={setLang} />
       </div>
+      {pstate && pstate.act && <Message type="warning">{fmt(T.customQ, { id: pstate.act.id, model: pstate.act.model, by: pstate.act.applied_by })}</Message>}
+      {pstate && pstate.st.support_on === '1' && <Message type="info">{fmt(T.supportOn, { t: new Date(Number(pstate.st.support_expires) * 1000).toLocaleString(), by: pstate.st.support_by })}</Message>}
       <Filters T={T} f={f} setF={setF} onRefresh={load} hasAi={Object.keys(ai).length > 0} />
       {err && <Message type="error">{err}</Message>}
       <Tiles T={T} rows={rows || []} f={f} setF={setF} />
