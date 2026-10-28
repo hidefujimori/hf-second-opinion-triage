@@ -13,19 +13,20 @@ import LangSwitch from '../../common/LangSwitch';
 import { TEXT } from './text';
 import { EsAiColumn, loadAiIndex, compare } from './esai';
 import { verdict } from './guide';
+import { modelLabel, localize } from '../../common/model';
 
 const URG = ['critical', 'high', 'medium', 'low'];
 const DISP = ['TP', 'FP', 'Benign', 'Undetermined'];
 
 const LIST_SPL = 'search `notable`'
-  + ' | lookup jev_triage_latest event_id OUTPUT jev_status jev_error jev_disposition jev_disposition_raw jev_disposition_confidence jev_es_disposition'
+  + ' | lookup jev_triage_latest event_id OUTPUT jev_status jev_error jev_model jev_disposition jev_disposition_raw jev_disposition_confidence jev_es_disposition'
   + ' jev_urgency jev_urgency_confidence jev_escalate jev_tactic jev_policy jev_time jev_rerun_count'
   + ' | where isnotnull(jev_status)'
   + ' | eval analyst_decided=if(disposition_default="false" OR status_label IN ("Resolved","Closed"), 1, 0)'
   + ' | eval agree=case(analyst_decided=0, null(), jev_es_disposition=disposition, 1, true(), 0)'
   + ' | eval entity=coalesce(user, src, dest, risk_object)'
   + ' | table _time event_id rule_name security_domain entity urgency disposition_label status_label analyst_decided agree'
-  + ' jev_status jev_error jev_disposition jev_disposition_raw jev_disposition_confidence jev_urgency jev_urgency_confidence jev_escalate jev_tactic jev_policy jev_time jev_rerun_count'
+  + ' jev_status jev_error jev_model jev_disposition jev_disposition_raw jev_disposition_confidence jev_urgency jev_urgency_confidence jev_escalate jev_tactic jev_policy jev_time jev_rerun_count'
   + ' | head 1000';
 
 // ---------- small helpers ----------
@@ -436,7 +437,9 @@ function GuideColumn({ T, lang, id, listRow, ai }) {
 }
 
 // ---------- detail: ES AI (left), Jev (middle), decision guide (right) ----------
-function Detail({ T, lang, id, listRow, onClose, onChanged }) {
+function Detail({ lang, id, listRow, mcfg, onClose, onChanged }) {
+  // texts name the model that produced this result (Jev, Clef 27B, ...)
+  const T = useMemo(() => localize(TEXT[lang], modelLabel(listRow.jev_model, mcfg)), [lang, listRow.jev_model, mcfg]);
   const [ai, setAi] = useState(null);
   const u = listRow.jev_status === 'ok' ? listRow.jev_urgency : '';
   const c = ai ? compare(listRow.jev_disposition, listRow.jev_disposition_raw, ai.has ? ai.cat : '') : null;
@@ -527,7 +530,11 @@ function AutoRun({ T, id, onDone, onCancel }) {
 // ---------- page ----------
 function TriagePage({ theme }) {
   const [lang, setLang] = useLang();
-  const T = TEXT[lang];
+  const [mcfg, setMcfg] = useState({});
+  useEffect(() => {
+    rest('configs/conf-jev_triage/jev').then((d) => setMcfg((((d || {}).entry || [])[0] || {}).content || {}), () => {});
+  }, []);
+  const T = useMemo(() => localize(TEXT[lang], modelLabel('', mcfg)), [lang, mcfg]);
   const [f, setF] = useState({ time: '-90d', disp: '*', urg: '*', conf: '0', es: '*', ai: '*', text: '' });
   const [rows, setRows] = useState(null);
   const [err, setErr] = useState('');
@@ -596,7 +603,7 @@ function TriagePage({ theme }) {
         <div className="jev-list">{rows == null ? <div className="jev-empty">{T.loading}</div>
           : <FindingsTable T={T} rows={shown} sel={sel} onSelect={setSel} checked={checked} setChecked={setChecked} lock={bulkBusy}
             ai={Object.keys(ai).length ? ai : null} />}</div>
-        {sel && <Detail key={`${sel}-${detailKey}`} T={T} lang={lang} id={sel} listRow={listRow} onClose={() => setSel(null)} onChanged={load} />}
+        {sel && <Detail key={`${sel}-${detailKey}`} lang={lang} id={sel} listRow={listRow} mcfg={mcfg} onClose={() => setSel(null)} onChanged={load} />}
       </div>
     </div>
   );

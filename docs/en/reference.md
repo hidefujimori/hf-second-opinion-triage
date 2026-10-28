@@ -8,6 +8,7 @@ Normally changed on the Setup page. Defaults are in `default/jev_triage.conf`; c
 |---|---|---|
 | `[jev] endpoint` | `https://api.typesafe.ai/v1/systemone` | TypeSafe Jev, or another server with the same System One API (e.g. llama.cpp `http://<host>:8081/v1/systemone`; API key optional). Questions are sent in a compatible form to non-TypeSafe servers (0.9.15) |
 | `[jev] model` | `jev-1.13.0` | Jev model (pinned) |
+| `[jev] display_name` | empty | Name shown for the decision model in pages, Notes, guides and LLM prompts; empty = automatic from the model (`jev-*` → Jev, `clef-27b` → Clef 27B). Each result is shown with the model that made it |
 | `[jev] confidence_threshold` | 0.60 | Below this the disposition is Undetermined |
 | `[jev] escalation_floor` | 0.80 | If Jev's "should be escalated" is at or above this, urgency is at least High |
 | `[jev] rollup_urgency_cap` | high | Highest urgency for risk / finding-group roll-ups |

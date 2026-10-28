@@ -179,16 +179,20 @@ CAUTION = {
 
 
 def note_text(rec, ai, v, lang="en"):
+    from . import modelname
     lang = lang if lang in L else "en"
-    t = L[lang]
-    lines = ["%s: %s" % (t["verdict"], VERDICT[lang][v["key"]]),
+    name = rec.get("jev_model_label") or modelname.label(rec.get("jev_model"))
+    t = modelname.localize(L[lang], name)
+    VERDICT_ = {lang: modelname.localize(VERDICT[lang], name)}
+    CAUTION_ = {lang: modelname.localize(CAUTION[lang], name)}
+    lines = ["%s: %s" % (t["verdict"], VERDICT_[lang][v["key"]]),
              "- %s: %s / %s (%s %s)" % (t["jev"], note.DISP.get(lang, note.DISP["en"]).get(rec.get("jev_disposition"), rec.get("jev_disposition")), (rec.get("jev_urgency") or "").capitalize(), t["conf"], rec.get("jev_disposition_confidence")),
              "- %s: %s / %s (%s %s)" % (t["ai"], ai.get("label") or "-", (ai.get("severity") or "-").capitalize(), t["conf"], ai.get("confidence") or "-"),
              "%s: %s" % (t["action"], ACTION[lang][v["priority"]])]
     if v.get("action_urgency"):
         lines.append("%s: %s" % (t["urg"], v["action_urgency"].capitalize()))
     if v["cautions"]:
-        lines.append("%s: %s" % (t["caution"], " / ".join(CAUTION[lang][c] for c in v["cautions"])))
+        lines.append("%s: %s" % (t["caution"], " / ".join(CAUTION_[lang][c] for c in v["cautions"])))
     if rec.get("jev_guide") and rec.get("jev_guide_for") == rec.get("jev_time"):
         lines += ["", "%s:" % t["guide"], rec["jev_guide"]]
     lines += ["", t["foot"]]

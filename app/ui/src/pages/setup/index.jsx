@@ -31,7 +31,7 @@ const L = {
     check: 'Check: ', proxyPw: 'Proxy URL must not contain user:password@', unsaved: 'Not saved yet. Click Save, then Test connection.', testUnsaved: 'Save first: Test connection uses the saved settings.', badUrl: ' must start with http:// or https://', urlEx: ' (e.g. http://<host>:11434/v1)', noCap: 'Your role cannot save keys (needs edit_storage_passwords or admin_all_objects). You can view settings.',
     loadFail: 'Could not load settings: ', aclFail: 'Could not share these keys with the jev_triage_user role: ', none: '(none)', cols: ['Target', 'Key', 'Model', 'Status', 'Detail', 'ms'],
     sections: {
-      jev: ['TypeSafe Jev', 'Jev suggests the disposition and urgency. The Splunk search head must reach https://api.typesafe.ai (or the endpoint below). Keys can be read by admins and the role jev_triage_user (give that role to your analysts).'],
+      jev: ['Decision model (TypeSafe Jev or compatible)', 'Jev suggests the disposition and urgency. The Splunk search head must reach https://api.typesafe.ai (or the endpoint below). Keys can be read by admins and the role jev_triage_user (give that role to your analysts).'],
       enrichment: ['Enrichment', 'Facts collected with SPL before asking Jev. Point the macros at your indexes; the default index=* is slow.'],
       llm: ['LLM explanation', 'Used only when someone clicks Explain. Choose any provider; the credential is stored per app.'],
       note: ['Notes on ES findings', ''],
@@ -41,6 +41,7 @@ const L = {
     usage: 'Used today', usageCols: ['Jev (automatic)', 'Jev (manual)', 'LLM explanations (automatic)', 'LLM explanations (manual)'], usageNone: 'Nothing counted yet today.',
     f: {
       typesafe_api_key: 'Jev API key', model: 'Model|Pinned version. Change only after re-checking accuracy.',
+      jev_display_name: 'Display name|Name shown for this model in the pages, Notes and guides. Empty = automatic (jev-* → Jev, clef-27b → Clef 27B). Results keep the name of the model that made them.',
       jev_api_endpoint: 'Endpoint|TypeSafe: https://api.typesafe.ai/v1/systemone (default). Another server with the same System One API, e.g. llama.cpp: http://<host>:8081/v1/systemone (the API key may be empty). Re-check accuracy before switching.',
       confidence_threshold: 'Confidence threshold|Below this, the disposition is Undetermined (0–1)',
       escalation_floor: 'Escalation floor|requires_escalation at or above this raises urgency to at least High (0–1)',
@@ -73,7 +74,7 @@ const L = {
     check: '確認してください: ', proxyPw: 'プロキシの URL に user:password@ を含めないでください', unsaved: '変更はまだ保存されていません。保存してから接続テストを行ってください。', testUnsaved: '先に保存してください（接続テストは保存済みの設定を使います）。', badUrl: ' は http:// または https:// で始めてください', urlEx: '（例: http://<ホスト>:11434/v1）', noCap: 'このロールではキーを保存できません（edit_storage_passwords または admin_all_objects が必要）。設定の表示はできます。',
     loadFail: '設定を読み込めませんでした: ', aclFail: '次のキーを jev_triage_user ロールに共有できませんでした: ', none: '（なし）', cols: ['対象', 'キー', 'モデル', '状態', '詳細', 'ms'],
     sections: {
-      jev: ['TypeSafe Jev', 'Jev が Disposition と Urgency を提案します。Splunk の検索ヘッドから https://api.typesafe.ai（または下のエンドポイント）に接続できる必要があります。キーを読めるのは管理者と jev_triage_user ロールです（アナリストのロールにこのロールを追加してください）。'],
+      jev: ['判定モデル（TypeSafe Jev または互換モデル）', 'Jev が Disposition と Urgency を提案します。Splunk の検索ヘッドから https://api.typesafe.ai（または下のエンドポイント）に接続できる必要があります。キーを読めるのは管理者と jev_triage_user ロールです（アナリストのロールにこのロールを追加してください）。'],
       enrichment: ['Enrichment（情報収集）', 'Jev に聞く前に SPL で集める情報です。マクロを実際の index に向けてください（既定の index=* は遅くなります）。'],
       llm: ['LLM による説明', '「LLM で説明」を押したときだけ使います。プロバイダは選べます。資格情報はアプリごとに保存されます。'],
       note: ['ES の Finding への Note', ''],
@@ -83,6 +84,7 @@ const L = {
     usage: '本日の使用量', usageCols: ['Jev（自動）', 'Jev（手動）', 'LLM 説明（自動）', 'LLM 説明（手動）'], usageNone: '本日はまだ使用していません。',
     f: {
       typesafe_api_key: 'Jev の API キー', model: 'モデル|固定の版です。精度を再確認してから変更してください。',
+      jev_display_name: '表示名|画面・Note・ガイドに出すこのモデルの名前。空欄 = 自動（jev-* → Jev、clef-27b → Clef 27B）。過去の結果は、その結果を作ったモデルの名前で表示します。',
       jev_api_endpoint: 'エンドポイント|TypeSafe: https://api.typesafe.ai/v1/systemone（既定）。同じ System One API の別サーバー、例: llama.cpp は http://<ホスト>:8081/v1/systemone（API キーは空でも可）。切り替える前に精度を再確認してください。',
       confidence_threshold: '確信度のしきい値|これ未満の Disposition は判別不可（0〜1）',
       escalation_floor: 'エスカレーションの下限|requires_escalation がこれ以上なら Urgency を High 以上に（0〜1）',
@@ -109,7 +111,7 @@ const L = {
 // id: unique field id; label key in L.f; stanza+key for jev_triage.conf, or macro
 const SECTIONS = [
   { id: 'jev', secrets: [{ name: 'typesafe_api_key' }], fields: [
-    { id: 'jev_api_endpoint', stanza: 'jev', key: 'endpoint', url: true }, { id: 'model', stanza: 'jev', key: 'model' }, { id: 'confidence_threshold', stanza: 'jev', key: 'confidence_threshold', num: [0, 1] },
+    { id: 'jev_api_endpoint', stanza: 'jev', key: 'endpoint', url: true }, { id: 'model', stanza: 'jev', key: 'model' }, { id: 'jev_display_name', stanza: 'jev', key: 'display_name' }, { id: 'confidence_threshold', stanza: 'jev', key: 'confidence_threshold', num: [0, 1] },
     { id: 'escalation_floor', stanza: 'jev', key: 'escalation_floor', num: [0, 1] },
     { id: 'rollup_urgency_cap', stanza: 'jev', key: 'rollup_urgency_cap', options: ['', 'low', 'medium', 'high', 'critical'] },
     { id: 'order_check', stanza: 'jev', key: 'order_check', options: ['true', 'false'], bool: true },

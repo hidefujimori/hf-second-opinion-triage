@@ -1,4 +1,5 @@
 [jev]
+display_name = <string>
 model = <string>
 questions_file = <string>
 confidence_threshold = <float>

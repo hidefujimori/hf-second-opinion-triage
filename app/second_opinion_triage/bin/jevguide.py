@@ -19,7 +19,7 @@ sys.path.insert(0, HERE)
 
 from splunklib.searchcommands import Configuration, Option, StreamingCommand, dispatch, validators  # noqa: E402
 
-from jev_triage import guide, llm, persist, settings, usage  # noqa: E402
+from jev_triage import guide, llm, modelname, persist, settings, usage  # noqa: E402
 
 WORDS = {"en": "180 words", "ja": "450字"}
 
@@ -30,12 +30,12 @@ class JevGuideCommand(StreamingCommand):
     lang = Option(require=False, default=None)
     persist = Option(require=False, validate=validators.Boolean(), default=False)
 
-    def _system(self, lang):
+    def _system(self, lang, name="Jev"):
         path = os.path.join(HERE, "jev_triage", "prompts", "guide_%s.txt" % lang)
         if not os.path.exists(path):
             path = os.path.join(HERE, "jev_triage", "prompts", "guide_en.txt")
         with open(path, encoding="utf-8") as fh:
-            return fh.read().replace("{words}", WORDS.get(lang, "180 words"))
+            return modelname.localize(fh.read().replace("{words}", WORDS.get(lang, "180 words")), name)
 
     def stream(self, records):
         for out in self._stream(records):
@@ -51,7 +51,9 @@ class JevGuideCommand(StreamingCommand):
         # the guide is longer than an explanation: give the model a little more room
         cfg = dict(cfg, max_tokens=str(max(int(float(cfg.get("max_tokens") or 600)), 1000)))
         lang = (self.lang or cfg.get("language") or "en").lower()
+        jev_cfg = settings.stanza(self.service, "jev", {"model": "", "display_name": ""})
         for rec in records:
+            rec = dict(rec, jev_model_label=modelname.for_record(rec, jev_cfg))
             out = dict(rec)
             if rec.get("jev_status") != "ok":
                 out["jev_guide_status"] = "skipped (no Jev result)"
@@ -77,7 +79,7 @@ class JevGuideCommand(StreamingCommand):
                 self.logger.warning("usage counter not updated: %s", e)
             try:
                 t0 = time.time()
-                out["jev_guide"] = llm.complete(cfg, self._system(lang), guide.prompt_user(rec, ai, v))
+                out["jev_guide"] = llm.complete(cfg, self._system(lang, rec.get("jev_model_label")), guide.prompt_user(rec, ai, v))
                 out["jev_guide_status"] = "ok"
                 out["jev_guide_key"] = v["key"]
                 out["jev_guide_ms"] = int((time.time() - t0) * 1000)

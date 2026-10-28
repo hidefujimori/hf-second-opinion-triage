@@ -11,8 +11,13 @@ DISP = {"en": {"TP": "True Positive", "FP": "False Positive", "Benign": "Benign"
         "ja": {"TP": "TP（真陽性）", "FP": "FP（誤検知）", "Benign": "Benign（正常な想定内の動作）", "Undetermined": "判別不可"}}
 
 
+def _labels(rec, lang):
+    from . import modelname
+    return modelname.localize(LABELS.get(lang, LABELS["en"]), rec.get("jev_model_label") or modelname.label(rec.get("jev_model")))
+
+
 def build(rec, lang="en"):
-    L = LABELS.get(lang, LABELS["en"])
+    L = _labels(rec, lang)
     d = DISP.get(lang, DISP["en"]).get(rec.get("jev_disposition"), rec.get("jev_disposition"))
     lines = ["%s: %s (%s %s)" % (L["disp"], d, L["conf"], rec.get("jev_disposition_confidence")),
              "%s: %s (%s %s)" % (L["urg"], (rec.get("jev_urgency") or "").capitalize(), L["conf"], rec.get("jev_urgency_confidence"))]
@@ -45,7 +50,7 @@ def explanation_in_note(rec):
 
 def build_explanation(rec, lang="en"):
     """A Note with only the LLM explanation, added after the suggestion Note was written."""
-    L = LABELS.get(lang, LABELS["en"])
+    L = _labels(rec, lang)
     d = DISP.get(lang, DISP["en"]).get(rec.get("jev_disposition"), rec.get("jev_disposition"))
     lines = ["%s: %s / %s: %s" % (L["disp"], d, L["urg"], (rec.get("jev_urgency") or "").capitalize()),
              "", rec.get("jev_explanation") or "",

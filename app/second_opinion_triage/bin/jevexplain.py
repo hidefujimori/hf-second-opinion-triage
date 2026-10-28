@@ -18,7 +18,7 @@ sys.path.insert(0, HERE)
 
 from splunklib.searchcommands import Configuration, Option, StreamingCommand, dispatch, validators  # noqa: E402
 
-from jev_triage import llm, persist, settings, usage  # noqa: E402
+from jev_triage import llm, modelname, persist, settings, usage  # noqa: E402
 
 APP = "second_opinion_triage"
 WORDS = {"en": "120 words", "ja": "300字"}
@@ -44,6 +44,7 @@ class JevExplainCommand(StreamingCommand):
             path = os.path.join(HERE, "jev_triage", "prompts", "explain_en.txt")
         with open(path, encoding="utf-8") as fh:
             system = fh.read().replace("{words}", WORDS.get(lang, "120"))
+        system = modelname.localize(system, rec.get("jev_model_label") or modelname.label(rec.get("jev_model")))
         try:
             st = json.loads(rec.get("jev_state") or "{}")
         except ValueError:
@@ -96,7 +97,9 @@ class JevExplainCommand(StreamingCommand):
     def _stream(self, records):
         cfg = self._cfg()
         lang = (self.lang or cfg.get("language") or "en").lower()
+        jev_cfg = settings.stanza(self.service, "jev", {"model": "", "display_name": ""})
         for rec in records:
+            rec = dict(rec, jev_model_label=modelname.for_record(rec, jev_cfg))
             out = dict(rec)
             cached = rec.get("jev_explanation") and rec.get("jev_explain_for") == rec.get("jev_time") and rec.get("jev_explain_lang") == lang
             if cached and not self.force:

@@ -21,7 +21,7 @@ sys.path.insert(0, HERE)
 
 from splunklib.searchcommands import Configuration, Option, StreamingCommand, dispatch, validators  # noqa: E402
 
-from jev_triage import guide, note, persist  # noqa: E402
+from jev_triage import guide, modelname, note, persist, settings  # noqa: E402
 
 
 @Configuration(local=True)
@@ -49,7 +49,9 @@ class JevNoteCommand(StreamingCommand):
 
     def _guide(self, records, lang):
         """kind=guide: the decision guide (Jev vs ES AI, and the LLM guide when there is one) as a Note."""
+        jev_cfg = settings.stanza(self.service, "jev", {"model": "", "display_name": ""})
         for rec in records:
+            rec = dict(rec, jev_model_label=modelname.for_record(rec, jev_cfg))
             out = dict(rec)
             if rec.get("jev_status") != "ok":
                 out["jev_note_guide_status"] = "skipped (no Jev result)"
@@ -86,7 +88,9 @@ class JevNoteCommand(StreamingCommand):
             for out in self._guide(records, lang):
                 yield out
             return
+        jev_cfg = settings.stanza(self.service, "jev", {"model": "", "display_name": ""})
         for rec in records:
+            rec = dict(rec, jev_model_label=modelname.for_record(rec, jev_cfg))
             out = dict(rec)
             if rec.get("jev_status") != "ok":
                 out["jev_note_status"] = "skipped (no Jev result)"
