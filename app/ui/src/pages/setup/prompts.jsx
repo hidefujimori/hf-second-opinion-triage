@@ -71,7 +71,7 @@ function changedCount(a, b) {
 
 function QuestionsForm({ T, qs, setQs }) {
   const upd = (fn) => { const c = JSON.parse(JSON.stringify(qs)); fn(c); setQs(c); };
-  const area = (value, onChange, rows = 2) => <TextArea value={value} rowsMin={rows} rowsMax={8} onChange={(e, { value: v }) => onChange(v)} />;
+  const area = (value, onChange, rows = 2) => <TextArea value={value} rowsMin={rows} rowsMax={8} style={{ width: '100%', maxWidth: 'none' }} onChange={(e, { value: v }) => onChange(v)} />;
   return (
     <div>{Object.entries(qs).map(([name, item]) => (
       <div key={name} className="jev-card" style={{ margin: '10px 0', padding: 10 }}>
@@ -168,7 +168,7 @@ export default function PromptPanel({ lang }) {
     <div>
       <h2 style={{ marginTop: 32 }}>{T.title}</h2>
       <div className="hint">{T.desc}</div>
-      <table className="jev-check"><thead><tr><th>{T.model}</th><th>{T.inUse}</th><th /></tr></thead>
+      <table className="jev-check" style={{ width: '100%' }}><thead><tr><th>{T.model}</th><th>{T.inUse}</th><th /></tr></thead>
         <tbody>{models.map((m) => {
           const a = st.active.find((x) => x.model === m);
           return (
@@ -197,7 +197,7 @@ export default function PromptPanel({ lang }) {
         <input type="file" accept=".json,application/json" disabled={busy} onChange={(e) => { imp(e.target.files[0]); e.target.value = ''; }} />
       </div>}
       {st.versions.length ? (
-        <table className="jev-check"><thead><tr>{T.cols.map((c) => <th key={c}>{c}</th>)}</tr></thead>
+        <table className="jev-check" style={{ width: '100%' }}><thead><tr>{T.cols.map((c) => <th key={c}>{c}</th>)}</tr></thead>
           <tbody>{st.versions.map((v) => (
             <tr key={v.id}><td>{v.id}{v.imported_from ? ' (import)' : ''}</td><td>{v.model}</td><td>{v.status}</td><td>{v.author}</td><td>{ts(v.created)}</td>
               <td>{v.reason}</td><td>{v.tested === '1' ? `${v.test_blocked === '1' ? 'NG: ' : ''}${v.test_summary}` : ''}</td>
@@ -210,7 +210,7 @@ export default function PromptPanel({ lang }) {
           </tbody></table>) : <div className="hint">{T.none}</div>}
 
       {res && res.t.changes && res.t.changes.length > 0 && (
-        <table className="jev-check"><thead><tr>{T.chCols.map((c) => <th key={c}>{c}</th>)}</tr></thead>
+        <table className="jev-check" style={{ width: '100%' }}><thead><tr>{T.chCols.map((c) => <th key={c}>{c}</th>)}</tr></thead>
           <tbody>{res.t.changes.map((c) => <tr key={c.event_id}><td>{c.event_id.slice(0, 8)}</td><td>{c.rule_name}</td><td>{c.cur}</td><td>{c.new}</td><td>{c.truth}</td></tr>)}</tbody></table>)}
 
       {ed && (

@@ -39,7 +39,7 @@ const L = {
     usage: 'Used today', usageCols: ['Jev (automatic)', 'Jev (manual)', 'LLM explanations (automatic)', 'LLM explanations (manual)'], usageNone: 'Nothing counted yet today.',
     f: {
       typesafe_api_key: 'Jev API key', model: 'Model|Pinned version. Change only after re-checking accuracy.',
-      jev_endpoint: 'Endpoint|TypeSafe: https://api.typesafe.ai/v1/systemone (default). Another server with the same System One API, e.g. llama.cpp: http://<host>:8081/v1/systemone (the API key may be empty). Re-check accuracy before switching.',
+      jev_api_endpoint: 'Endpoint|TypeSafe: https://api.typesafe.ai/v1/systemone (default). Another server with the same System One API, e.g. llama.cpp: http://<host>:8081/v1/systemone (the API key may be empty). Re-check accuracy before switching.',
       confidence_threshold: 'Confidence threshold|Below this, the disposition is Undetermined (0–1)',
       escalation_floor: 'Escalation floor|requires_escalation at or above this raises urgency to at least High (0–1)',
       rollup_urgency_cap: 'Roll-up urgency cap', order_check: 'Option-order check|Second call with reversed options (2 calls per finding)',
@@ -78,7 +78,7 @@ const L = {
     usage: '本日の使用量', usageCols: ['Jev（自動）', 'Jev（手動）', 'LLM 説明（自動）', 'LLM 説明（手動）'], usageNone: '本日はまだ使用していません。',
     f: {
       typesafe_api_key: 'Jev の API キー', model: 'モデル|固定の版です。精度を再確認してから変更してください。',
-      jev_endpoint: 'エンドポイント|TypeSafe: https://api.typesafe.ai/v1/systemone（既定）。同じ System One API の別サーバー、例: llama.cpp は http://<ホスト>:8081/v1/systemone（API キーは空でも可）。切り替える前に精度を再確認してください。',
+      jev_api_endpoint: 'エンドポイント|TypeSafe: https://api.typesafe.ai/v1/systemone（既定）。同じ System One API の別サーバー、例: llama.cpp は http://<ホスト>:8081/v1/systemone（API キーは空でも可）。切り替える前に精度を再確認してください。',
       confidence_threshold: '確信度のしきい値|これ未満の Disposition は判別不可（0〜1）',
       escalation_floor: 'エスカレーションの下限|requires_escalation がこれ以上なら Urgency を High 以上に（0〜1）',
       rollup_urgency_cap: '集約アラートの Urgency 上限', order_check: '選択肢順の確認|選択肢を逆順にして2回目を呼ぶ（1件あたり2回）',
@@ -102,7 +102,7 @@ const L = {
 // id: unique field id; label key in L.f; stanza+key for jev_triage.conf, or macro
 const SECTIONS = [
   { id: 'jev', secrets: [{ name: 'typesafe_api_key' }], fields: [
-    { id: 'jev_endpoint', stanza: 'jev', key: 'endpoint', url: true }, { id: 'model', stanza: 'jev', key: 'model' }, { id: 'confidence_threshold', stanza: 'jev', key: 'confidence_threshold', num: [0, 1] },
+    { id: 'jev_api_endpoint', stanza: 'jev', key: 'endpoint', url: true }, { id: 'model', stanza: 'jev', key: 'model' }, { id: 'confidence_threshold', stanza: 'jev', key: 'confidence_threshold', num: [0, 1] },
     { id: 'escalation_floor', stanza: 'jev', key: 'escalation_floor', num: [0, 1] },
     { id: 'rollup_urgency_cap', stanza: 'jev', key: 'rollup_urgency_cap', options: ['', 'low', 'medium', 'high', 'critical'] },
     { id: 'order_check', stanza: 'jev', key: 'order_check', options: ['true', 'false'], bool: true },
@@ -125,6 +125,10 @@ const SECTIONS = [
     { id: 'llm_auto_daily', stanza: 'limits', key: 'llm_auto_daily', num: [0, 1000000] }] },
 ];
 const ALL_FIELDS = SECTIONS.flatMap((s) => s.fields);
+// Field ids must be unique: values are kept by id (0.9.15-0.10.3 had jev_endpoint twice, so the Jev endpoint and the
+// macro jev_endpoint shared one value and the page could not be saved).
+const DUP_IDS = ALL_FIELDS.map((f) => f.id).filter((id, i, a) => a.indexOf(id) !== i);
+if (DUP_IDS.length) { throw new Error(`Setup page: duplicate field ids ${DUP_IDS.join(', ')}`); }
 const ALL_SECRETS = SECTIONS.flatMap((s) => s.secrets || []);
 
 function label(T, id) { const [l, h] = (T.f[id] || id).split('|'); return { l, h }; }
