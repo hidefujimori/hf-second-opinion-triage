@@ -46,8 +46,9 @@ Release packages (`second_opinion_triage-<version>.spl`) are attached to GitHub 
 
 ## Status
 
-Beta. Tested on Splunk Enterprise 10.4.2 with Enterprise Security 8.7.1, and on Splunk Cloud 10.4.2604 with
-Enterprise Security 8.7.0 (ES AI SOC Analyst enabled). Release notes: [docs/release-notes](docs/release-notes).
+Public beta (latest: [v0.11.5-beta](docs/release-notes/v0.11.5-beta.md)). Tested on Splunk Enterprise 10.4.2 with
+Enterprise Security 8.7.1, and on Splunk Cloud 10.4 with Enterprise Security 8.7.0 / 8.7.1 (ES AI SOC Analyst enabled).
+Release notes: [docs/release-notes](docs/release-notes).
 Accuracy on the evaluation set: disposition 32/33, no true positive missed, urgency exact 31/33,
 within one level 33/33.
 

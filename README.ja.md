@@ -45,8 +45,8 @@ Splunk アプリ（`second_opinion_triage`、旧 `TA-jev-triage`）です。Find
 
 ## 状況
 
-β版。Splunk Enterprise 10.4.2 ＋ Enterprise Security 8.7.1、および Splunk Cloud 10.4.2604 ＋ Enterprise Security 8.7.0
-（ES AI SOC Analyst 有効）で検証済み。リリースノート: [docs/release-notes](docs/release-notes)。
+パブリックβ（最新: [v0.11.5-beta](docs/release-notes/v0.11.5-beta.md)）。Splunk Enterprise 10.4.2 ＋ Enterprise Security 8.7.1、
+および Splunk Cloud 10.4 ＋ Enterprise Security 8.7.0 / 8.7.1（ES AI SOC Analyst 有効）で検証済み。リリースノート: [docs/release-notes](docs/release-notes)。
 評価データでの精度: Disposition 32/33、TP の見逃しなし、Urgency 完全一致 31/33・1段階以内 33/33。
 
 ## Splunk の外に送るデータ
