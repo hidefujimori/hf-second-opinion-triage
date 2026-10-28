@@ -45,7 +45,7 @@ export async function collect({ hours = 24, onStep = () => {} } = {}) {
     return {
       splunk_version: info.version, build: info.build, product_type: info.product_type, instance_type: info.instance_type,
       server_roles: info.server_roles, os: info.os_name, server_name_hidden: true,
-      apps: { 'TA-jev-triage': await app(APP), SplunkEnterpriseSecuritySuite: await app('SplunkEnterpriseSecuritySuite'),
+      apps: { 'second_opinion_triage': await app(APP), SplunkEnterpriseSecuritySuite: await app('SplunkEnterpriseSecuritySuite'),
         missioncontrol: await app('missioncontrol') },
     };
   });

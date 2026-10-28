@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run a 27B decision model on an Apple Silicon Mac (Metal) for TA-jev-triage evaluation.
+# Run a 27B decision model on an Apple Silicon Mac (Metal) for second_opinion_triage evaluation.
 #   bash mac_llamacpp.sh clef27     # Cloudflare Clef 27B  (ggml-org/Clef-GGUF:Q4_K_M, ~19 GB)  port 8084
 #   bash mac_llamacpp.sh kev27      # Kev-27B v2           (kdercksen/Kev-27B-GGUF Q4_K_M, ~16 GB) port 8085
 #   bash mac_llamacpp.sh kev9       # Kev-9B               (ggml-org/Kev-9B-GGUF:Q8_0, ~9.5 GB)  port 8083

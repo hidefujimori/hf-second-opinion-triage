@@ -1,11 +1,11 @@
 """End-to-end through the app's own modules: replayed enrichment + real Jev calls + policy."""
 import sys, os, json, csv
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "TA-jev-triage", "bin"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "second_opinion_triage", "bin"))
 from jev_triage import jev_client, policy, state
 from jev_triage.enrich import Enricher
 import replay
 key = [l.split("=",1)[1].strip() for l in open(os.path.join(os.path.dirname(__file__), "..", "..", ".env")) if l.startswith("TYPESAFE_API_KEY=")][0]
-Q = json.load(open(os.path.join(os.path.dirname(__file__), "..", "TA-jev-triage", "bin", "jev_triage", "questions.json")))["questions"]
+Q = json.load(open(os.path.join(os.path.dirname(__file__), "..", "second_opinion_triage", "bin", "jev_triage", "questions.json")))["questions"]
 gt = {r["n"]: r for r in csv.DictReader(open(os.path.join(os.path.dirname(__file__), "..", "..", "ground_truth_v3.csv"), encoding="utf-8"))}
 R = replay.records()
 for n in map(int, sys.argv[1].split(",")):

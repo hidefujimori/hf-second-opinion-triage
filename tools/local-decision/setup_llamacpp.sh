@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Local decision models for TA-jev-triage evaluation: llama.cpp llama-server with the /v1/systemone API.
-# Target: Ubuntu 22.04 / 24.04 (test server 172.26.1.20). Run as a user with sudo.
+# Local decision models for second_opinion_triage evaluation: llama.cpp llama-server with the /v1/systemone API.
+# Target: Ubuntu 22.04 / 24.04 (test server <gpu-server>). Run as a user with sudo.
 #   bash setup_llamacpp.sh            # build llama.cpp (CUDA if an NVIDIA GPU is found) and download the models
 #   bash setup_llamacpp.sh --service  # also install systemd services (kev-4b on 8081, clef-flash on 8082)
 # Models (Apache 2.0, from Hugging Face ggml-org):
@@ -81,7 +81,7 @@ if [ "${1:-}" = "--service" ]; then
   for n in kev clef_flash; do
     sudo tee /etc/systemd/system/llama-$n.service >/dev/null <<UNIT
 [Unit]
-Description=llama.cpp decision model ($n) for TA-jev-triage tests
+Description=llama.cpp decision model ($n) for second_opinion_triage tests
 After=network-online.target
 
 [Service]

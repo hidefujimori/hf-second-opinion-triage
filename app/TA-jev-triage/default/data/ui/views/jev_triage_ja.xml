@@ -1,4 +1,0 @@
-<?xml version="1.0"?>
-<view template="pages/splunk_ui_app.html" type="html" isDashboard="False" isVisible="false">
-  <label>Jev Triage</label>
-</view>

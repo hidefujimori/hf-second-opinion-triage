@@ -1,6 +1,6 @@
 """Run the app's enrichment with SPL results replayed from cache.json; unknown SPL goes to pending.json."""
 import sys, os, json, hashlib
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "TA-jev-triage", "bin"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "second_opinion_triage", "bin"))
 from jev_triage.enrich import Enricher
 from jev_triage import state
 from adapt import records

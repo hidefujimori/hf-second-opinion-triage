@@ -16,3 +16,5 @@ app/_old_classic_ui/
 app/appinspect_cloud_*.json
 app/tests/cache.json
 app/tests/pending.json
+app/_packages/
+Claude outputs/

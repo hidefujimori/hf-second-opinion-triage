@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Send a Jev-style request (state + typed questions) to a /v1/systemone endpoint and print the answer.
-#   bash test_systemone.sh <host> <port>        e.g. bash test_systemone.sh 172.26.1.20 8081
+#   bash test_systemone.sh <host> <port>        e.g. bash test_systemone.sh <gpu-server> 8081
 # Set LLAMA_API_KEY if the server was started with --api-key.
 set -euo pipefail
 HOST="${1:-127.0.0.1}"; PORT="${2:-8081}"

@@ -1,4 +1,4 @@
-# クイックスタート — Jev Triage for Splunk Enterprise Security（β版）
+# クイックスタート — HF Decision Model Triage and Second Opinion App（β版）
 
 インストールから最初の提案が出るまで、約15分です。詳しくは[導入ガイド](install.md)、
 [利用ガイド](user-guide.md)、[リファレンス](reference.md)を参照してください。
@@ -18,7 +18,7 @@
 ## 1. アプリを入れる
 
 - **Splunk Enterprise:** Apps > Manage Apps > **Install app from file** で
-  `TA-jev-triage-<版>.spl` を選んで Upload し、Splunk を再起動します。
+  `second_opinion_triage-<版>.spl` を選んで Upload し、Splunk を再起動します。
 - **Splunk Cloud Platform（Victoria）:** Apps > Manage Apps > **Upload App**。自動で審査され、再起動は不要です。
 
 ## 2. キーを入れる（Setup 画面）

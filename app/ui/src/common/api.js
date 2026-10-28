@@ -3,7 +3,7 @@ import { createRESTURL } from '@splunk/splunk-utils/url';
 import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
 import { username } from '@splunk/splunk-utils/config';
 
-export const APP = 'TA-jev-triage';
+export const APP = 'second_opinion_triage';
 
 function init(method, body, contentType) {
   const headers = { ...(defaultFetchInit.headers || {}) };

@@ -1,8 +1,8 @@
 // Build: copy package.json + this file to a build folder, `npm install`, then
-//   UI_SRC=<path to ui/src> APP_DIR=<path to TA-jev-triage> npx webpack --mode production
+//   UI_SRC=<path to ui/src> APP_DIR=<path to second_opinion_triage> npx webpack --mode production
 const path = require('path');
 const SRC = process.env.UI_SRC || path.join(__dirname, 'src');
-const APP = process.env.APP_DIR || path.join(__dirname, '..', 'TA-jev-triage');
+const APP = process.env.APP_DIR || path.join(__dirname, '..', 'second_opinion_triage');
 module.exports = {
   // bundle names = view names: the built-in view template pages/splunk_ui_app.html loads pages/<view>.js
   entry: { jev_triage: path.join(SRC, 'pages/triage/index.jsx'), jev_setup: path.join(SRC, 'pages/setup/index.jsx') },

@@ -1,4 +1,4 @@
-# Quick start — Jev Triage for Splunk Enterprise Security (beta)
+# Quick start — HF Decision Model Triage and Second Opinion App (beta)
 
 About 15 minutes from install to the first suggestion. For details see the
 [Installation guide](install.md), the [User guide](user-guide.md) and the [Reference](reference.md).
@@ -19,7 +19,7 @@ About 15 minutes from install to the first suggestion. For details see the
 ## 1. Install the app
 
 - **Splunk Enterprise:** Apps > Manage Apps > **Install app from file** > choose
-  `TA-jev-triage-<version>.spl` > Upload, then restart Splunk.
+  `second_opinion_triage-<version>.spl` > Upload, then restart Splunk.
 - **Splunk Cloud Platform (Victoria):** Apps > Manage Apps > **Upload App**. The app is vetted
   automatically (no restart needed).
 

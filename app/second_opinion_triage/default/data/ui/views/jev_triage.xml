@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<view template="pages/splunk_ui_app.html" type="html" isDashboard="False">
+  <label>Triage</label>
+</view>

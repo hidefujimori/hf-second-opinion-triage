@@ -1,0 +1,17 @@
+HF Decision Model Triage and Second Opinion App
+Copyright 2026 Hide Fujimori (HF)
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It includes the following third-party software:
+
+- Splunk Enterprise SDK for Python (splunklib) — Apache License 2.0 — bin/lib/splunklib
+- packaging, deprecation (Python) — Apache License 2.0 / BSD — bin/lib
+- Splunk UI Toolkit (@splunk/react-ui, @splunk/react-page, @splunk/splunk-utils, @splunk/themes)
+  — Apache License 2.0 — bundled in appserver/static/pages/*.js
+- React, ReactDOM, styled-components — MIT License — bundled in appserver/static/pages/*.js
+  (see appserver/static/pages/*.LICENSE.txt)
+
+TypeSafe and Jev are trademarks of their respective owner. Splunk and Splunk Enterprise Security are
+trademarks of Splunk LLC. This app is an independent project and is not affiliated with or endorsed by
+TypeSafe or Splunk.

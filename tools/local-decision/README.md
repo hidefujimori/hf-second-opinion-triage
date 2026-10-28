@@ -1,4 +1,4 @@
-# Local decision models (llama.cpp) for TA-jev-triage tests
+# Local decision models (llama.cpp) for second_opinion_triage tests
 
 Jev-compatible decision models served by llama.cpp's `/v1/systemone` endpoint, to compare with TypeSafe Jev
 on the evaluation set (ground_truth_v5.csv) without sending data outside.
@@ -53,16 +53,16 @@ To require a key, add `"--api-key", "<key>"` to each `command` and put the same 
 
 ## Option B: native build (steps below)
 
-## Steps (on the test server, e.g. Ubuntu 172.26.1.20)
+## Steps (on the test server, e.g. Ubuntu <gpu-server>)
 
 1. Copy this folder to the server and run `bash setup_llamacpp.sh --service`
    (builds llama.cpp with CUDA when an NVIDIA GPU and the CUDA toolkit are present; otherwise CPU).
 2. Check: `bash test_systemone.sh 127.0.0.1 8081` and `bash test_systemone.sh 127.0.0.1 8082`.
    The answer has `answers.disposition.choice`, `probabilities`, `confidence`.
-3. Open the ports to the Splunk search head only (e.g. `sudo ufw allow from 172.26.10.100 to any port 8081:8082 proto tcp`).
+3. Open the ports to the Splunk search head only (e.g. `sudo ufw allow from <splunk-search-head> to any port 8081:8082 proto tcp`).
    For anything beyond a test, start the servers with an API key (`LLAMA_API_KEY=... ` in the service) and put the
    same key in the app's Setup page.
-4. From the Splunk server: `curl -s http://172.26.1.20:8081/health` → `{"status":"ok"}`.
+4. From the Splunk server: `curl -s http://<gpu-server>:8081/health` → `{"status":"ok"}`.
 
 GPU memory: Ollama on the same server keeps models loaded for a while (gemma4:26b needs ~17 GB). If the decision
 models do not fit, stop Ollama models first (`ollama stop <model>`) or use smaller quantizations (`KEV_REPO=ggml-org/Kev-4B-GGUF:Q4_K_M`).
@@ -70,6 +70,6 @@ models do not fit, stop Ollama models first (`ollama stop <model>`) or use small
 ## Using them from the app (0.9.15+)
 
 - Evaluation without changing settings (admin only, results are not saved):
-  `` `jev_findings` | jevtriage endpoint="http://172.26.1.20:8081/v1/systemone" model="kev-4b" ``
-- Or as the decision model for the app: Setup > TypeSafe Jev > Endpoint = `http://172.26.1.20:8081/v1/systemone`,
+  `` `jev_findings` | jevtriage endpoint="http://<gpu-server>:8081/v1/systemone" model="kev-4b" ``
+- Or as the decision model for the app: Setup > TypeSafe Jev > Endpoint = `http://<gpu-server>:8081/v1/systemone`,
   Model = `kev-4b` (the API key may be left empty for a server without `--api-key`).

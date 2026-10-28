@@ -1,10 +1,10 @@
-# 利用ガイド — Jev Triage（β版）
+# 利用ガイド — HF Decision Model Triage and Second Opinion App（β版）
 
 Jev Triage は、ES の Finding を、データから集めた情報と一緒に TypeSafe Jev に送り、
 Jev が提案する **Disposition**（TP、FP、Benign、判別不可）と **Urgency**（Critical、High、Medium、Low）を表示します。
 LLM に提案を口語で説明させることもできます。**ES の項目は変更しません**。最終的な Disposition と Urgency は ES でアナリストが設定します。
 
-## Jev トリアージ画面
+## トリアージ画面
 
 - **絞り込み**（上部）: Finding の時刻、Jev の Disposition、Jev の Urgency、最低確信度、ES の状態（アナリスト判定済みか）、文字検索。
 - **タイル**: Urgency 別・Disposition 別の件数、エラー、Jev とアナリストの最終判断の一致率。
@@ -40,6 +40,13 @@ ES から直接開くこともできます: Finding のメニュー（⋯）> **
 
 確信度: Jev が返す確率を、アプリが 0〜1 の確信度に変換したものです。
 **確信度のしきい値**（既定 0.60）未満の Disposition は「判別不可」になります。
+
+## ES から1クリックで実行:「Run Jev triage」（0.11.0）
+
+Enterprise Security で Finding のメニューを開き、**Run Jev triage**（ワークフローアクション）を選びます。
+新しいタブでトリアージ画面が開き、確認を1回出したあと、Setup >「**手動実行**」の既定値（LLM の説明を作るか、
+ES に Note を書くか）でトリアージします。結果は一覧の下に開きます。
+**Open in Second Opinion Triage** は、実行せずに Finding を開くだけです。
 
 ## レスポンスアクション「Jev Triage」
 

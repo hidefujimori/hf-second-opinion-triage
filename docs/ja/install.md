@@ -1,4 +1,4 @@
-# 導入ガイド — Jev Triage（β版）
+# 導入ガイド — HF Decision Model Triage and Second Opinion App（β版）
 
 ## 前提条件
 
@@ -21,7 +21,7 @@
 
 ### Splunk Enterprise
 
-1. Apps > Manage Apps > **Install app from file** で `TA-jev-triage-<版>.spl` を選び、Upload します。
+1. Apps > Manage Apps > **Install app from file** で `second_opinion_triage-<版>.spl` を選び、Upload します。
 2. 求められたら Splunk を再起動します。
 3. 更新の場合も同じ手順で **Upgrade app** にチェックを入れます。設定とキーは引き継がれます。
 
@@ -30,6 +30,23 @@
 1. `sc_admin` で Apps > Manage Apps > **Upload App** から `.spl` を選びます。
 2. Splunk が自動審査を行います。現在の Cloud 向けチェックでは失敗 0、エラー 0、手動確認 0 です。
    いくつか警告が残ります（[リファレンス](reference.md#既知の制限β版)を参照）。
+
+## TA-jev-triage からの移行（0.11.0 より前の版）
+
+0.11.0 でアプリ名を `TA-jev-triage` から `second_opinion_triage` に変えました。Splunk からは新しいアプリに見えるため、
+設定・API キー・保存済みの結果は空の状態で始まります。次の手順で一度だけ移してください。
+
+1. 旧アプリは導入・有効のまま、新しいアプリを導入します（名前が変わったため「アップグレード」はできません）。
+2. Splunk を再起動し、新しいアプリの Setup 画面を開くと、上部に **TA-jev-triage からの移行** が表示されます。
+3. 「コピーする内容を確認」→「コピーする」（管理者のみ。`| jevmigrate action=run` と同じ）。
+   コピーするもの: 設定、マクロ、API キー（値は表示しません）、KV ストアのデータ（結果、使用量、Jev の質問の版、
+   サポートモードの状態）、定期検索の有効・無効。
+   コピーしないもの: ルックアップ `jev_eval_set.csv`（アップロードし直してください）と、処理待ちのレスポンスアクションの依頼。
+4. `TA-jev-triage` を無効化または削除し、Splunk を再起動します。両方が有効な間は、両方の定期検索が動きます。
+5. Setup 画面を開き直して値を確認し、接続テストを行います。`/app/TA-jev-triage/...` へのリンクを使った相関サーチや
+   ブックマークは書き換えてください（レスポンスアクションの名前 `jev_triage` は変わりません）。
+
+index `jev_triage` は両方のアプリで共通なので、履歴はそのまま残ります。
 
 ## 設定（Setup 画面）
 
@@ -92,5 +109,5 @@ KV ストアのコレクション `jev_triage_latest` と `jev_usage` には、`
 ## アンインストール
 
 アプリを無効化または削除します（Apps > Manage Apps）。必要なら index `jev_triage` と、
-保存したキー（REST の `storage/passwords`、realm `TA-jev-triage`）も削除します。
+保存したキー（REST の `storage/passwords`、realm `second_opinion_triage`）も削除します。
 ES の Finding に書き込んだ Note は残ります。

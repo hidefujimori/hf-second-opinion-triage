@@ -1,11 +1,11 @@
-# User guide — Jev Triage (beta)
+# User guide — HF Decision Model Triage and Second Opinion App (beta)
 
 Jev Triage sends each ES finding, with context collected from your data, to TypeSafe Jev and
 shows Jev's **suggested disposition** (TP, FP, Benign, Undetermined) and **suggested urgency**
 (Critical, High, Medium, Low). An LLM can explain a suggestion in plain language.
 **ES fields are never changed** — analysts set the final disposition and urgency in ES.
 
-## The Jev Triage page
+## The triage page
 
 - **Filters** (top): finding time, Jev disposition, Jev urgency, minimum confidence, ES status
   (decided by an analyst or not), and a text search.
@@ -43,6 +43,13 @@ From ES you can open a finding directly: finding menu (⋯) > **Open in Jev Tria
 
 Confidence: Jev returns probabilities; the app turns them into a confidence between 0 and 1.
 Below the **confidence threshold** (default 0.60) the disposition is *Undetermined*.
+
+## One click from ES: "Run Jev triage" (0.11.0)
+
+In Enterprise Security, open the menu of a finding and choose **Run Jev triage** (a workflow action). The triage page
+opens in a new tab, asks once, and then triages the finding with the defaults on Setup > **Manual run**:
+write the LLM explanation (on/off) and write a Note to ES (on/off). The result opens below the list.
+**Open in Second Opinion Triage** only opens the finding without running anything.
 
 ## Adaptive response action "Jev Triage"
 

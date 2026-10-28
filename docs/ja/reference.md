@@ -1,4 +1,4 @@
-# リファレンス — Jev Triage（β版）
+# リファレンス — HF Decision Model Triage and Second Opinion App（β版）
 
 ## 設定（`jev_triage.conf`）
 
@@ -22,7 +22,7 @@
 マクロ: `jev_cloudtrail`（CloudTrail のデータ）、`jev_endpoint`（エンドポイントのプロセスデータ）、
 `jev_findings`（Finding の取得元、`` `notable` ``）。
 
-キー: `storage/passwords`、realm `TA-jev-triage`、名前は `typesafe_api_key`、`llm_api_key`、
+キー: `storage/passwords`、realm `second_opinion_triage`、名前は `typesafe_api_key`、`llm_api_key`、
 `aws_access_key_id`、`aws_secret_access_key`。
 
 ## サーチコマンド
@@ -36,6 +36,7 @@
 | `jevguide [lang=en\|ja] [force=true] [persist=true]` | 判断ガイド（Jev と ES AI SOC Analyst の比較）を LLM で作成 |
 | `jevexplain [lang=en\|ja] [force=true] [persist=true] [auto=true min_urgency=… dispositions=…]` | `jev_triage_latest` の行の LLM 説明 |
 | `jevnote [lang=en\|ja] [force=true] [persist=true] [kind=guide]` | ES の Finding に Note を書く（提案、または判断ガイド） |
+| `jevmigrate [action=plan\|run] [source=TA-jev-triage]` | 旧アプリ TA-jev-triage から設定・キー・KV のデータをコピー（管理者のみ。0.11.0 の名称変更後に1回） |
 | `jevcheck [target=jev\|llm\|all]` | 接続テスト（キーは出力しません） |
 | `jevqueue` | レスポンスアクションの依頼を処理（定期検索で使用） |
 
@@ -90,7 +91,7 @@ Jev に送る質問（`bin/jev_triage/questions.json`）には鍵がかかって
 **試験の正解表（`jev_eval_set.csv`）**: 正解はお客様のデータで変わるため同梱していません。列
 `finding_id,disposition,urgency,note`（disposition は `TP` / `FP` / `Benign` / `Undetermined`、urgency は
 `low` / `medium` / `high` / `critical`）の CSV を作り、設定 > ルックアップ > ルックアップテーブルファイル（アプリ
-TA-jev-triage）にアップロードしてください。作り始めるときは「正解表を作る LLM 用プロンプトを作成」で、直近にトリアージした
+second_opinion_triage）にアップロードしてください。作り始めるときは「正解表を作る LLM 用プロンプトを作成」で、直近にトリアージした
 33件の事実（Jev に送った事実。Jev の回答は含みません）入りのプロンプトをコピーし、LLM に貼って、**全行を自分で確認してから**
 CSV をアップロードします。自分でプロンプトを組み立てる場合は `bin/jev_triage/prompts/evalset_ja.txt`（英語は `_en`）を使えます。
 

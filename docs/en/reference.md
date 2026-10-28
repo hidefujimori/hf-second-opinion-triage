@@ -1,4 +1,4 @@
-# Reference — Jev Triage (beta)
+# Reference — HF Decision Model Triage and Second Opinion App (beta)
 
 ## Settings (`jev_triage.conf`)
 
@@ -22,7 +22,7 @@ Normally changed on the Setup page. Defaults are in `default/jev_triage.conf`; c
 Macros: `jev_cloudtrail` (CloudTrail data), `jev_endpoint` (endpoint process data),
 `jev_findings` (findings source, `` `notable` ``).
 
-Keys: `storage/passwords`, realm `TA-jev-triage`, names `typesafe_api_key`, `llm_api_key`,
+Keys: `storage/passwords`, realm `second_opinion_triage`, names `typesafe_api_key`, `llm_api_key`,
 `aws_access_key_id`, `aws_secret_access_key`.
 
 ## Search commands
@@ -36,6 +36,7 @@ Keys: `storage/passwords`, realm `TA-jev-triage`, names `typesafe_api_key`, `llm
 | `jevguide [lang=en\|ja] [force=true] [persist=true]` | Decision guide (Jev vs ES AI SOC Analyst) written by the LLM |
 | `jevexplain [lang=en\|ja] [force=true] [persist=true] [auto=true min_urgency=… dispositions=…]` | LLM explanation of rows of `jev_triage_latest` |
 | `jevnote [lang=en\|ja] [force=true] [persist=true] [kind=guide]` | Write a Note on the ES finding (the suggestion, or the decision guide) |
+| `jevmigrate [action=plan\|run] [source=TA-jev-triage]` | Copy settings, keys and KV data from the old app TA-jev-triage (admins; once, after the 0.11.0 rename) |
 | `jevcheck [target=jev\|llm\|all]` | Connection test (never prints keys) |
 | `jevqueue` | Works the response-action queue (scheduled) |
 
@@ -93,7 +94,7 @@ before it can be applied. The diagnostics file includes the versions in use (in 
 
 **Test answers (`jev_eval_set.csv`)**: not shipped, because the answers depend on your data. Create a CSV with the
 columns `finding_id,disposition,urgency,note` (disposition `TP` / `FP` / `Benign` / `Undetermined`, urgency
-`low` / `medium` / `high` / `critical`) and upload it in Settings > Lookups > Lookup table files, app TA-jev-triage.
+`low` / `medium` / `high` / `critical`) and upload it in Settings > Lookups > Lookup table files, app second_opinion_triage.
 To start it, *Make LLM prompt for test answers* copies a prompt with the facts of the last 33 triaged findings
 (the same facts sent to Jev, not Jev's answers); paste it into an LLM, **check every row yourself**, then upload
 the CSV. The prompt is in `bin/jev_triage/prompts/evalset_en.txt` (and `_ja`) if you prefer to build it yourself.
@@ -175,9 +176,9 @@ The pages are React (Splunk UI Toolkit). Source: `app/ui`. Build:
 ```
 cp app/ui/package.json app/ui/webpack.config.js <build-folder>/
 cd <build-folder> && npm install
-UI_SRC=<repo>/app/ui/src APP_DIR=<repo>/app/TA-jev-triage npx webpack --mode production
-cp <repo>/app/TA-jev-triage/appserver/static/pages/jev_triage.js <repo>/app/TA-jev-triage/appserver/static/pages/jev_triage_ja.js
+UI_SRC=<repo>/app/ui/src APP_DIR=<repo>/app/second_opinion_triage npx webpack --mode production
+cp <repo>/app/second_opinion_triage/appserver/static/pages/jev_triage.js <repo>/app/second_opinion_triage/appserver/static/pages/jev_triage_ja.js
 ```
 
-Package: `tar --exclude='__pycache__' --exclude='*.LICENSE.txt' -czf TA-jev-triage-<version>.spl -C app TA-jev-triage`.
-Vet: `splunk-appinspect inspect TA-jev-triage-<version>.spl --mode precert --included-tags cloud`.
+Package: `tar --exclude='__pycache__' --exclude='*.LICENSE.txt' -czf second_opinion_triage-<version>.spl -C app second_opinion_triage`.
+Vet: `splunk-appinspect inspect second_opinion_triage-<version>.spl --mode precert --included-tags cloud`.

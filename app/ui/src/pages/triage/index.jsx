@@ -6,7 +6,7 @@ import Select from '@splunk/react-ui/Select';
 import Text from '@splunk/react-ui/Text';
 import Message from '@splunk/react-ui/Message';
 import { createURL } from '@splunk/splunk-utils/url';
-import { search, q } from '../../common/api';
+import { search, q, rest } from '../../common/api';
 import { useLang, fmt, ensureLocale } from '../../common/i18n';
 import { injectCss } from '../../common/styles';
 import LangSwitch from '../../common/LangSwitch';
@@ -468,6 +468,62 @@ function Detail({ T, lang, id, listRow, onClose, onChanged }) {
   );
 }
 
+
+// ---------- one-click run from ES (workflow action "Run Jev triage": ?event_id=...&run=1) ----------
+const truthy = (v) => /^(1|true|yes|t)$/i.test(String(v || ''));
+function AutoRun({ T, id, onDone, onCancel }) {
+  const [cfg, setCfg] = useState(null);
+  const [st, setSt] = useState({ phase: 'ask', msg: '' });
+  useEffect(() => {
+    Promise.all([rest('configs/conf-jev_triage/manual').catch(() => null), rest('configs/conf-jev_triage/es_note').catch(() => null)])
+      .then(([m, n]) => {
+        const c = ((((m || {}).entry || [])[0] || {}).content) || {};
+        const nl = ((((n || {}).entry || [])[0] || {}).content || {}).language || '';
+        setCfg({ note: truthy(c.write_note), explain: truthy(c.explain), lang: nl === 'ja' ? 'ja' : (nl ? 'en' : '') });
+      });
+  }, []);
+  if (!cfg) { return null; }
+  const run = async () => {
+    setSt({ phase: 'run', msg: T.autoRunning });
+    try {
+      const t = epochFromId(id);
+      const r = (await search(`search \`jev_findings\` | search event_id=${q(id)} | head 1 | jevtriage persist=true | table jev_status jev_error jev_persist_error`,
+        t ? String(t - 3600) : '-90d', t ? String(t + 3600) : 'now'))[0] || {};
+      if (r.jev_status !== 'ok' || r.jev_persist_error) { throw new Error(r.jev_error || r.jev_persist_error || r.jev_status || 'no finding'); }
+      const done = [T.autoTriaged];
+      const lang = cfg.lang ? ` lang=${cfg.lang}` : '';
+      if (cfg.explain) {
+        setSt({ phase: 'run', msg: T.autoExplaining });
+        const e = (await search(`| inputlookup jev_triage_latest where event_id=${q(id)} | jevexplain persist=true${lang} | table jev_explain_status`))[0] || {};
+        done.push(String(e.jev_explain_status || '').startsWith('ok') ? T.autoExplained : `${T.autoExplainFail} ${e.jev_explain_status || ''}`);
+      }
+      if (cfg.note) {
+        setSt({ phase: 'run', msg: T.autoNoting });
+        const n = (await search(`| inputlookup jev_triage_latest where event_id=${q(id)} | jevnote persist=true${lang} | table jev_note_status`))[0] || {};
+        done.push(String(n.jev_note_status || '').startsWith('ok') || n.jev_note_status === 'already written' ? T.autoNoted : `${T.autoNoteFail} ${n.jev_note_status || ''}`);
+      }
+      setSt({ phase: 'done', msg: done.join(' ') });
+      onDone();
+    } catch (e) { setSt({ phase: 'err', msg: `${T.failed}: ${e.message}` }); }
+  };
+  const plan = `${cfg.explain ? T.autoWithExplain : T.autoNoExplain} / ${cfg.note ? T.autoWithNote : T.autoNoNote}`;
+  return (
+    <div style={{ margin: '6px 0 10px' }}>
+      {st.phase === 'ask' && (
+        <Message type="info">
+          <div>{fmt(T.autoAsk, { id: id.slice(0, 8) })}</div>
+          <div className="sub">{plan} {T.autoDefaults}</div>
+          <div className="jev-actions" style={{ marginTop: 6 }}>
+            <Button appearance="primary" label={T.autoRun} onClick={run} />
+            <Button label={T.cancel} onClick={onCancel} />
+          </div>
+        </Message>)}
+      {st.phase === 'run' && <Message type="info">{st.msg}</Message>}
+      {st.phase === 'done' && <Message type="success">{st.msg}</Message>}
+      {st.phase === 'err' && <Message type="error">{st.msg}</Message>}
+    </div>);
+}
+
 // ---------- page ----------
 function TriagePage({ theme }) {
   const [lang, setLang] = useLang();
@@ -479,6 +535,8 @@ function TriagePage({ theme }) {
   const [checked, setChecked] = useState(() => new Set());
   const [ai, setAi] = useState({});
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [autoRun, setAutoRun] = useState(() => urlParam('run') === '1' && !!(urlParam('event_id') || urlParam('form.event_id')));
+  const [detailKey, setDetailKey] = useState(0);
   const [pstate, setPstate] = useState(null);   // support mode / custom questions in use
   useEffect(() => {
     search('| jevprompt action=status | where row="state" OR row="active"').then((rs) => {
@@ -528,6 +586,7 @@ function TriagePage({ theme }) {
       </div>
       {pstate && pstate.act && <Message type="warning">{fmt(T.customQ, { id: pstate.act.id, model: pstate.act.model, by: pstate.act.applied_by })}</Message>}
       {pstate && pstate.st.support_on === '1' && <Message type="info">{fmt(T.supportOn, { t: new Date(Number(pstate.st.support_expires) * 1000).toLocaleString(), by: pstate.st.support_by })}</Message>}
+      {autoRun && sel && <AutoRun T={T} id={sel} onDone={() => { load(); setDetailKey((k) => k + 1); }} onCancel={() => setAutoRun(false)} />}
       <Filters T={T} f={f} setF={setF} onRefresh={load} hasAi={Object.keys(ai).length > 0} />
       {err && <Message type="error">{err}</Message>}
       <Tiles T={T} rows={rows || []} f={f} setF={setF} />
@@ -537,7 +596,7 @@ function TriagePage({ theme }) {
         <div className="jev-list">{rows == null ? <div className="jev-empty">{T.loading}</div>
           : <FindingsTable T={T} rows={shown} sel={sel} onSelect={setSel} checked={checked} setChecked={setChecked} lock={bulkBusy}
             ai={Object.keys(ai).length ? ai : null} />}</div>
-        {sel && <Detail key={sel} T={T} lang={lang} id={sel} listRow={listRow} onClose={() => setSel(null)} onChanged={load} />}
+        {sel && <Detail key={`${sel}-${detailKey}`} T={T} lang={lang} id={sel} listRow={listRow} onClose={() => setSel(null)} onChanged={load} />}
       </div>
     </div>
   );
@@ -545,5 +604,5 @@ function TriagePage({ theme }) {
 
 injectCss();
 if (ensureLocale()) getUserTheme().catch(() => 'light').then((theme) => {
-  layout(<TriagePage theme={theme} />, { pageTitle: 'Jev Triage', theme, hideFooter: true });
+  layout(<TriagePage theme={theme} />, { pageTitle: 'Second Opinion Triage', theme, hideFooter: true });
 });

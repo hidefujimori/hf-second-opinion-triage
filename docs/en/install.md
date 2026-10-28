@@ -1,4 +1,4 @@
-# Installation guide — Jev Triage (beta)
+# Installation guide — HF Decision Model Triage and Second Opinion App (beta)
 
 ## Requirements
 
@@ -21,7 +21,7 @@ indexer cluster) yourself. The app works without it; only the history copy is mi
 
 ### Splunk Enterprise
 
-1. Apps > Manage Apps > **Install app from file**, choose `TA-jev-triage-<version>.spl`, Upload.
+1. Apps > Manage Apps > **Install app from file**, choose `second_opinion_triage-<version>.spl`, Upload.
 2. Restart Splunk when asked.
 3. Upgrade: the same steps with **Upgrade app** checked. Settings and keys are kept.
 
@@ -30,6 +30,23 @@ indexer cluster) yourself. The app works without it; only the history copy is mi
 1. As `sc_admin`: Apps > Manage Apps > **Upload App**, choose the `.spl` file.
 2. Splunk runs the automated vetting. The app passes the current cloud checks with 0 failures,
    0 errors and 0 manual checks; a few warnings remain (see [Reference](reference.md#known-limitations)).
+
+## Moving from TA-jev-triage (versions before 0.11.0)
+
+0.11.0 renamed the app from `TA-jev-triage` to `second_opinion_triage`. Splunk treats it as a new app, so its settings,
+API keys and stored results start empty. Move them once:
+
+1. Keep the old app installed and enabled, and install the new app (upgrade is not possible across the rename).
+2. Restart Splunk, open the new app's Setup page and find **Move from TA-jev-triage** at the top.
+3. *Check what will be copied*, then *Copy now* (admins; the same as `| jevmigrate action=run`).
+   Copied: settings, macros, API keys (values are never shown), the KV store data (results, usage, versions of the
+   Jev questions, support-mode state) and whether the scheduled searches are enabled.
+   Not copied: the lookup `jev_eval_set.csv` (upload it again) and pending response-action requests.
+4. Disable or remove `TA-jev-triage` and restart Splunk. While both apps are enabled, both run their scheduled searches.
+5. Open Setup again, check the values and run *Test connection*. Update correlation searches or bookmarks that link to
+   `/app/TA-jev-triage/...` (the response action keeps its name `jev_triage`).
+
+Index `jev_triage` is shared by both apps, so the history stays.
 
 ## Configure (Setup page)
 
@@ -101,5 +118,5 @@ Not yet verified on a real Cloud stack — please report what you see:
 ## Uninstall
 
 Disable or remove the app (Apps > Manage Apps). Then, if you want, delete the index
-`jev_triage`, and the stored keys (Settings > ... or REST `storage/passwords`, realm `TA-jev-triage`).
+`jev_triage`, and the stored keys (Settings > ... or REST `storage/passwords`, realm `second_opinion_triage`).
 Notes already written to ES findings stay.

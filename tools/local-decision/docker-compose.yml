@@ -1,4 +1,4 @@
-# Local decision models for TA-jev-triage tests (llama.cpp /v1/systemone) with Docker.
+# Local decision models for second_opinion_triage tests (llama.cpp /v1/systemone) with Docker.
 #   GPU (NVIDIA, needs the NVIDIA Container Toolkit):  docker compose up -d
 #   CPU only:                                           LLAMA_IMAGE=ghcr.io/ggml-org/llama.cpp:server docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d
 # Update to a newer llama.cpp:  docker compose pull && docker compose up -d

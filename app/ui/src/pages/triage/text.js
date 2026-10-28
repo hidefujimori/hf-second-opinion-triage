@@ -1,6 +1,6 @@
 export const TEXT = {
   en: {
-    title: 'Jev Triage', desc: 'Jev suggestions for ES findings. Analysts set the final disposition and urgency in Enterprise Security.',
+    title: 'Second Opinion Triage', desc: 'Jev suggestions for ES findings. Analysts set the final disposition and urgency in Enterprise Security.',
     time: 'Finding time', disp: 'Jev disposition', urg: 'Jev urgency', conf: 'Min confidence', es: 'ES status', find: 'Search',
     all: 'All', any: 'Any', undecided: 'Not decided by analyst', decided: 'Decided by analyst', refresh: 'Refresh',
     h24: 'Last 24 hours', d7: 'Last 7 days', d30: 'Last 30 days', d90: 'Last 90 days', allt: 'All time',
@@ -37,6 +37,10 @@ export const TEXT = {
     cmpUrgDiff: '{n} level(s) apart', cmpNoAi: 'No ES AI SOC Analyst result for this finding: only Jev is shown.',
     cmpHint: 'Two independent suggestions. When they disagree, check the evidence on both sides before deciding in ES.',
     aiSev: 'Severity', aiNote: 'Suggestion by the ES AI SOC Analyst (read only). Jev does not use it.',
+    autoAsk: 'Triage finding {id}… with Jev now?', autoDefaults: '(defaults from Setup > Manual run)', autoRun: 'Run triage',
+    autoWithExplain: 'with LLM explanation', autoNoExplain: 'no LLM explanation', autoWithNote: 'with ES Note', autoNoNote: 'no ES Note',
+    autoRunning: 'Triaging with Jev…', autoExplaining: 'Writing the LLM explanation…', autoNoting: 'Writing the Note to ES…',
+    autoTriaged: 'Triaged.', autoExplained: 'Explanation written.', autoExplainFail: 'Explanation failed:', autoNoted: 'Note written to ES.', autoNoteFail: 'Note failed:',
     customQ: 'Custom Jev questions in use: {id} (for model {model}, applied by {by}). Results show it under Model / questions. Setup > Prompts (support) has the details.',
     supportOn: 'Support mode is on until {t} (started by {by}).',
     aiSummary: 'Summary', aiWhy: 'Justification', aiEvidence: 'Evidence', aiDetails: 'Analysis details (long)', show: 'Show',
@@ -65,7 +69,7 @@ export const TEXT = {
     gNoJev: 'No Jev result yet. Re-run triage first.',
   },
   ja: {
-    title: 'Jev トリアージ', desc: 'ES の Finding に対する Jev の提案です。最終的な Disposition と Urgency は Enterprise Security でアナリストが設定します。',
+    title: 'セカンドオピニオン トリアージ', desc: 'ES の Finding に対する Jev の提案です。最終的な Disposition と Urgency は Enterprise Security でアナリストが設定します。',
     time: 'Finding の時刻', disp: 'Jev の Disposition', urg: 'Jev の Urgency', conf: '最低確信度', es: 'ES の状態', find: '検索',
     all: 'すべて', any: '指定なし', undecided: 'アナリスト未判定', decided: 'アナリスト判定済み', refresh: '更新',
     h24: '過去24時間', d7: '過去7日', d30: '過去30日', d90: '過去90日', allt: '全期間',
@@ -102,6 +106,10 @@ export const TEXT = {
     cmpUrgDiff: '{n} 段階の差', cmpNoAi: 'この Finding には ES AI SOC Analyst の判定がありません。Jev の結果のみ表示します。',
     cmpHint: '独立した2つの提案です。食い違う場合は、両方の根拠を確認してから ES で判断してください。',
     aiSev: 'Severity', aiNote: 'ES AI SOC Analyst の提案です（読み取りのみ）。Jev の判定には使っていません。',
+    autoAsk: 'Finding {id}… を Jev でトリアージしますか？', autoDefaults: '（Setup の「手動実行の既定値」）', autoRun: 'トリアージを実行',
+    autoWithExplain: 'LLM の説明あり', autoNoExplain: 'LLM の説明なし', autoWithNote: 'ES に Note を書く', autoNoNote: 'Note なし',
+    autoRunning: 'Jev でトリアージ中…', autoExplaining: 'LLM の説明を作成中…', autoNoting: 'ES に Note を書き込み中…',
+    autoTriaged: 'トリアージしました。', autoExplained: '説明を作成しました。', autoExplainFail: '説明に失敗:', autoNoted: 'ES に Note を書きました。', autoNoteFail: 'Note に失敗:',
     customQ: '独自の Jev の質問を使用中: {id}（モデル {model} 向け、適用 {by}）。結果の「モデル / 質問」にも表示されます。詳細は Setup >「プロンプト（サポート用）」。',
     supportOn: 'サポートモード中です（{t} まで、開始 {by}）。',
     aiSummary: 'サマリ', aiWhy: '根拠', aiEvidence: '証拠', aiDetails: '分析の詳細（長文）', show: '表示',

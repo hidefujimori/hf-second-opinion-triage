@@ -1,5 +1,5 @@
 import sys, os, json
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "TA-jev-triage", "bin"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "second_opinion_triage", "bin"))
 from jev_triage.enrich import Enricher
 from adapt import records
 R = records(); log = []
