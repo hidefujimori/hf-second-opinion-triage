@@ -145,7 +145,7 @@ Clef 27B が外した Finding（#5）と Urgency の2件（#22、#32）は Jev �
 | 説明が `empty answer … thinking` で失敗する | 思考するモデルが最大トークン数を使い切っています。Thinking level を設定する（`none`、gpt-oss は `low`）か、最大トークン数を増やす |
 | アナリストで「API key not found」 | `jev_triage_user` ロールを付与し、Setup 画面で一度**保存**を押す |
 | レスポンスアクションが failure | `index=cim_modactions action_name=jev_triage` と `index=_internal source=*jev_triage_modalert.log` |
-| 検知は動くがトリアージされない | *Jev Triage - Response Queue* が有効か。`jev_usage` の上限（状態が skipped） |
+| 検知は動くがトリアージされない | *Second Opinion Triage - Response Queue* が有効か。`jev_usage` の上限（状態が skipped） |
 | コマンドのエラー | ジョブの search.log（Job Inspector）で `ChunkedExternProcessor` を探す |
 | トリアージが遅い | 情報収集のマクロを実際の index に向ける。検索ヘッドが混んでいれば `[jev] parallel` を下げる |
 

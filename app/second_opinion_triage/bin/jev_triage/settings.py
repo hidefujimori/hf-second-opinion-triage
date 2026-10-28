@@ -30,7 +30,7 @@ def jev_api_key(service, required=True):
     """The key stored for [jev]. Not required for a local System One server (e.g. llama.cpp without --api-key)."""
     key = secrets(service).get(JEV_SECRET)
     if not key and required:
-        raise RuntimeError("Jev API key not set: open Jev Triage > Setup (or storage/passwords realm=%s name=%s)"
+        raise RuntimeError("Jev API key not set: open Second Opinion Triage > Setup (or storage/passwords realm=%s name=%s)"
                            % (APP, JEV_SECRET))
     return key
 

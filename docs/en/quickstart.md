@@ -3,7 +3,7 @@
 About 15 minutes from install to the first suggestion. For details see the
 [Installation guide](install.md), the [User guide](user-guide.md) and the [Reference](reference.md).
 
-> **Beta.** Jev Triage *suggests* a disposition and an urgency for ES findings. It never changes
+> **Beta.** Second Opinion Triage *suggests* a disposition and an urgency for ES findings. It never changes
 > ES fields. Analysts make the final decision in Enterprise Security.
 
 ## What you need
@@ -25,7 +25,7 @@ About 15 minutes from install to the first suggestion. For details see the
 
 ## 2. Enter the keys (Setup page)
 
-Open the app **Jev Triage**. The first time it opens **Setup** (later: menu **Setup**).
+Open the app **Second Opinion Triage**. The first time it opens **Setup** (later: menu **Setup**).
 
 1. **TypeSafe Jev > Jev API key**: paste the key.
 2. **LLM explanation** (optional): choose the **Provider**, enter the **Model** and the **API key**.
@@ -104,15 +104,15 @@ that role. Admins need nothing extra.
 ## 4. Triage findings
 
 - **One finding:** in ES Analyst Queue, open a finding > **Run adaptive response action** >
-  **Jev Triage** > Run. The result appears in the app within seconds.
+  **Second Opinion Triage** > Run. The result appears in the app within seconds.
 - **Every new finding of a detection:** edit the detection (correlation search) and add the
-  response action **Jev Triage** next to **Finding**. Results appear 1–2 minutes after each run.
-- **Findings you already have:** enable the scheduled search *Jev Triage - Untriaged Findings*
+  response action **Second Opinion Triage** next to **Finding**. Results appear 1–2 minutes after each run.
+- **Findings you already have:** enable the scheduled search *Second Opinion Triage - Untriaged Findings*
   (Settings > Searches, reports, and alerts), or open a finding in the app and click **Re-run triage**.
 
 ## 5. Look at the results
 
-Open **Jev Triage** (app home). The list shows each finding with the suggested urgency
+Open **Second Opinion Triage** (app home). The list shows each finding with the suggested urgency
 (Critical red, High orange, Medium yellow, Low blue) and disposition (TP, FP, Benign,
 Undetermined). Click a row to open the details on the right:
 

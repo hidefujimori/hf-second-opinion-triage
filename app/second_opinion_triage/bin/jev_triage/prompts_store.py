@@ -224,7 +224,7 @@ def parse_import(text, default):
     except ValueError as e:
         raise PromptError("not JSON: %s" % e)
     if not isinstance(d, dict) or d.get("format") != EXPORT_FORMAT:
-        raise PromptError("not a Jev Triage questions export (format %s)" % EXPORT_FORMAT)
+        raise PromptError("not a Second Opinion Triage questions export (format %s)" % EXPORT_FORMAT)
     if d.get("kind", "questions") != "questions":
         raise PromptError("kind %s cannot be imported by this version" % d.get("kind"))
     q = d.get("questions")

@@ -469,7 +469,7 @@ function Detail({ T, lang, id, listRow, onClose, onChanged }) {
 }
 
 
-// ---------- one-click run from ES (workflow action "Run Jev triage": ?event_id=...&run=1) ----------
+// ---------- one-click run from ES (workflow action "Run Second Opinion Triage": ?event_id=...&run=1) ----------
 const truthy = (v) => /^(1|true|yes|t)$/i.test(String(v || ''));
 function AutoRun({ T, id, onDone, onCancel }) {
   const [cfg, setCfg] = useState(null);

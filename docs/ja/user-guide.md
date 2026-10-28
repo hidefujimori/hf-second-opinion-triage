@@ -1,6 +1,6 @@
 # 利用ガイド — HF Decision Model Triage and Second Opinion App（β版）
 
-Jev Triage は、ES の Finding を、データから集めた情報と一緒に TypeSafe Jev に送り、
+Second Opinion Triage は、ES の Finding を、データから集めた情報と一緒に TypeSafe Jev に送り、
 Jev が提案する **Disposition**（TP、FP、Benign、判別不可）と **Urgency**（Critical、High、Medium、Low）を表示します。
 LLM に提案を口語で説明させることもできます。**ES の項目は変更しません**。最終的な Disposition と Urgency は ES でアナリストが設定します。
 
@@ -27,7 +27,7 @@ LLM に提案を口語で説明させることもできます。**ES の項目�
 - **言語**: 右上の *English / 日本語 (JA)* で、この画面と Splunk のメニューの言語を切り替えます
   （別のロケールで開き直します）。選んだ言語はブラウザに記憶されます。
 
-ES から直接開くこともできます: Finding のメニュー（⋯）> **Open in Jev Triage**。
+ES から直接開くこともできます: Finding のメニュー（⋯）> **Open in Second Opinion Triage**。
 
 ### 詳細ペインの操作
 
@@ -41,24 +41,24 @@ ES から直接開くこともできます: Finding のメニュー（⋯）> **
 確信度: Jev が返す確率を、アプリが 0〜1 の確信度に変換したものです。
 **確信度のしきい値**（既定 0.60）未満の Disposition は「判別不可」になります。
 
-## ES から1クリックで実行:「Run Jev triage」（0.11.0）
+## ES から1クリックで実行:「Run Second Opinion Triage」（0.11.0）
 
-Enterprise Security で Finding のメニューを開き、**Run Jev triage**（ワークフローアクション）を選びます。
+Enterprise Security で Finding のメニューを開き、**Run Second Opinion Triage**（ワークフローアクション）を選びます。
 新しいタブでトリアージ画面が開き、確認を1回出したあと、Setup >「**手動実行**」の既定値（LLM の説明を作るか、
 ES に Note を書くか）でトリアージします。結果は一覧の下に開きます。
 **Open in Second Opinion Triage** は、実行せずに Finding を開くだけです。
 
-## レスポンスアクション「Jev Triage」
+## レスポンスアクション「Second Opinion Triage」
 
 ### 1件の Finding に対して（手動）
 
-ES の Analyst Queue > Finding > **Run adaptive response action** > **Jev Triage**。すぐにトリアージされ、
+ES の Analyst Queue > Finding > **Run adaptive response action** > **Second Opinion Triage**。すぐにトリアージされ、
 ES の Finding にアクションと状態が表示されます。
 
 ### 検知に付ける（自動）
 
-検知を編集し、**Finding** アクションと並べて **Jev Triage** を追加します。Splunk は1つの検索のアクションを
-順番に実行するため、Jev Triage は依頼を受け付けるだけです。定期検索 **Jev Triage - Response Queue**
+検知を編集し、**Finding** アクションと並べて **Second Opinion Triage** を追加します。Splunk は1つの検索のアクションを
+順番に実行するため、Second Opinion Triage は依頼を受け付けるだけです。定期検索 **Second Opinion Triage - Response Queue**
 （毎分、既定で有効）が、その実行の Finding が登録されたあとにトリアージします（通常1〜2分）。
 この定期検索は有効のままにしてください。
 
@@ -76,13 +76,13 @@ ES の Finding にアクションと状態が表示されます。
 ## 自動実行の上限
 
 Setup 画面 > **自動実行の上限**。上限がかかるのは**自動**実行だけです（レスポンスアクションを付けた検知と、
-定期検索 *Jev Triage - Untriaged Findings*）。手動の操作（ボタン、Finding に手動で実行したレスポンスアクション）は
+定期検索 *Second Opinion Triage - Untriaged Findings*）。手動の操作（ボタン、Finding に手動で実行したレスポンスアクション）は
 件数に数えますが、制限はしません。
 
 | 設定 | 既定 | 上限に達したとき |
 |---|---|---|
 | LLM 説明 / 日（自動） | 100 | 自動説明を作りません（`skipped (daily limit N/day)`）。トリアージと Note は続けます。ペインに「LLM で説明」で作れる旨を表示します |
-| Jev トリアージ / 日（自動） | 空欄 = 無制限 | Finding を「未トリアージ（skipped）」として記録し、後で定期検索か**再トリアージ**で処理します |
+| トリアージ / 日（自動） | 空欄 = 無制限 | Finding を「未トリアージ（skipped）」として記録し、後で定期検索か**再トリアージ**で処理します |
 
 空欄 = 無制限、0 = 1日0件です。1日は Splunk サーバーの現地時間で区切ります。Setup 画面に本日の件数
 （自動・手動）を表示します。並行処理しているため、上限を最大で同時処理数（既定4）だけ超えることがあります。
@@ -93,8 +93,8 @@ Setup 画面 > **自動実行の上限**。上限がかかるのは**自動**実
 
 | 検索 | 既定 | 用途 |
 |---|---|---|
-| Jev Triage - Response Queue | 有効、毎分 | レスポンスアクションの依頼を処理（検知で使う場合に必要） |
-| Jev Triage - Untriaged Findings | 無効 | 10分ごとに、過去24時間で Jev の結果がない Finding を最大50件トリアージ |
+| Second Opinion Triage - Response Queue | 有効、毎分 | レスポンスアクションの依頼を処理（検知で使う場合に必要） |
+| Second Opinion Triage - Untriaged Findings | 無効 | 10分ごとに、過去24時間で Jev の結果がない Finding を最大50件トリアージ |
 
 ## 知っておいてほしいこと
 

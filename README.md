@@ -10,8 +10,8 @@ An LLM of your choice can explain a suggestion in plain language, and the sugges
 written to the ES finding as a Note. ES fields are never changed: analysts decide in ES.
 
 - Triage page (React, Splunk UI Toolkit): list + detail pane, English / Japanese
-- **Run Jev triage** in the menu of an ES finding: one click, with the defaults set on the Setup page
-- Adaptive response action **Jev Triage**: on one finding, or on every finding of a detection
+- **Run Second Opinion Triage** in the menu of an ES finding: one click, with the defaults set on the Setup page
+- Adaptive response action **Second Opinion Triage**: on one finding, or on every finding of a detection
 - Context collection with SPL (identity, asset, cloud account behaviour, outcomes, related alerts)
 - Pluggable LLM: Anthropic, Amazon Bedrock, OpenAI-compatible, Google Gemini — including local
   models on Ollama and Apple Foundation Models (macOS `fm serve`)

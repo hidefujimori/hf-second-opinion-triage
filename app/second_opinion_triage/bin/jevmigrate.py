@@ -31,7 +31,8 @@ NEW = settings.APP
 OLD_DEFAULT = "TA-jev-triage"
 COLLECTIONS = ("jev_triage_latest", "jev_usage", "jev_prompt_versions", "jev_prompt_state")
 MACROS = ("jev_cloudtrail", "jev_endpoint", "jev_findings")
-SAVED = ("Jev Triage - Untriaged Findings", "Jev Triage - Response Queue")
+SAVED = (("Jev Triage - Untriaged Findings", "Second Opinion Triage - Untriaged Findings"),
+         ("Jev Triage - Response Queue", "Second Opinion Triage - Response Queue"))
 KEY_READ = "admin,sc_admin,jev_triage_user"
 KEY_WRITE = "admin,sc_admin"
 
@@ -142,20 +143,24 @@ class JevMigrateCommand(GeneratingCommand):
 
     def _saved(self, run):
         rows = []
-        for name in SAVED:
+        for old_name, name in SAVED:
             try:
-                old = self._entries("/servicesNS/nobody/%s/saved/searches/%s" % (self.source, _q(name)))[0]["content"]
+                try:
+                    old = self._entries("/servicesNS/nobody/%s/saved/searches/%s" % (self.source, _q(old_name)))[0]["content"]
+                except Exception:   # the old app may already use the new name
+                    old = self._entries("/servicesNS/nobody/%s/saved/searches/%s" % (self.source, _q(name)))[0]["content"]
                 new = self._entries("/servicesNS/nobody/%s/saved/searches/%s" % (NEW, _q(name)))[0]["content"]
             except Exception as e:
                 rows.append(self._row("scheduled search %s" % name, "error", str(e)[:200]))
                 continue
-            od, nd = str(old.get("disabled")) in ("1", "true", "True"), str(new.get("disabled")) in ("1", "true", "True")
-            if od == nd:
-                rows.append(self._row("scheduled search %s" % name, "same", "disabled" if od else "enabled"))
+            on = lambda c: str(c.get("is_scheduled")) in ("1", "true", "True") and str(c.get("disabled")) not in ("1", "true", "True")
+            os_, ns_ = on(old), on(new)
+            if os_ == ns_:
+                rows.append(self._row("scheduled search %s" % name, "same", "scheduled" if os_ else "not scheduled"))
                 continue
             if run:
-                self.service.post("/servicesNS/nobody/%s/saved/searches/%s/%s" % (NEW, _q(name), "disable" if od else "enable"))
-            rows.append(self._row("scheduled search %s" % name, "copied" if run else "to copy", "disabled" if od else "enabled"))
+                self.service.post("/servicesNS/nobody/%s/saved/searches/%s" % (NEW, _q(name)), is_scheduled="1" if os_ else "0")
+            rows.append(self._row("scheduled search %s" % name, "copied" if run else "to copy", "scheduled" if os_ else "not scheduled"))
         return rows
 
     def generate(self):

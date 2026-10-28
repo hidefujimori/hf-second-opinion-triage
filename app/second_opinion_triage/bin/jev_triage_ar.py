@@ -5,7 +5,7 @@
 - From a detection, next to the "Finding" action: Splunk runs a search's actions one after another and the
   findings may not exist yet (the Finding action can run after this one). The session key of an action is
   logged out when the action ends, so no background work can use it. The action therefore only puts a
-  request in the KV store queue `jev_triage_queue`; the scheduled search "Jev Triage - Response Queue"
+  request in the KV store queue `jev_triage_queue`; the scheduled search "Second Opinion Triage - Response Queue"
   (| jevqueue, every minute) triages the findings of that run once they are indexed.
 Status per finding goes to index=cim_modactions (Splunk_SA_CIM), which ES shows on the finding.
 """

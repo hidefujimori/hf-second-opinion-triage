@@ -58,7 +58,7 @@ Open the app. The first time it opens **Setup**; later use the menu **Setup**.
 | Enrichment | Where your data is: **CloudTrail data** (macro `jev_cloudtrail`) and **Endpoint process data** (macro `jev_endpoint`). Use real index names; `index=*` is slow |
 | LLM explanation | Optional. **Provider** (`anthropic`, `openai` = any OpenAI-compatible server, `bedrock`, `gemini`), **Model**, key(s), optional endpoint / region / proxy |
 | Notes on ES findings | Language of the Notes (`en` / `ja`) |
-| Limits for automatic runs | Daily limits for automatic Jev triage and automatic LLM explanations (see the [User guide](user-guide.md#limits-for-automatic-runs)) |
+| Limits for automatic runs | Daily limits for automatic triage and automatic LLM explanations (see the [User guide](user-guide.md#limits-for-automatic-runs)) |
 
 Click **Save**, then **Test connection**: the table must show `ok` for Jev (and for the LLM if
 you set one). Settings apply to the next search; no restart is needed. While there are unsaved

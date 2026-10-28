@@ -1,6 +1,6 @@
 # User guide — HF Decision Model Triage and Second Opinion App (beta)
 
-Jev Triage sends each ES finding, with context collected from your data, to TypeSafe Jev and
+Second Opinion Triage sends each ES finding, with context collected from your data, to TypeSafe Jev and
 shows Jev's **suggested disposition** (TP, FP, Benign, Undetermined) and **suggested urgency**
 (Critical, High, Medium, Low). An LLM can explain a suggestion in plain language.
 **ES fields are never changed** — analysts set the final disposition and urgency in ES.
@@ -30,7 +30,7 @@ shows Jev's **suggested disposition** (TP, FP, Benign, Undetermined) and **sugge
 - **Language**: *English / 日本語 (JA)* at the top right switches this page and Splunk's menus
   (the page reopens under the other locale). Your choice is remembered in the browser.
 
-From ES you can open a finding directly: finding menu (⋯) > **Open in Jev Triage**.
+From ES you can open a finding directly: finding menu (⋯) > **Open in Second Opinion Triage**.
 
 ### Actions in the detail pane
 
@@ -44,25 +44,25 @@ From ES you can open a finding directly: finding menu (⋯) > **Open in Jev Tria
 Confidence: Jev returns probabilities; the app turns them into a confidence between 0 and 1.
 Below the **confidence threshold** (default 0.60) the disposition is *Undetermined*.
 
-## One click from ES: "Run Jev triage" (0.11.0)
+## One click from ES: "Run Second Opinion Triage" (0.11.0)
 
-In Enterprise Security, open the menu of a finding and choose **Run Jev triage** (a workflow action). The triage page
+In Enterprise Security, open the menu of a finding and choose **Run Second Opinion Triage** (a workflow action). The triage page
 opens in a new tab, asks once, and then triages the finding with the defaults on Setup > **Manual run**:
 write the LLM explanation (on/off) and write a Note to ES (on/off). The result opens below the list.
 **Open in Second Opinion Triage** only opens the finding without running anything.
 
-## Adaptive response action "Jev Triage"
+## Adaptive response action "Second Opinion Triage"
 
 ### On one finding (manual)
 
-ES Analyst Queue > finding > **Run adaptive response action** > **Jev Triage**. The finding is
+ES Analyst Queue > finding > **Run adaptive response action** > **Second Opinion Triage**. The finding is
 triaged at once. ES shows the action and its status on the finding.
 
 ### On a detection (automatic)
 
-Edit the detection and add **Jev Triage** next to the **Finding** action. Splunk runs a search's
-actions one after another, so Jev Triage only queues a request; the scheduled search
-**Jev Triage - Response Queue** (every minute, enabled by default) triages the findings of that
+Edit the detection and add **Second Opinion Triage** next to the **Finding** action. Splunk runs a search's
+actions one after another, so Second Opinion Triage only queues a request; the scheduled search
+**Second Opinion Triage - Response Queue** (every minute, enabled by default) triages the findings of that
 run once they are indexed — usually within 1–2 minutes. Keep that search enabled.
 
 ### Options
@@ -79,14 +79,14 @@ run once they are indexed — usually within 1–2 minutes. Keep that search ena
 ## Limits for automatic runs
 
 Setup page > **Limits for automatic runs**. The limits apply only to **automatic** runs
-(detections through the response action, and the scheduled search *Jev Triage - Untriaged
+(detections through the response action, and the scheduled search *Second Opinion Triage - Untriaged
 Findings*). Manual actions (buttons, the response action run by hand on a finding) are counted
 but never limited.
 
 | Setting | Default | When reached |
 |---|---|---|
 | LLM explanations per day (automatic) | 100 | No automatic explanation (`skipped (daily limit N/day)`). Triage and the Note still run; the pane says the explanation can be made with *Explain with LLM* |
-| Jev triage per day (automatic) | empty = no limit | The finding is stored as *skipped* and picked up again later (scheduled search) or with *Re-run triage* |
+| Triage per day (automatic) | empty = no limit | The finding is stored as *skipped* and picked up again later (scheduled search) or with *Re-run triage* |
 
 Empty = no limit, 0 = none per day. A day is the Splunk server's local calendar day. The Setup
 page shows today's counts (automatic and manual). Findings processed in parallel can pass a
@@ -98,8 +98,8 @@ If you run a local LLM, leave the LLM limit empty.
 
 | Search | Default | Purpose |
 |---|---|---|
-| Jev Triage - Response Queue | enabled, every minute | Works the queue of the response action (needed for detections) |
-| Jev Triage - Untriaged Findings | disabled | Every 10 minutes, triages up to 50 findings of the last 24 h that have no Jev result |
+| Second Opinion Triage - Response Queue | enabled, every minute | Works the queue of the response action (needed for detections) |
+| Second Opinion Triage - Untriaged Findings | disabled | Every 10 minutes, triages up to 50 findings of the last 24 h that have no Jev result |
 
 ## Good to know
 

@@ -35,8 +35,8 @@ const L = {
       enrichment: ['Enrichment', 'Facts collected with SPL before asking Jev. Point the macros at your indexes; the default index=* is slow.'],
       llm: ['LLM explanation', 'Used only when someone clicks Explain. Choose any provider; the credential is stored per app.'],
       note: ['Notes on ES findings', ''],
-      manual: ['Manual run', 'Defaults for "Run Jev triage" in the menu of an ES finding (one click, no form), and the initial values of the Jev Triage response-action form.'],
-      limits: ['Limits for automatic runs', 'Daily limits for automatic runs only (detections through the Jev Triage response action, and the scheduled search). Manual actions are not limited. Empty = no limit, 0 = none per day. A day is the Splunk server\'s local calendar day.'],
+      manual: ['Manual run', 'Defaults for "Run Second Opinion Triage" in the menu of an ES finding (one click, no form), and the initial values of the Second Opinion Triage response-action form.'],
+      limits: ['Limits for automatic runs', 'Daily limits for automatic runs only (detections through the Second Opinion Triage response action, and the scheduled search). Manual actions are not limited. Empty = no limit, 0 = none per day. A day is the Splunk server\'s local calendar day.'],
     },
     usage: 'Used today', usageCols: ['Jev (automatic)', 'Jev (manual)', 'LLM explanations (automatic)', 'LLM explanations (manual)'], usageNone: 'Nothing counted yet today.',
     f: {
@@ -58,7 +58,7 @@ const L = {
       note_language: 'Note language',
       manual_note: 'Write a Note to ES|After triage, write the suggestion to the finding as a Note',
       manual_explain: 'Write the LLM explanation|After triage, ask the LLM for an explanation (counted as manual use)',
-      jev_auto_daily: 'Jev triage per day (automatic)|Findings sent to Jev per day by automatic runs',
+      jev_auto_daily: 'Triage per day (automatic)|Findings sent to the decision model per day by automatic runs',
       llm_auto_daily: 'LLM explanations per day (automatic)|Only when the response action has “Explain with LLM” on. Default 100',
     },
   },
@@ -77,8 +77,8 @@ const L = {
       enrichment: ['Enrichment（情報収集）', 'Jev に聞く前に SPL で集める情報です。マクロを実際の index に向けてください（既定の index=* は遅くなります）。'],
       llm: ['LLM による説明', '「LLM で説明」を押したときだけ使います。プロバイダは選べます。資格情報はアプリごとに保存されます。'],
       note: ['ES の Finding への Note', ''],
-      manual: ['手動実行', 'ES の Finding のメニュー「Run Jev triage」（フォームなしで実行）の既定値です。Jev Triage レスポンスアクションのフォームの初期値にも使います。'],
-      limits: ['自動実行の上限', '自動実行（検知から動く Jev Triage レスポンスアクションと定期検索）だけに適用する1日の上限です。手動の操作は制限しません。空欄 = 無制限、0 = 1日0件。1日は Splunk サーバーの現地時間で区切ります。'],
+      manual: ['手動実行', 'ES の Finding のメニュー「Run Second Opinion Triage」（フォームなしで実行）の既定値です。Second Opinion Triage レスポンスアクションのフォームの初期値にも使います。'],
+      limits: ['自動実行の上限', '自動実行（検知から動く Second Opinion Triage レスポンスアクションと定期検索）だけに適用する1日の上限です。手動の操作は制限しません。空欄 = 無制限、0 = 1日0件。1日は Splunk サーバーの現地時間で区切ります。'],
     },
     usage: '本日の使用量', usageCols: ['Jev（自動）', 'Jev（手動）', 'LLM 説明（自動）', 'LLM 説明（手動）'], usageNone: '本日はまだ使用していません。',
     f: {
@@ -100,7 +100,7 @@ const L = {
       note_language: 'Note の言語',
       manual_note: 'ES に Note を書く|トリアージ後に、提案を Note として Finding に書き込む',
       manual_explain: 'LLM の説明を作る|トリアージ後に、LLM に説明を作らせる（手動の利用として数える）',
-      jev_auto_daily: 'Jev トリアージ / 日（自動）|自動実行で Jev に送る Finding の1日の上限',
+      jev_auto_daily: 'トリアージ / 日（自動）|自動実行で判定モデルに送る Finding の1日の上限',
       llm_auto_daily: 'LLM 説明 / 日（自動）|レスポンスアクションで「Explain with LLM」をオンにした場合だけ。既定 100',
     },
   },
@@ -244,7 +244,7 @@ function SetupPage({ theme }) {
       });
       Object.keys(byStanza).forEach((s) => jobs.push(rest(`configs/conf-jev_triage/${s}`, { method: 'POST', params: byStanza[s] })));
       await Promise.all(jobs);
-      // the same defaults pre-fill the Jev Triage response-action form
+      // the same defaults pre-fill the Second Opinion Triage response-action form
       try {
         await rest('configs/conf-alert_actions/jev_triage', { method: 'POST', params: {
           'param.write_note': vals.manual_note === 'true' ? '1' : '0', 'param.auto_explain': vals.manual_explain === 'true' ? '1' : '0' } });

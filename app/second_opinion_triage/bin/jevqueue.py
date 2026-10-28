@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """| jevqueue  —  work the Adaptive Response queue (KV store jev_triage_queue).
 
-Run by the scheduled search "Jev Triage - Response Queue" every minute. For each pending request
+Run by the scheduled search "Second Opinion Triage - Response Queue" every minute. For each pending request
 (one detection run, keyed by its sid):
 - findings of that run indexed and the request is at least `settle` seconds old -> triage them,
   write ES Notes if asked, log success/failure to index=cim_modactions for each finding;

@@ -9,8 +9,8 @@ Splunk アプリ（`second_opinion_triage`、旧 `TA-jev-triage`）です。Find
 書き込んだりできます。ES の項目は変更しません。判断は ES でアナリストが行います。
 
 - トリアージ画面（React、Splunk UI Toolkit）: 一覧＋詳細ペイン、英語・日本語
-- ES の Finding のメニューに **Run Jev triage**: Setup の既定値で1クリック実行
-- レスポンスアクション **Jev Triage**: 1件の Finding に、または検知のすべての Finding に
+- ES の Finding のメニューに **Run Second Opinion Triage**: Setup の既定値で1クリック実行
+- レスポンスアクション **Second Opinion Triage**: 1件の Finding に、または検知のすべての Finding に
 - SPL による情報収集（ID、資産、クラウドアカウントの挙動、結果、関連アラート）
 - LLM は差し替え可能: Anthropic、Amazon Bedrock、OpenAI 互換、Google Gemini。Ollama のローカルモデルや
   Apple Foundation Models（macOS の `fm serve`）も使えます

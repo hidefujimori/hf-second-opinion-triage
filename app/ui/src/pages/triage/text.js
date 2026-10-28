@@ -26,7 +26,7 @@ export const TEXT = {
     rerunDone: 'Triaged again. Ask the LLM again if you need an explanation.',
     autoLimit: 'No automatic explanation: the daily limit for automatic explanations was reached. Use “Explain with LLM” if you need one.',
     autoRule: 'No automatic explanation for this finding ({why}). Use “Explain with LLM” if you need one.',
-    jevSkipped: 'Not triaged: the daily limit for automatic Jev triage was reached. Use “Re-run triage” to triage it now.',
+    jevSkipped: 'Not triaged: the daily limit for automatic triage was reached. Use “Re-run triage” to triage it now.',
     selAll: 'Select all shown findings', selOne: 'Select this finding',
     bulkSel: '{n} selected', bulkRun: 'Re-run triage for selected', bulkClear: 'Clear selection', cancel: 'Cancel', bulkGo: 'Re-run {n} findings',
     bulkConfirm: 'Re-run triage for {n} findings? Each current result is replaced and its LLM explanation is cleared. Jev is called twice per finding (manual runs are not limited by the daily limits).',

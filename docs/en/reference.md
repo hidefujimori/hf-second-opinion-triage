@@ -151,7 +151,7 @@ contains API keys, and the endpoint and proxy hosts are hidden.
 | Explanation fails with `empty answer … thinking` | A thinking model used up Max tokens: set Thinking level (`none`, or `low` for gpt-oss) or raise Max tokens |
 | Analysts get "API key not found" | Give them the `jev_triage_user` role, then click **Save** on Setup once |
 | Response action shows *failure* | `index=cim_modactions action_name=jev_triage`, and `index=_internal source=*jev_triage_modalert.log` |
-| Detection runs but nothing is triaged | Is *Jev Triage - Response Queue* enabled? Look at `jev_usage` limits (status *skipped*) |
+| Detection runs but nothing is triaged | Is *Second Opinion Triage - Response Queue* enabled? Look at `jev_usage` limits (status *skipped*) |
 | Command errors | The job's search.log (Job Inspector) — look for `ChunkedExternProcessor` |
 | Slow triage | Point the enrichment macros at real indexes; lower `[jev] parallel` if the search head is busy |
 

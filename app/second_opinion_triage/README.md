@@ -23,8 +23,8 @@ the final decision in ES; this app does not change ES fields.
   `` `jev_findings` | head 3 | jevtriage dryrun=true | table event_id rule_name jev_state jev_enrich_errors ``
 - Real run on 3 findings, stored:
   `` `jev_findings` | head 3 | jevtriage | `jev_persist` ``
-- Dashboard: Jev Triage app > Jev Triage.
-- Scheduled: enable saved search "Jev Triage - Untriaged Findings" (every 10 min, max 50 findings per run).
+- Dashboard: Second Opinion Triage app > Triage.
+- Scheduled: enable saved search "Second Opinion Triage - Untriaged Findings" (every 10 min, max 50 findings per run).
 
 ## Settings (`default/jev_triage.conf`, override in `local/`)
 - `[jev]` model (pinned `jev-1.13.0`), confidence_threshold 0.60, escalation_floor 0.80,
@@ -85,7 +85,7 @@ One Note per triage result; `force=true` writes again. Needs `mc_investigation_w
 - Note language: `[es_note] language = en | ja` in `local/jev_triage.conf`
 
 ## Japanese (0.3.0)
-- Dashboard "Jev トリアージ" (`jev_triage_ja`): Japanese labels; Explain and Note in Japanese
+- Dashboard "セカンドオピニオン トリアージ" (`jev_triage_ja`): Japanese labels; Explain and Note in Japanese
 - LLM template `bin/jev_triage/prompts/explain_ja.txt`; `` | `jev_explain("<event_id>", "ja")` ``
 - Jev itself always receives English input.
 
@@ -117,13 +117,13 @@ in `local/macros.conf` (defaults search `index=*`, which is slow):
 ## Changes in 0.5.1
 - Cloud accounts: a fact for mass instance launches (10 or more / 50 or more RunInstances)
 
-## Adaptive Response "Jev Triage" (0.6.0)
-- **On a finding (ad hoc):** ES Analyst Queue > finding > Run adaptive response action > Jev Triage.
-  The finding is triaged right away; the result shows on the Jev Triage dashboard.
-- **On a detection:** add the "Jev Triage" response action next to "Finding". Splunk runs a search's
+## Adaptive Response "Second Opinion Triage" (0.6.0)
+- **On a finding (ad hoc):** ES Analyst Queue > finding > Run adaptive response action > Second Opinion Triage.
+  The finding is triaged right away; the result shows on the Second Opinion Triage dashboard.
+- **On a detection:** add the "Second Opinion Triage" response action next to "Finding". Splunk runs a search's
   actions one after another (the Finding action may run after this one), and an action's session ends
   with the action. So the action only queues a request (KV store `jev_triage_queue`); the scheduled
-  search **"Jev Triage - Response Queue"** (`| jevqueue`, every minute, enabled by default) triages the
+  search **"Second Opinion Triage - Response Queue"** (`| jevqueue`, every minute, enabled by default) triages the
   findings of that run once they are indexed, usually within 1-2 minutes. Keep it enabled if you use
   the action on detections.
 - Options: `Write ES Note` (default No), `Note language`, `Explain with LLM` (default No),
@@ -135,9 +135,9 @@ in `local/macros.conf` (defaults search `index=*`, which is slow):
   app's keys (storage/passwords) and, for Notes, `mc_investigation_write`.
 
 ## Dashboard (0.7.0)
-- "Jev Triage" / "Jev トリアージ": findings list on the left, detail pane on the right (click a row).
+- "Second Opinion Triage" / "セカンドオピニオン トリアージ": findings list on the left, detail pane on the right (click a row).
   Colored urgency (Critical red, High orange, Medium yellow, Low blue) and disposition; summary tiles
-  filter the list. `?event_id=<finding id>` opens a finding directly (used by "Open in Jev Triage" in ES).
+  filter the list. `?event_id=<finding id>` opens a finding directly (used by "Open in Second Opinion Triage" in ES).
 - Explain / Write Note / Re-run run `jevexplain|jevnote|jevtriage persist=true`: the commands store
   the result themselves (KV store batch_save, and for re-runs a JSON event in index=jev_triage,
   sourcetype `jev:triage:json`). No outputlookup/collect, so Splunk does not ask to confirm a risky search.
@@ -158,7 +158,7 @@ LLM explanations cost tokens, so automatic use is limited. Setup page > "Limits 
   still run, and the detail pane says that the explanation can be made with "Explain with LLM".
 - `jev_auto_daily` (default empty = no limit): findings sent to Jev per day by automatic runs. Over the
   limit the finding is stored with status "skipped" and picked up again later.
-- Automatic = detections through the response-action queue and the scheduled search "Jev Triage -
+- Automatic = detections through the response-action queue and the scheduled search "Second Opinion Triage -
   Untriaged Findings" (`jevtriage auto=true`, `jevexplain auto=true`). Manual actions (dashboard buttons,
   ad hoc response action on a finding) are counted but not limited.
 - Counters: KV store `jev_usage`, one record per day (server local date) and kind
@@ -185,7 +185,7 @@ LLM explanations cost tokens, so automatic use is limited. Setup page > "Limits 
 
 ## Explanation added to an existing Note (0.9.8)
 - If the Note for the current result was written before the LLM explanation, "Write Note to ES" now adds
-  the explanation as a second Note ("Jev triage suggestion — LLM explanation (added)") instead of saying
+  the explanation as a second Note ("Second Opinion Triage suggestion — LLM explanation (added)") instead of saying
   "already written". New KV field `jev_note_expl_for` = `jev_explain_time` of the explanation in the Note
   (older records: the Note had the explanation if it was made before the Note). A new explanation
   ("Explain again") can be added the same way.
@@ -261,7 +261,7 @@ LLM explanations cost tokens, so automatic use is limited. Setup page > "Limits 
   the number of failures and up to 5 failed findings. Manual runs are counted but not limited
 
 ## UI (0.8.0)
-- The Jev Triage page and the Setup page are React pages built with Splunk UI Toolkit
+- The Second Opinion Triage page and the Setup page are React pages built with Splunk UI Toolkit
   (`@splunk/react-ui`, `@splunk/react-page`). One page for both languages: switch English / 日本語 (JA)
   at the top right. The switch opens the same page under the en-US / ja-JP locale, so Splunk's own
   menus change language too; the choice is remembered in the browser (default English). Light and dark themes follow the user's Splunk theme.
