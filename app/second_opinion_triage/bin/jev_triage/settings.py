@@ -1,6 +1,7 @@
 """Shared settings and secret loading (jev_triage.conf + storage/passwords, realm second_opinion_triage)."""
 APP = "second_opinion_triage"
 JEV_SECRET = "typesafe_api_key"
+ALT_SECRET = "alt_api_key"   # evaluation of another decision model (jevtriage usekey=alt), e.g. Cloudflare
 LLM_SECRETS = ("llm_api_key", "aws_access_key_id", "aws_secret_access_key")
 
 LIMIT_DEFAULTS = {"jev_auto_daily": "", "llm_auto_daily": "100"}

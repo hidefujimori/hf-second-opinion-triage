@@ -16,6 +16,8 @@ Options:
   extra=<json> conffield=<name>   evaluation only (admins): extra request fields for a non-TypeSafe server
                      (e.g. extra="{\"max_len\":4096}" for Laya) and the answer field to use as confidence
                      (Laya: conffield=answer_confidence). Settings: [jev] request_extra, confidence_field.
+  usekey=alt         evaluation only (admins): send the key stored as "API key for evaluation" (Setup) to the
+                     endpoint= given in the search, e.g. a Cloudflare Workers AI token for Clef. The Jev key is never sent.
   parallel=<1-8> timeout=<seconds>   override [jev] parallel / timeout for this search (e.g. a slow local
                      model that serves one request at a time: parallel=1 timeout=180)
 """
@@ -54,6 +56,7 @@ class JevTriageCommand(StreamingCommand):
     questions = Option(require=False, default=None)
     extra = Option(require=False, default=None)
     conffield = Option(require=False, default=None)
+    usekey = Option(require=False, default=None, validate=validators.Set("alt"))
 
     def _settings(self):
         s = {"model": "jev-1.13.0", "questions_file": "questions.json", "confidence_threshold": "0.60",
@@ -188,7 +191,7 @@ class JevTriageCommand(StreamingCommand):
         do_enrich = truthy(s["enrichment_enabled"]) if self.enrich is None else self.enrich
         do_order = truthy(s["order_check"]) if self.ordercheck is None else self.ordercheck
         enricher = Enricher(self._run_spl, load_templates(), s["shared_entities"].split(","), int(s["max_facts"])) if do_enrich else None
-        if self.endpoint or self.model or self.questions or self.extra or self.conffield:   # evaluation of another decision model / questions
+        if self.endpoint or self.model or self.questions or self.extra or self.conffield or self.usekey:   # evaluation of another decision model / questions
             if not settings.can_admin(self.service):
                 raise RuntimeError("endpoint= / model= / questions= / extra= / conffield= are for admins (edit_storage_passwords or admin_all_objects)")
             if self.persist or self.auto:
@@ -217,6 +220,10 @@ class JevTriageCommand(StreamingCommand):
         Qrev = policy.reversed_disposition(Q)
         if self.dryrun:
             key = None
+        elif self.usekey == "alt":
+            key = settings.secrets(self.service).get(settings.ALT_SECRET)
+            if not key:
+                raise RuntimeError("usekey=alt: no key saved as \"API key for evaluation\" (Setup > Decision model)")
         elif self.endpoint and self.endpoint != configured:
             key = None   # never send the stored key to an endpoint given in the search
         else:

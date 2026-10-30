@@ -53,3 +53,23 @@ laya-serve on the GPU server (RTX 5060 Ti, `tools/local-decision/setup_laya.sh`)
 - Requests are 1,400–2,000 tokens per call; the multilingual checkpoint with max_len 4096 reads them whole.
 - Conclusion: **not usable without fine-tuning** on labelled security findings (we have 33, far too few).
   The app keeps the support for it (`request_extra`, `confidence_field`) for a fine-tuned checkpoint.
+
+## Cloudflare Clef / Clef-flash on Workers AI (hosted, 2026-10-30)
+
+App 0.11.8, `jevtriage endpoint="https://api.cloudflare.com/client/v4/accounts/<id>/ai/run/@cf/cloudflare/clef"
+model="clef" usekey=alt parallel=4 timeout=60` (Workers AI token saved as "API key for evaluation"), 33 labelled
+findings, free plan. One run = 61,505 input tokens (both calls of all 33 findings): about 1,340 neurons for Clef,
+500 for Clef-flash, of the 10,000 free per day.
+
+| Model | Raw choice | Disposition at 0.60 / 0.45 / 0.15 | TP missed at 0.15 | Wrong decided | Urgency (±1) | Latency median / max |
+|---|---|---|---|---|---|---|
+| Clef (hosted) | **32/33** | 16 / 17 / **31** | 0 | 1 (#5, also missed by Jev) | **31/33 (33/33)** | 504 / 1175 ms |
+| Clef-flash (hosted) | 30/33 (TP for all 33) | 2 / 13 / 28 | 2 | 1 | 24/33 (27/33) | 432 / 559 ms |
+
+- Hosted Clef chooses as well as the local Clef 27B Q4 (raw 32/33, FP #32 and Benign #14 right; urgency 31/33 with the
+  same misses as Jev), but its confidence is much lower (median 0.52; correct TP answers from 0.19): the 0.60 rule turns
+  half of the correct answers into Undetermined. With `confidence_threshold = 0.15` it reaches 31/33, no TP missed —
+  the threshold was chosen on these 33 findings, so re-check it on more data. The option-order check disagreed on 2
+  (#32 FP at confidence 0.08, #11).
+- Clef-flash (hosted) behaves like the local Clef-Flash: true_positive for every finding.
+- Latency over the internet: ~0.5 s per call (Jev ~0.15 s). Price: Clef $0.24 / 1M input tokens (Jev $0.042).

@@ -40,7 +40,8 @@ const L = {
     },
     usage: 'Used today', usageCols: ['Jev (automatic)', 'Jev (manual)', 'LLM explanations (automatic)', 'LLM explanations (manual)'], usageNone: 'Nothing counted yet today.',
     f: {
-      typesafe_api_key: 'Jev API key', model: 'Model|Pinned version. Change only after re-checking accuracy.',
+      typesafe_api_key: 'Jev API key',
+      alt_api_key: 'API key for evaluation|Optional. Sent only by `jevtriage ... usekey=alt` (admins) to the endpoint given in that search, e.g. a Cloudflare Workers AI token for Clef. Never sent to TypeSafe.', model: 'Model|Pinned version. Change only after re-checking accuracy.',
       jev_display_name: 'Display name|Name shown for this model in the pages, Notes and guides. Empty = automatic (jev-* → Jev, clef-27b → Clef 27B). Results keep the name of the model that made them.',
       jev_api_endpoint: 'Endpoint|TypeSafe: https://api.typesafe.ai/v1/systemone (default). Another server with the same System One API, e.g. llama.cpp: http://<host>:8081/v1/systemone (the API key may be empty). Re-check accuracy before switching.',
       confidence_threshold: 'Confidence threshold|Below this, the disposition is Undetermined (0–1)',
@@ -83,7 +84,8 @@ const L = {
     },
     usage: '本日の使用量', usageCols: ['Jev（自動）', 'Jev（手動）', 'LLM 説明（自動）', 'LLM 説明（手動）'], usageNone: '本日はまだ使用していません。',
     f: {
-      typesafe_api_key: 'Jev の API キー', model: 'モデル|固定の版です。精度を再確認してから変更してください。',
+      typesafe_api_key: 'Jev の API キー',
+      alt_api_key: '評価用の API キー|任意。`jevtriage ... usekey=alt`（管理者）で、その検索で指定したエンドポイントにだけ送ります（例: Clef 用の Cloudflare Workers AI トークン）。TypeSafe には送りません。', model: 'モデル|固定の版です。精度を再確認してから変更してください。',
       jev_display_name: '表示名|画面・Note・ガイドに出すこのモデルの名前。空欄 = 自動（jev-* → Jev、clef-27b → Clef 27B）。過去の結果は、その結果を作ったモデルの名前で表示します。',
       jev_api_endpoint: 'エンドポイント|TypeSafe: https://api.typesafe.ai/v1/systemone（既定）。同じ System One API の別サーバー、例: llama.cpp は http://<ホスト>:8081/v1/systemone（API キーは空でも可）。切り替える前に精度を再確認してください。',
       confidence_threshold: '確信度のしきい値|これ未満の Disposition は判別不可（0〜1）',
@@ -110,7 +112,7 @@ const L = {
 
 // id: unique field id; label key in L.f; stanza+key for jev_triage.conf, or macro
 const SECTIONS = [
-  { id: 'jev', secrets: [{ name: 'typesafe_api_key' }], fields: [
+  { id: 'jev', secrets: [{ name: 'typesafe_api_key' }, { name: 'alt_api_key' }], fields: [
     { id: 'jev_api_endpoint', stanza: 'jev', key: 'endpoint', url: true }, { id: 'model', stanza: 'jev', key: 'model' }, { id: 'jev_display_name', stanza: 'jev', key: 'display_name' }, { id: 'confidence_threshold', stanza: 'jev', key: 'confidence_threshold', num: [0, 1] },
     { id: 'escalation_floor', stanza: 'jev', key: 'escalation_floor', num: [0, 1] },
     { id: 'rollup_urgency_cap', stanza: 'jev', key: 'rollup_urgency_cap', options: ['', 'low', 'medium', 'high', 'critical'] },
@@ -315,7 +317,7 @@ function SetupPage({ theme }) {
               ) : <span className="hint" style={{ margin: 0 }}>{T.usageNone}</span>}
             </ControlGroup>)}
           {(sec.secrets || []).filter(visible).map((s) => (
-            <ControlGroup key={s.name} label={label(T, s.name).l} labelWidth={240}>
+            <ControlGroup key={s.name} label={label(T, s.name).l} help={label(T, s.name).h} labelWidth={240}>
               <Text type="password" autoComplete="new-password" placeholder={T.keyPh} value={secrets[s.name] || ''}
                 onChange={(e, { value }) => setSecrets({ ...secrets, [s.name]: value })} style={{ maxWidth: 360 }} />
               <span className={`jev-pill ${stored[s.name] ? 'set' : 'unset'}`} style={{ alignSelf: 'center', marginLeft: 8 }}>{stored[s.name] ? T.stored : T.notset}</span>
