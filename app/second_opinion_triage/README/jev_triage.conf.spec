@@ -1,5 +1,7 @@
 [jev]
 display_name = <string>
+request_extra = <json object>
+confidence_field = <string>
 model = <string>
 questions_file = <string>
 confidence_threshold = <float>

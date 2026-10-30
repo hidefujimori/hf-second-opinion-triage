@@ -13,6 +13,9 @@ Options:
                      [jev] endpoint / model. No API key is sent to such an endpoint, and results cannot be persisted.
   questions=<version id>|default   evaluation only (admins): use this version of the questions (support mode
                      test) instead of the one in use for the model. Results cannot be persisted.
+  extra=<json> conffield=<name>   evaluation only (admins): extra request fields for a non-TypeSafe server
+                     (e.g. extra="{\"max_len\":4096}" for Laya) and the answer field to use as confidence
+                     (Laya: conffield=answer_confidence). Settings: [jev] request_extra, confidence_field.
   parallel=<1-8> timeout=<seconds>   override [jev] parallel / timeout for this search (e.g. a slow local
                      model that serves one request at a time: parallel=1 timeout=180)
 """
@@ -49,11 +52,14 @@ class JevTriageCommand(StreamingCommand):
     parallel = Option(require=False, default=None, validate=validators.Integer(1, 8))
     timeout = Option(require=False, default=None, validate=validators.Integer(5, 600))
     questions = Option(require=False, default=None)
+    extra = Option(require=False, default=None)
+    conffield = Option(require=False, default=None)
 
     def _settings(self):
         s = {"model": "jev-1.13.0", "questions_file": "questions.json", "confidence_threshold": "0.60",
              "escalation_floor": "0.80", "rollup_urgency_cap": "high", "order_check": "true",
              "timeout": "30", "proxy": "", "parallel": "4", "enrichment_enabled": "true", "endpoint": "",
+             "request_extra": "", "confidence_field": "",
              "shared_entities": "*.amazonaws.com,*.amazon.com,*.microsoft.com,*.office.com,*.google.com", "max_facts": "12"}
         try:
             conf = self.service.confs["jev_triage"]
@@ -136,7 +142,8 @@ class JevTriageCommand(StreamingCommand):
                 out["jev_status"] = "dryrun"
                 return out
             call = lambda q: jev_client.call(key, s["model"], st, q, timeout=int(s["timeout"]), proxy=s["proxy"] or None,
-                                             endpoint=s["endpoint"] or None)
+                                             endpoint=s["endpoint"] or None, extra=s["request_extra"],
+                                             confidence_field=s["confidence_field"] or None)
             # forward and reversed-option calls run at the same time
             f_rev = pool2.submit(call, Qrev) if do_order else None
             res = call(Q)
@@ -181,13 +188,21 @@ class JevTriageCommand(StreamingCommand):
         do_enrich = truthy(s["enrichment_enabled"]) if self.enrich is None else self.enrich
         do_order = truthy(s["order_check"]) if self.ordercheck is None else self.ordercheck
         enricher = Enricher(self._run_spl, load_templates(), s["shared_entities"].split(","), int(s["max_facts"])) if do_enrich else None
-        if self.endpoint or self.model or self.questions:   # evaluation of another decision model / questions
+        if self.endpoint or self.model or self.questions or self.extra or self.conffield:   # evaluation of another decision model / questions
             if not settings.can_admin(self.service):
-                raise RuntimeError("endpoint= / model= / questions= are for admins (edit_storage_passwords or admin_all_objects)")
+                raise RuntimeError("endpoint= / model= / questions= / extra= / conffield= are for admins (edit_storage_passwords or admin_all_objects)")
             if self.persist or self.auto:
-                raise RuntimeError("endpoint= / model= / questions= are for evaluation: persist=true and auto=true are not allowed")
+                raise RuntimeError("endpoint= / model= / questions= / extra= / conffield= are for evaluation: persist=true and auto=true are not allowed")
             if self.endpoint and not str(self.endpoint).lower().startswith(("http://", "https://")):
                 raise RuntimeError("endpoint must start with http:// or https://")
+        if self.extra is not None:
+            s["request_extra"] = self.extra
+        if self.conffield is not None:
+            s["confidence_field"] = self.conffield
+        try:
+            s["request_extra"] = json.loads(s["request_extra"]) if s.get("request_extra") else None
+        except ValueError:
+            raise RuntimeError("[jev] request_extra / extra= must be a JSON object")
         if self.parallel:
             s["parallel"] = str(self.parallel)
         if self.timeout:

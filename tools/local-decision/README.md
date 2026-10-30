@@ -73,3 +73,31 @@ models do not fit, stop Ollama models first (`ollama stop <model>`) or use small
   `` `jev_findings` | jevtriage endpoint="http://<gpu-server>:8081/v1/systemone" model="kev-4b" ``
 - Or as the decision model for the app: Setup > TypeSafe Jev > Endpoint = `http://<gpu-server>:8081/v1/systemone`,
   Model = `kev-4b` (the API key may be left empty for a server without `--api-key`).
+
+## Laya (Convai Innovations) — evaluation (0.11.7)
+
+Laya is an open (Apache 2.0) non-generative decision model with a Jev-compatible `POST /v1/systemone`
+(`laya-serve`). It is small (~0.4B, ModernBERT / mmBERT) and fast, but the published general checkpoints are weak
+without fine-tuning, `score` questions are its weakest type, and its `confidence` is 1 − normalised entropy
+(not comparable with Jev's). Points for this app:
+
+- The state + questions of a finding are about 1,600 tokens: use the multilingual checkpoint with `max_len` 4096
+  (the English checkpoint reads 512 tokens only).
+- Use `answer_confidence` (calibrated probability of the chosen answer) instead of `confidence`.
+
+```
+# on the test server (GPU optional)
+bash setup_laya.sh          # once
+bash setup_laya.sh run      # port 8086
+curl -s http://<gpu-server>:8086/health
+```
+
+From Splunk (admins; not saved, no key sent):
+
+```
+`jev_findings` | jevtriage endpoint="http://<gpu-server>:8086/v1/systemone" model="laya-multilingual"
+    extra="{\"max_len\":4096}" conffield=answer_confidence parallel=2 timeout=60
+```
+
+To use it as the app's decision model instead: Setup > Decision model > Endpoint and Model, and in
+`jev_triage.conf [jev]`: `request_extra = {"max_len": 4096}`, `confidence_field = answer_confidence`.

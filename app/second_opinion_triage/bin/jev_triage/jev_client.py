@@ -63,12 +63,28 @@ def normalise_answers(answers, questions):
     return answers
 
 
-def call(api_key, model, state, questions, timeout=30, retries=4, proxy=None, endpoint=None):
+def use_confidence(answers, field):
+    """Servers whose `confidence` means something else (Laya: 1 - normalised entropy) also return a calibrated
+    probability of the chosen answer, e.g. answer_confidence: use that one as `confidence` for the policy."""
+    if not field or field == "confidence":
+        return answers
+    for a in (answers or {}).values():
+        if isinstance(a, dict) and a.get(field) is not None:
+            a["confidence_raw"] = a.get("confidence")
+            a["confidence"] = a[field]
+    return answers
+
+
+def call(api_key, model, state, questions, timeout=30, retries=4, proxy=None, endpoint=None, extra=None,
+         confidence_field=None):
     url = endpoint or API_URL
     native = is_typesafe(url)
     qs = questions if native else compat_questions(questions)
     st = state if native or isinstance(state, str) else json.dumps(state, ensure_ascii=False)
-    body = json.dumps({"model": model, "state": st, "questions": qs}).encode("utf-8")
+    req_body = {"model": model, "state": st, "questions": qs}
+    if extra and not native:   # server-specific fields, e.g. Laya: {"max_len": 4096}
+        req_body.update({k: v for k, v in extra.items() if k not in req_body})
+    body = json.dumps(req_body).encode("utf-8")
     handlers = [urllib.request.HTTPSHandler(context=ssl.create_default_context())]
     if proxy and url.lower().startswith("https://"):
         handlers.append(urllib.request.ProxyHandler({"https": proxy}))
@@ -91,6 +107,7 @@ def call(api_key, model, state, questions, timeout=30, retries=4, proxy=None, en
                     raise JevError("no answers in the response: %s" % json.dumps(out)[:200])
                 if not native:
                     normalise_answers(out["answers"], qs)
+                    use_confidence(out["answers"], confidence_field)
                 out["latency_ms"] = int((time.time() - t0) * 1000)
                 return out
         except urllib.error.HTTPError as e:

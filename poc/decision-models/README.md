@@ -32,3 +32,24 @@ Notes
 
 Files: `run_2026-10-21_jev_kev.txt`, `run_2026-10-21_clef.txt`, `run_2026-10-26_kev9.txt`, `run_2026-10-26_clef27.txt`, `run_2026-10-26_kev27.txt` (id, status, disposition, raw, confidence, urgency,
 urgency confidence, latency ms), `score.py`.
+
+## Laya (Convai Innovations, laya 0.4.17, 2026-10-30)
+
+laya-serve on the GPU server (RTX 5060 Ti, `tools/local-decision/setup_laya.sh`), app 0.11.7,
+`jevtriage endpoint=... model=<checkpoint> conffield=answer_confidence parallel=2 timeout=60`, 33 labelled findings
+(ground_truth_v5). Baseline "always TP" = 29/33.
+
+| Checkpoint | Options | Disposition (policy) | Raw choice | TP missed | Urgency exact | ±1 | Median latency |
+|---|---|---|---|---|---|---|---|
+| laya-multilingual | max_len 4096 | 18/33 | 27/33 (TP for 29 of 33) | 12 | 14/33 | 17/33 | 45 ms |
+| laya-typed-decisions | max_len 4096 | 2/33 | 19/33 | 29 | 10/33 | 18/33 | 102 ms |
+| laya (English, 512 tokens) | — | 7/33 | 16/33 | 24 | 19/33 | 28/33 | 93 ms |
+| (reference) Jev 1.13 | | 32/33 | | 0 | 31/33 | 33/33 | ~154 ms |
+| (reference) Clef 27B Q4 | threshold 0.45 | 30/33 | 32/33 | 0 | 31/33 | 33/33 | ~20 s (Mac) |
+
+- No checkpoint separates FP / Benign / Undetermined from TP: the multilingual one answers TP for nearly everything
+  (below the always-TP baseline), the others are close to random. The yes/no question `requires_escalation` is
+  almost always high, so the policy raises urgency to High (the noul bias the model card warns about).
+- Requests are 1,400–2,000 tokens per call; the multilingual checkpoint with max_len 4096 reads them whole.
+- Conclusion: **not usable without fine-tuning** on labelled security findings (we have 33, far too few).
+  The app keeps the support for it (`request_extra`, `confidence_field`) for a fine-tuned checkpoint.
