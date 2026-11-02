@@ -359,12 +359,33 @@ class Enricher(object):
             return ""
         return _one(rows[0].get("autonomous_system_organization")) if rows else ""
 
+    def ip_intel_facts(self, ip):
+        """Threat intelligence of Enterprise Security (ip_intel: downloaded feeds, local lists, TIM exports).
+        Only a match is reported; no match and no ES (no ip_intel) say nothing."""
+        if getattr(self, "_no_intel", False):
+            return []
+        n = len(self.errors)
+        rows = self._q("ip_intel", ip, "-1m", "now")
+        if len(self.errors) > n:
+            del self.errors[n:]
+            self._no_intel = True
+            return []
+        r = rows[0] if rows else {}
+        if not int(float(_one(r.get("count")) or 0)):
+            return []
+        src_names = _mv(r.get("sources"))
+        desc = [d for d in _mv(r.get("descriptions")) if d][:2]
+        return ["%s is listed in the threat intelligence of Enterprise Security: %s%s%s" % (
+            ip, ", ".join(src_names[:3]) or "a threat list", (" (" + "; ".join(desc) + ")") if desc else "",
+            (", weight %s" % _one(r.get("weight"))) if _one(r.get("weight")) else "")]
+
     def src_facts(self, src, domain, e, l):
         facts = []
         if is_ip(src) and ipaddress.ip_address(src).is_global:
             loc = self._q("ip_location", src, "-1m", "now")
             country = _one(loc[0].get("Country")) if loc else ""
             org = self.asn_org(src)
+            facts += self.ip_intel_facts(src)
             if country or org:
                 facts.append("source %s%s%s" % (
                     src, (" is located in %s" % country) if country else "",
