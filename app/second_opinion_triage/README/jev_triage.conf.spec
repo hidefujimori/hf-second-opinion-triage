@@ -2,6 +2,7 @@
 display_name = <string>
 request_extra = <json object>
 confidence_field = <string>
+model_rules = auto|off
 model = <string>
 questions_file = <string>
 confidence_threshold = <float>
@@ -11,6 +12,10 @@ order_check = <bool>
 timeout = <int>
 proxy = <url>
 parallel = <int 1-8>
+
+[model_rules:<model>]
+confidence_threshold = <float>
+order_check = <bool>
 
 [enrichment]
 enabled = <bool>

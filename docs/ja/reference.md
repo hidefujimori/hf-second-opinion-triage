@@ -9,6 +9,7 @@
 | `[jev] endpoint` | `https://api.typesafe.ai/v1/systemone` | TypeSafe Jev、または同じ System One API の別サーバー（例: llama.cpp `http://<ホスト>:8081/v1/systemone`、API キーは任意）。TypeSafe 以外には質問を互換の形式で送ります（0.9.15） |
 | `[jev] model` | `jev-1.13.0` | Jev のモデル（固定） |
 | `[jev] display_name` | 空欄 | 画面・Note・ガイド・LLM への指示に出す判定モデルの名前。空欄 = モデル名から自動（`jev-*` → Jev、`clef-27b` → Clef 27B）。各結果は、その結果を作ったモデルの名前で表示 |
+| `[jev] model_rules` | `auto` | モデル別の判定ルール。`auto`: 正解付きデータで確認したモデルは専用の確信度の閾値と順序確認を使う（`gpt-6-luna` 0.50・なし、`clef`（Workers AI）0.15・あり、`clef-27b` 0.45・あり）。ほかのモデル（Jev を含む）は `confidence_threshold` / `order_check`。`off`: 常にそれらを使う。1つのモデルだけ変える場合は `[model_rules:<model>]` に `confidence_threshold`、`order_check`。各結果に使ったルールを記録（`jev_rules`） |
 | `[jev] confidence_threshold` | 0.60 | これ未満の Disposition は判別不可 |
 | `[jev] escalation_floor` | 0.80 | Jev の「エスカレーションが必要」がこれ以上なら Urgency を High 以上に |
 | `[jev] rollup_urgency_cap` | high | リスク集約・Finding グループの Urgency の上限 |

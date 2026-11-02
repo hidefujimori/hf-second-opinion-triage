@@ -351,7 +351,7 @@ function Pane({ T, lang, id, onChanged }) {
         {rec && (
           <Sec title={T.meta}>
             <div className="jev-kv">
-              {[[T.model, `${r.jev_model || ''} / ${r.jev_questions || ''}`], [T.version, r.jev_version], [T.triaged, fmtTime(r.jev_time)],
+              {[[T.model, `${r.jev_model || ''} / ${r.jev_questions || ''}`], [T.rules, r.jev_rules || '-'], [T.version, r.jev_version], [T.triaged, fmtTime(r.jev_time)],
                 [T.latency, r.jev_latency_ms ? `${r.jev_latency_ms} ms` : ''], ['event_id', id]]
                 .filter((x) => x[1]).map(([k, v]) => [<div className="k" key={`${k}k`}>{k}</div>, <div className="sub" key={`${k}v`}>{v}</div>])}
             </div>

@@ -17,6 +17,7 @@ import { collect, download } from './support';
 import LangSwitch from '../../common/LangSwitch';
 import PromptPanel from './prompts';
 import MigratePanel from './migrate';
+import { rulesFor } from '../../common/model';
 
 const REALM = APP;
 const L = {
@@ -35,14 +36,17 @@ const L = {
       enrichment: ['Enrichment', 'Facts collected with SPL before asking Jev. Point the macros at your indexes; the default index=* is slow.'],
       llm: ['LLM explanation', 'Used only when someone clicks Explain. Choose any provider; the credential is stored per app.'],
       note: ['Notes on ES findings', ''],
+      evaluation: ['Evaluation keys (support only)', 'Only for evaluating another decision model together with support (jevtriage ... usekey=alt / alt2). These keys are never used for triage and are NOT a fallback: if the decision model in use fails, triage reports an error. Leave them empty unless support asks.'],
       manual: ['Manual run', 'Defaults for "Run Second Opinion Triage" in the menu of an ES finding (one click, no form), and the initial values of the Second Opinion Triage response-action form.'],
       limits: ['Limits for automatic runs', 'Daily limits for automatic runs only (detections through the Second Opinion Triage response action, and the scheduled search). Manual actions are not limited. Empty = no limit, 0 = none per day. A day is the Splunk server\'s local calendar day.'],
     },
+    rulesNow: 'Rules in use for {m}: threshold {t}, option-order check {o} ({s})', on: 'on', off: 'off', srcBuiltIn: 'built-in for this model', srcSettings: 'values below', show: 'Show', hide: 'Hide',
     usage: 'Used today', usageCols: ['Jev (automatic)', 'Jev (manual)', 'LLM explanations (automatic)', 'LLM explanations (manual)'], usageNone: 'Nothing counted yet today.',
     f: {
       typesafe_api_key: 'Jev API key',
       alt_api_key_2: 'API key for evaluation 2|Optional. A second key for another server, sent only with `usekey=alt2` (e.g. an OpenAI API key for the Decisions API).',
       alt_api_key: 'API key for evaluation|Optional. Sent only by `jevtriage ... usekey=alt` (admins) to the endpoint given in that search, e.g. a Cloudflare Workers AI token for Clef. Never sent to TypeSafe.', model: 'Model|Pinned version. Change only after re-checking accuracy.',
+      model_rules: 'Rules per model|auto: models tested on the labelled findings use their own threshold and option-order check (gpt-6-luna 0.50 / off, clef 0.15, clef-27b 0.45); off: always the values below',
       jev_display_name: 'Display name|Name shown for this model in the pages, Notes and guides. Empty = automatic (jev-* → Jev, clef-27b → Clef 27B). Results keep the name of the model that made them.',
       jev_api_endpoint: 'Endpoint|TypeSafe: https://api.typesafe.ai/v1/systemone (default). Another server with the same System One API, e.g. llama.cpp: http://<host>:8081/v1/systemone (the API key may be empty). Re-check accuracy before switching.',
       confidence_threshold: 'Confidence threshold|Below this, the disposition is Undetermined (0–1)',
@@ -80,14 +84,17 @@ const L = {
       enrichment: ['Enrichment（情報収集）', 'Jev に聞く前に SPL で集める情報です。マクロを実際の index に向けてください（既定の index=* は遅くなります）。'],
       llm: ['LLM による説明', '「LLM で説明」を押したときだけ使います。プロバイダは選べます。資格情報はアプリごとに保存されます。'],
       note: ['ES の Finding への Note', ''],
+      evaluation: ['評価用のキー（サポート用）', 'サポートと一緒に別の判定モデルを評価するときだけ使います（jevtriage ... usekey=alt / alt2）。ここのキーはトリアージには使われず、予備（フォールバック）でもありません。使用中の判定モデルが失敗した場合はエラーになります。サポートから依頼がない限り空欄のままにしてください。'],
       manual: ['手動実行', 'ES の Finding のメニュー「Run Second Opinion Triage」（フォームなしで実行）の既定値です。Second Opinion Triage レスポンスアクションのフォームの初期値にも使います。'],
       limits: ['自動実行の上限', '自動実行（検知から動く Second Opinion Triage レスポンスアクションと定期検索）だけに適用する1日の上限です。手動の操作は制限しません。空欄 = 無制限、0 = 1日0件。1日は Splunk サーバーの現地時間で区切ります。'],
     },
+    rulesNow: '{m} の判定ルール: 閾値 {t}、順序確認 {o}（{s}）', on: 'あり', off: 'なし', srcBuiltIn: 'モデル別の既定', srcSettings: '下の設定値', show: '表示する', hide: '隠す',
     usage: '本日の使用量', usageCols: ['Jev（自動）', 'Jev（手動）', 'LLM 説明（自動）', 'LLM 説明（手動）'], usageNone: '本日はまだ使用していません。',
     f: {
       typesafe_api_key: 'Jev の API キー',
       alt_api_key_2: '評価用の API キー 2|任意。別のサーバー用の2つ目のキー。`usekey=alt2` のときだけ送ります（例: OpenAI Decisions API 用の OpenAI API キー）。',
       alt_api_key: '評価用の API キー|任意。`jevtriage ... usekey=alt`（管理者）で、その検索で指定したエンドポイントにだけ送ります（例: Clef 用の Cloudflare Workers AI トークン）。TypeSafe には送りません。', model: 'モデル|固定の版です。精度を再確認してから変更してください。',
+      model_rules: 'モデル別の判定ルール|auto: 正解付きデータで確認したモデルは専用の閾値と順序確認を使う（gpt-6-luna 0.50・なし、clef 0.15、clef-27b 0.45）。off: 常に下の値を使う',
       jev_display_name: '表示名|画面・Note・ガイドに出すこのモデルの名前。空欄 = 自動（jev-* → Jev、clef-27b → Clef 27B）。過去の結果は、その結果を作ったモデルの名前で表示します。',
       jev_api_endpoint: 'エンドポイント|TypeSafe: https://api.typesafe.ai/v1/systemone（既定）。同じ System One API の別サーバー、例: llama.cpp は http://<ホスト>:8081/v1/systemone（API キーは空でも可）。切り替える前に精度を再確認してください。',
       confidence_threshold: '確信度のしきい値|これ未満の Disposition は判別不可（0〜1）',
@@ -114,8 +121,8 @@ const L = {
 
 // id: unique field id; label key in L.f; stanza+key for jev_triage.conf, or macro
 const SECTIONS = [
-  { id: 'jev', secrets: [{ name: 'typesafe_api_key' }, { name: 'alt_api_key' }, { name: 'alt_api_key_2' }], fields: [
-    { id: 'jev_api_endpoint', stanza: 'jev', key: 'endpoint', url: true }, { id: 'model', stanza: 'jev', key: 'model' }, { id: 'jev_display_name', stanza: 'jev', key: 'display_name' }, { id: 'confidence_threshold', stanza: 'jev', key: 'confidence_threshold', num: [0, 1] },
+  { id: 'jev', secrets: [{ name: 'typesafe_api_key' }], rules: true, fields: [
+    { id: 'jev_api_endpoint', stanza: 'jev', key: 'endpoint', url: true }, { id: 'model', stanza: 'jev', key: 'model' }, { id: 'model_rules', stanza: 'jev', key: 'model_rules', options: ['auto', 'off'] }, { id: 'jev_display_name', stanza: 'jev', key: 'display_name' }, { id: 'confidence_threshold', stanza: 'jev', key: 'confidence_threshold', num: [0, 1] },
     { id: 'escalation_floor', stanza: 'jev', key: 'escalation_floor', num: [0, 1] },
     { id: 'rollup_urgency_cap', stanza: 'jev', key: 'rollup_urgency_cap', options: ['', 'low', 'medium', 'high', 'critical'] },
     { id: 'order_check', stanza: 'jev', key: 'order_check', options: ['true', 'false'], bool: true },
@@ -136,6 +143,8 @@ const SECTIONS = [
   { id: 'note', fields: [{ id: 'note_language', stanza: 'es_note', key: 'language', options: ['en', 'ja'] }] },
   { id: 'manual', fields: [{ id: 'manual_note', stanza: 'manual', key: 'write_note', options: ['true', 'false'], bool: true },
     { id: 'manual_explain', stanza: 'manual', key: 'explain', options: ['true', 'false'], bool: true }] },
+  // keys for evaluating other decision models with support: hidden unless opened (they are not a fallback)
+  { id: 'evaluation', hidden: true, secrets: [{ name: 'alt_api_key' }, { name: 'alt_api_key_2' }], fields: [] },
   { id: 'limits', usage: true, fields: [{ id: 'jev_auto_daily', stanza: 'limits', key: 'jev_auto_daily', num: [0, 1000000] },
     { id: 'llm_auto_daily', stanza: 'limits', key: 'llm_auto_daily', num: [0, 1000000] }] },
 ];
@@ -162,6 +171,7 @@ function SetupPage({ theme }) {
   const [canSave, setCanSave] = useState(true);
   const [savedVals, setSavedVals] = useState(null);   // JSON of vals as last loaded / saved
   const [usage, setUsage] = useState(null);
+  const [showEval, setShowEval] = useState(false);
   const [sup, setSup] = useState(null);   // { busy, text, type }   // { date, jev_auto, jev_manual, llm_auto, llm_manual }
 
   const loadUsage = () => rest('storage/collections/data/jev_usage', { params: { sort: 'date:-1', limit: 20 } })
@@ -307,10 +317,16 @@ function SetupPage({ theme }) {
       </div>
       {!canSave && <Message type="warning">{T.noCap}</Message>}
       <MigratePanel lang={lang} canSave={canSave} />
-      {SECTIONS.map((sec) => (
+      {SECTIONS.filter((sec) => !(sec.hidden && !canSave)).map((sec) => (
         <div key={sec.id}>
-          <h2>{T.sections[sec.id][0]}</h2>
+          <h2>{T.sections[sec.id][0]}{sec.hidden && (
+            <Button appearance="pill" label={showEval ? T.hide : T.show} onClick={() => setShowEval(!showEval)} style={{ marginLeft: 8 }} />)}</h2>
           {T.sections[sec.id][1] && <div className="hint">{T.sections[sec.id][1]}</div>}
+          {sec.rules && (() => {
+            const r = rulesFor(vals.model, { confidence_threshold: vals.confidence_threshold, order_check: vals.order_check, model_rules: vals.model_rules });
+            return <div className="hint">{T.rulesNow.replace('{m}', vals.model || '-').replace('{t}', r.confidence_threshold.toFixed(2))
+              .replace('{o}', r.order_check ? T.on : T.off).replace('{s}', r.source === 'built-in' ? T.srcBuiltIn : T.srcSettings)}</div>;
+          })()}
           {sec.usage && usage && (
             <ControlGroup label={T.usage + (usage.date ? ` (${usage.date})` : '')} labelWidth={240}>
               {usage.date ? (
@@ -318,7 +334,7 @@ function SetupPage({ theme }) {
                   <tbody><tr>{['jev_auto', 'jev_manual', 'llm_auto', 'llm_manual'].map((k) => <td key={k}>{usage[k] || 0}</td>)}</tr></tbody></table>
               ) : <span className="hint" style={{ margin: 0 }}>{T.usageNone}</span>}
             </ControlGroup>)}
-          {(sec.secrets || []).filter(visible).map((s) => (
+          {(sec.hidden && !showEval ? [] : (sec.secrets || [])).filter(visible).map((s) => (
             <ControlGroup key={s.name} label={label(T, s.name).l} help={label(T, s.name).h} labelWidth={240}>
               <Text type="password" autoComplete="new-password" placeholder={T.keyPh} value={secrets[s.name] || ''}
                 onChange={(e, { value }) => setSecrets({ ...secrets, [s.name]: value })} style={{ maxWidth: 360 }} />

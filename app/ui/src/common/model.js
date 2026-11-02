@@ -21,3 +21,18 @@ export function localize(T, name) {
   Object.keys(T).forEach((k) => { out[k] = typeof T[k] === 'string' ? T[k].replace(JEV, name) : T[k]; });
   return out;
 }
+
+// Decision rules per model (same as bin/jev_triage/rules.py): threshold and option-order check.
+const BUILT_IN_RULES = [
+  [/^gpt-6-luna/i, { confidence_threshold: 0.50, order_check: false }],
+  [/^clef$/i, { confidence_threshold: 0.15, order_check: true }],
+  [/^clef-27b/i, { confidence_threshold: 0.45, order_check: true }],
+];
+
+export function rulesFor(model, jev = {}) {
+  const truthy = (v) => /^(1|true|yes|t|on)$/i.test(String(v == null ? 'true' : v).trim());
+  const base = { confidence_threshold: Number(jev.confidence_threshold || 0.6), order_check: truthy(jev.order_check), source: 'settings' };
+  if (String(jev.model_rules || 'auto').toLowerCase() === 'off') { return base; }
+  const hit = BUILT_IN_RULES.find(([re]) => re.test((model || '').trim()));
+  return hit ? { ...base, ...hit[1], source: 'built-in' } : base;
+}

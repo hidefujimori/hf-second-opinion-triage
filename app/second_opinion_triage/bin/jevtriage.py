@@ -34,7 +34,7 @@ sys.path.insert(0, HERE)
 from splunklib import results  # noqa: E402
 from splunklib.searchcommands import Configuration, Option, StreamingCommand, dispatch, validators  # noqa: E402
 
-from jev_triage import __version__, jev_client, persist, policy, prompts_store, settings, state, usage  # noqa: E402
+from jev_triage import __version__, jev_client, persist, policy, prompts_store, rules, settings, state, usage  # noqa: E402
 from jev_triage.enrich import Enricher, load_templates  # noqa: E402
 
 APP = "second_opinion_triage"
@@ -62,7 +62,7 @@ class JevTriageCommand(StreamingCommand):
         s = {"model": "jev-1.13.0", "questions_file": "questions.json", "confidence_threshold": "0.60",
              "escalation_floor": "0.80", "rollup_urgency_cap": "high", "order_check": "true",
              "timeout": "30", "proxy": "", "parallel": "4", "enrichment_enabled": "true", "endpoint": "",
-             "request_extra": "", "confidence_field": "",
+             "request_extra": "", "confidence_field": "", "model_rules": "auto",
              "shared_entities": "*.amazonaws.com,*.amazon.com,*.microsoft.com,*.office.com,*.google.com", "max_facts": "12"}
         try:
             conf = self.service.confs["jev_triage"]
@@ -130,7 +130,7 @@ class JevTriageCommand(StreamingCommand):
             return out
         out = dict(rec)
         out.update({"jev_version": __version__, "jev_model": s["model"], "jev_questions": qset.get("version"),
-                    "jev_time": int(time.time())})
+                    "jev_time": int(time.time()), "jev_rules": s.get("rules_text", "")})
         if self._q_warn:
             out["jev_enrich_errors"] = self._q_warn
         try:
@@ -215,6 +215,12 @@ class JevTriageCommand(StreamingCommand):
             s["endpoint"] = self.endpoint
         if self.model:
             s["model"] = self.model
+        # decision rules for this model (threshold, option-order check)
+        r = rules.rules_for(s["model"], s, settings.stanza(self.service, "model_rules:%s" % s["model"], {}))
+        s["confidence_threshold"] = str(r["confidence_threshold"])
+        if self.ordercheck is None:
+            do_order = r["order_check"]
+        s["rules_text"] = rules.describe(s["model"], dict(r, order_check=do_order))
         qset, self._q_warn = self._load_questions(s)
         Q = qset["questions"]
         Qrev = policy.reversed_disposition(Q)
