@@ -18,3 +18,5 @@ app/tests/cache.json
 app/tests/pending.json
 app/_packages/
 Claude outputs/
+# internal only (not published)
+_internal/

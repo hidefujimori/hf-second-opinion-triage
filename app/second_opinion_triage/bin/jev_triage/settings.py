@@ -24,8 +24,24 @@ def stanza(service, name, defaults=None, logger=None):
 
 
 def secrets(service):
-    """username -> clear password, only for this app's realm (or no realm)."""
-    return {p.username: p.clear_password for p in service.storage_passwords if (p.realm or "") in (APP, "")}
+    """username -> clear password for this app's realm.
+
+    The keys are shared at app level, so a search started from another app (e.g. Search & Reporting) does not see
+    them in its own namespace: read them in this app's namespace whatever app the search runs in."""
+    import json
+    try:
+        resp = service.get("storage/passwords", owner="-", app=APP, count=0, output_mode="json")
+        entries = json.loads(resp.body.read().decode("utf-8")).get("entry", [])
+    except Exception:
+        return {p.username: p.clear_password for p in service.storage_passwords if (p.realm or "") in (APP, "")}
+    out = {}
+    # entries without a realm only when they belong to this app; this app's realm wins
+    for e in sorted(entries, key=lambda x: 1 if ((x.get("content") or {}).get("realm") or "") == APP else 0):
+        c = e.get("content") or {}
+        realm = c.get("realm") or ""
+        if realm == APP or (realm == "" and ((e.get("acl") or {}).get("app") == APP)):
+            out[c.get("username")] = c.get("clear_password")
+    return out
 
 
 def jev_api_key(service, required=True):

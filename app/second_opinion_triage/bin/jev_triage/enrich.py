@@ -32,6 +32,14 @@ def is_ip(v):
         return False
 
 
+def is_url(v):
+    """URLs and paths (e.g. a console sign-in URL in dest) are not hosts."""
+    return "://" in str(v) or "/" in str(v)
+
+
+AUTH_ACTIONS = {"success", "failure", "error"}   # CIM values of Authentication.action
+
+
 def short(host):
     return str(host).split(".")[0]
 
@@ -233,8 +241,9 @@ class Enricher(object):
                 facts.append("asset: source %s is not in the asset inventory" % src)
         if domain == "access":
             rows = self._q("auth_outcome", src, e, l)
-            acts = {(_one(r.get("action")) or ""): int(float(r.get("count") or 0)) for r in rows}
-            if acts:
+            acts = {(_one(r.get("action")) or "").lower(): int(float(r.get("count") or 0)) for r in rows}
+            # only when the data model uses the CIM values; e.g. action="ConsoleLogin" says nothing about the outcome
+            if acts and set(acts) & AUTH_ACTIONS:
                 ok = acts.get("success", 0)
                 facts.append("authentication outcome: no successful login from %s" % src if ok == 0
                              else "authentication outcome: %s had successful logins" % src)
@@ -321,7 +330,7 @@ class Enricher(object):
         users = _mv(f.get("user"))
         if (_one(f.get("risk_object_type")) or "") == "user":
             users += _mv(f.get("risk_object"))
-        hosts = [h for h in _mv(f.get("dest")) if not is_ip(h) and not self.is_shared(h)]
+        hosts = [h for h in _mv(f.get("dest")) if not is_ip(h) and not is_url(h) and not self.is_shared(h)]
         if (_one(f.get("risk_object_type")) or "") == "system" and not is_ip(_one(f.get("risk_object")) or "x"):
             hosts += [h for h in _mv(f.get("risk_object")) if not self.is_shared(h)]
         srcs = [s for s in _mv(f.get("src")) if is_ip(s)]
@@ -338,8 +347,18 @@ class Enricher(object):
             facts += idf
             facts += self.cloud_user_facts(u, e, l)
             facts += self.workstation_facts(ws, e, l, "this user's own")
+        missing = []
         for h in dict.fromkeys(hosts):
-            facts += self.host_facts(h, e, l)
+            for x in self.host_facts(h, e, l):
+                if x == "asset: %s is not in the asset inventory" % h:
+                    missing.append(h)   # one line for all of them, so they do not crowd out other facts
+                else:
+                    facts.append(x)
+        if len(missing) == 1:
+            facts.append("asset: %s is not in the asset inventory" % missing[0])
+        elif missing:
+            facts.append("asset: none of the %d hosts are in the asset inventory (%s%s)" % (
+                len(missing), ", ".join(missing[:4]), ", ..." if len(missing) > 4 else ""))
         for s in dict.fromkeys(srcs):
             facts += self.src_facts(s, domain or "access", e, l)
         if f.get("command"):
