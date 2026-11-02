@@ -73,3 +73,20 @@ findings, free plan. One run = 61,505 input tokens (both calls of all 33 finding
   (#32 FP at confidence 0.08, #11).
 - Clef-flash (hosted) behaves like the local Clef-Flash: true_positive for every finding.
 - Latency over the internet: ~0.5 s per call (Jev ~0.15 s). Price: Clef $0.24 / 1M input tokens (Jev $0.042).
+
+## OpenAI Decisions API (gpt-6-luna, 2026-11-02)
+
+App 0.11.9 (OpenAI format chosen automatically for an endpoint ending in `/v1/decisions`),
+`jevtriage endpoint="https://api.openai.com/v1/decisions" model="gpt-6-luna" usekey=alt2 parallel=4 timeout=90`,
+33 labelled findings. One run = 64,277 input tokens (about $0.0064).
+
+| | Raw choice | Disposition (rules as shipped: 0.60 + option-order check) | at 0.45, no order check | TP missed (shipped rules) | Wrong decided | Urgency (±1) | Latency median / max |
+|---|---|---|---|---|---|---|---|
+| gpt-6-luna | 30/33 | 28/33 | 30/33 | 2 (#15, #18: option-order check disagreed) | 2 (#32 FP → TP at 0.92, #5) | **31/33 (32/33)** | 289 / 556 ms |
+
+- Confidence is on Jev's scale (median 0.87, minimum 0.51): the 0.60 rule works as designed, unlike hosted Clef.
+- The option-order check disagreed on two TP findings (#15 at 0.51, #18 at 0.63) and turned them Undetermined.
+- Misses: the FP finding #32 is called TP with high confidence (Jev and Clef get it right); Benign #14 → undetermined
+  (safe); #5 as everyone. Urgency matches Jev's (31/33).
+- Price $0.10 / 1M input tokens (Jev $0.042, Clef $0.24); ~0.3 s per call. Strong data controls (US / EU
+  processing, ZDR / HIPAA for eligible customers, Private Link).

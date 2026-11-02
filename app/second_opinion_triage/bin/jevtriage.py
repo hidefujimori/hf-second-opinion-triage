@@ -16,7 +16,7 @@ Options:
   extra=<json> conffield=<name>   evaluation only (admins): extra request fields for a non-TypeSafe server
                      (e.g. extra="{\"max_len\":4096}" for Laya) and the answer field to use as confidence
                      (Laya: conffield=answer_confidence). Settings: [jev] request_extra, confidence_field.
-  usekey=alt         evaluation only (admins): send the key stored as "API key for evaluation" (Setup) to the
+  usekey=alt|alt2    evaluation only (admins): send the key stored as "API key for evaluation" (or "... 2") to the
                      endpoint= given in the search, e.g. a Cloudflare Workers AI token for Clef. The Jev key is never sent.
   parallel=<1-8> timeout=<seconds>   override [jev] parallel / timeout for this search (e.g. a slow local
                      model that serves one request at a time: parallel=1 timeout=180)
@@ -56,7 +56,7 @@ class JevTriageCommand(StreamingCommand):
     questions = Option(require=False, default=None)
     extra = Option(require=False, default=None)
     conffield = Option(require=False, default=None)
-    usekey = Option(require=False, default=None, validate=validators.Set("alt"))
+    usekey = Option(require=False, default=None, validate=validators.Set("alt", "alt2"))
 
     def _settings(self):
         s = {"model": "jev-1.13.0", "questions_file": "questions.json", "confidence_threshold": "0.60",
@@ -220,10 +220,12 @@ class JevTriageCommand(StreamingCommand):
         Qrev = policy.reversed_disposition(Q)
         if self.dryrun:
             key = None
-        elif self.usekey == "alt":
-            key = settings.secrets(self.service).get(settings.ALT_SECRET)
+        elif self.usekey:
+            name = settings.ALT_SECRET if self.usekey == "alt" else settings.ALT2_SECRET
+            key = settings.secrets(self.service).get(name)
             if not key:
-                raise RuntimeError("usekey=alt: no key saved as \"API key for evaluation\" (Setup > Decision model)")
+                raise RuntimeError("usekey=%s: no key saved as \"API key for evaluation%s\" (Setup > Decision model)"
+                                   % (self.usekey, "" if self.usekey == "alt" else " 2"))
         elif self.endpoint and self.endpoint != configured:
             key = None   # never send the stored key to an endpoint given in the search
         else:

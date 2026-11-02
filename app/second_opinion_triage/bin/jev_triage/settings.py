@@ -2,6 +2,7 @@
 APP = "second_opinion_triage"
 JEV_SECRET = "typesafe_api_key"
 ALT_SECRET = "alt_api_key"   # evaluation of another decision model (jevtriage usekey=alt), e.g. Cloudflare
+ALT2_SECRET = "alt_api_key_2"   # a second one (usekey=alt2), e.g. OpenAI
 LLM_SECRETS = ("llm_api_key", "aws_access_key_id", "aws_secret_access_key")
 
 LIMIT_DEFAULTS = {"jev_auto_daily": "", "llm_auto_daily": "100"}
