@@ -25,6 +25,10 @@ Macros: `jev_cloudtrail` (CloudTrail data), `jev_endpoint` (endpoint process dat
 `jev_guardduty` (GuardDuty findings, default `index=* sourcetype=aws:cloudwatch:guardduty`),
 `jev_findings` (findings source, `` `notable` ``).
 
+Source addresses: the country comes from `iplocation`; the network owner comes from the ASN data of Enterprise Security
+(threat intelligence source `maxmind_geoip_asn_ipv4`, which needs a free MaxMind license key in its URL). Without that
+data the owner is left out.
+
 Keys: `storage/passwords`, realm `second_opinion_triage`, names `typesafe_api_key`, `llm_api_key`,
 `aws_access_key_id`, `aws_secret_access_key`.
 

@@ -25,6 +25,9 @@
 `jev_guardduty`（GuardDuty の検出結果。既定は `index=* sourcetype=aws:cloudwatch:guardduty`）、
 `jev_findings`（Finding の取得元、`` `notable` ``）。
 
+送信元アドレス: 国は `iplocation`、ネットワークの持ち主は Enterprise Security の ASN データ（脅威インテリジェンスのソース
+`maxmind_geoip_asn_ipv4`。URL に MaxMind の無料ライセンスキーが必要）から付けます。このデータがない場合は持ち主を省きます。
+
 キー: `storage/passwords`、realm `second_opinion_triage`、名前は `typesafe_api_key`、`llm_api_key`、
 `aws_access_key_id`、`aws_secret_access_key`。
 

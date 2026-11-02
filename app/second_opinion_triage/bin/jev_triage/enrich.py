@@ -45,6 +45,22 @@ GD_TYPE = re.compile(r"^[A-Za-z]+:[A-Za-z0-9]+/[A-Za-z0-9.!_-]+$")   # GuardDuty
 LOOKALIKE = str.maketrans({"0": "o", "1": "l", "i": "l", "|": "l", "3": "e", "5": "s", "$": "s", "@": "a"})
 
 
+# Networks of hosting and cloud providers (rented servers, VPNs), from the ASN organisation name
+HOSTING = ("digitalocean", "leaseweb", "ovh", "hetzner", "linode", "akamai connected cloud", "vultr", "choopa",
+           "contabo", "m247", "scaleway", "online s.a.s", "hostinger", "ionos", "godaddy", "web2objects", "datacamp",
+           "hostwinds", "colocrossing", "quadranet", "psychz", "tencent", "alibaba", "oracle", "google", "microsoft",
+           "amazon")
+
+
+def network_kind(org):
+    o = str(org or "").lower()
+    if "amazon" in o:
+        return "an AWS network (AWS services, EC2 instances: the organisation's own or anyone's)"
+    if any(h in o for h in HOSTING):
+        return "a hosting or cloud provider network (rented servers, VPN exits)"
+    return ""   # no label for other networks: "not a hosting provider" read as reassurance in earlier tests
+
+
 def lookalike_key(name):
     """frothly, fr0thly and fr0thIy give the same key."""
     return str(name).lower().translate(LOOKALIKE).replace("rn", "m")
@@ -330,13 +346,29 @@ class Enricher(object):
                 facts.append("PowerShell command lines on %s show no encoded or hidden commands" % host)
         return facts
 
+    def asn_org(self, ip):
+        """Organisation of the address from the ASN data of Enterprise Security (threat intelligence source
+        maxmind_geoip_asn_ipv4). Without that data (not ES, source disabled) say nothing and record no error."""
+        if getattr(self, "_no_asn", False):
+            return ""
+        n = len(self.errors)
+        rows = self._q("ip_asn", ip, "-1m", "now")
+        if len(self.errors) > n:
+            del self.errors[n:]
+            self._no_asn = True
+            return ""
+        return _one(rows[0].get("autonomous_system_organization")) if rows else ""
+
     def src_facts(self, src, domain, e, l):
         facts = []
         if is_ip(src) and ipaddress.ip_address(src).is_global:
             loc = self._q("ip_location", src, "-1m", "now")
             country = _one(loc[0].get("Country")) if loc else ""
-            if country:
-                facts.append("source %s is located in %s" % (src, country))
+            org = self.asn_org(src)
+            if country or org:
+                facts.append("source %s%s%s" % (
+                    src, (" is located in %s" % country) if country else "",
+                    ("%s belongs to %s%s" % (";" if country else "", org, (", " + network_kind(org)) if network_kind(org) else "")) if org else ""))
         if is_ip(src) and ipaddress.ip_address(src).is_private:
             if not self._q("asset", src, "0", "now"):
                 facts.append("asset: source %s is not in the asset inventory" % src)
