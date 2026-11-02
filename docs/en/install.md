@@ -55,7 +55,7 @@ Open the app. The first time it opens **Setup**; later use the menu **Setup**.
 | Section | What to set |
 |---|---|
 | TypeSafe Jev | **Jev API key**. Keep the pinned model unless told otherwise. Optional proxy |
-| Enrichment | Where your data is: **CloudTrail data** (macro `jev_cloudtrail`) and **Endpoint process data** (macro `jev_endpoint`). Use real index names; `index=*` is slow |
+| Enrichment | Where your data is: **CloudTrail data** (macro `jev_cloudtrail`) and **Endpoint data** (macro `jev_endpoint`: process data and Windows Security events) and **GuardDuty findings** (macro `jev_guardduty`). Use real index names; `index=*` is slow |
 | LLM explanation | Optional. **Provider** (`anthropic`, `openai` = any OpenAI-compatible server, `bedrock`, `gemini`), **Model**, key(s), optional endpoint / region / proxy |
 | Notes on ES findings | Language of the Notes (`en` / `ja`) |
 | Limits for automatic runs | Daily limits for automatic triage and automatic LLM explanations (see the [User guide](user-guide.md#limits-for-automatic-runs)) |

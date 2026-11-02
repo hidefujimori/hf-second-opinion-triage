@@ -55,7 +55,7 @@ index `jev_triage` は両方のアプリで共通なので、履歴はそのま�
 | 区分 | 設定する内容 |
 |---|---|
 | TypeSafe Jev | **Jev の API キー**。モデルは指示がない限り変更しません。プロキシは任意 |
-| Enrichment（情報収集） | データの場所: **CloudTrail のデータ**（マクロ `jev_cloudtrail`）と**エンドポイントのプロセスデータ**（マクロ `jev_endpoint`）。実際の index 名を指定します（`index=*` は遅い） |
+| Enrichment（情報収集） | データの場所: **CloudTrail のデータ**（マクロ `jev_cloudtrail`）と**エンドポイントのデータ**（マクロ `jev_endpoint`。プロセスのデータと Windows のセキュリティイベント）と **GuardDuty の検出結果**（マクロ `jev_guardduty`）。実際の index 名を指定します（`index=*` は遅い） |
 | LLM による説明 | 任意。**プロバイダ**（`anthropic`、`openai` = OpenAI 互換の任意のサーバー、`bedrock`、`gemini`）、**モデル**、キー、必要ならエンドポイント / リージョン / プロキシ |
 | ES の Finding への Note | Note の言語（`en` / `ja`） |
 | 自動実行の上限 | 自動のトリアージと自動の LLM 説明の1日の上限（[利用ガイド](user-guide.md#自動実行の上限)を参照） |

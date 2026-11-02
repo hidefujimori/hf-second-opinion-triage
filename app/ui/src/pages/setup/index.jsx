@@ -56,7 +56,8 @@ const L = {
       proxy: 'HTTPS proxy|e.g. http://proxy.example.com:8080 — do not put a password in this URL',
       enabled: 'Enabled', max_facts: 'Max facts per finding', shared_entities: 'Shared entities|Comma-separated patterns never used as join keys',
       jev_cloudtrail: 'CloudTrail data|Macro jev_cloudtrail, e.g. index=aws sourcetype=aws:cloudtrail',
-      jev_endpoint: 'Endpoint process data|Macro jev_endpoint, e.g. index=wineventlog OR index=sysmon',
+      jev_endpoint: 'Endpoint data|Macro jev_endpoint: process data and Windows Security events, e.g. index=wineventlog OR index=sysmon',
+      jev_guardduty: 'GuardDuty findings|Macro jev_guardduty, e.g. index=aws sourcetype=aws:cloudwatch:guardduty',
       llm_api_key: 'LLM API key', aws_access_key_id: 'AWS access key ID', aws_secret_access_key: 'AWS secret access key',
       provider: 'Provider|openai = any OpenAI-compatible endpoint; gemini = Google Gemini API (incl. Gemma 4)',
       llm_model: 'Model|e.g. gemma-4-26b-a4b-it, or your provider\'s model id', endpoint: 'Endpoint|Optional base URL with http:// or https://. Ollama: http://<host>:11434/v1, Apple fm serve: http://<mac>:1976/v1',
@@ -104,7 +105,8 @@ const L = {
       proxy: 'HTTPS プロキシ|例: http://proxy.example.com:8080（URL にパスワードを入れないでください）',
       enabled: '有効', max_facts: '1件あたりの最大情報数', shared_entities: '共有リソース|結合キーに使わないパターン（カンマ区切り）',
       jev_cloudtrail: 'CloudTrail のデータ|マクロ jev_cloudtrail。例: index=aws sourcetype=aws:cloudtrail',
-      jev_endpoint: 'エンドポイントのプロセスデータ|マクロ jev_endpoint。例: index=wineventlog OR index=sysmon',
+      jev_endpoint: 'エンドポイントのデータ|マクロ jev_endpoint。プロセスのデータと Windows のセキュリティイベント。例: index=wineventlog OR index=sysmon',
+      jev_guardduty: 'GuardDuty の検出結果|マクロ jev_guardduty。例: index=aws sourcetype=aws:cloudwatch:guardduty',
       llm_api_key: 'LLM の API キー', aws_access_key_id: 'AWS アクセスキー ID', aws_secret_access_key: 'AWS シークレットアクセスキー',
       provider: 'プロバイダ|openai = OpenAI 互換の任意のエンドポイント、gemini = Google Gemini API（Gemma 4 を含む）',
       llm_model: 'モデル|例: gemma-4-26b-a4b-it、またはプロバイダのモデル ID', endpoint: 'エンドポイント|任意。http:// または https:// から書くベース URL。Ollama: http://<ホスト>:11434/v1、Apple fm serve: http://<Mac>:1976/v1',
@@ -131,7 +133,8 @@ const SECTIONS = [
   { id: 'enrichment', fields: [
     { id: 'enabled', stanza: 'enrichment', key: 'enabled', options: ['true', 'false'], bool: true },
     { id: 'max_facts', stanza: 'enrichment', key: 'max_facts', num: [1, 50] }, { id: 'shared_entities', stanza: 'enrichment', key: 'shared_entities' },
-    { id: 'jev_cloudtrail', macro: 'jev_cloudtrail' }, { id: 'jev_endpoint', macro: 'jev_endpoint' }] },
+    { id: 'jev_cloudtrail', macro: 'jev_cloudtrail' }, { id: 'jev_endpoint', macro: 'jev_endpoint' },
+    { id: 'jev_guardduty', macro: 'jev_guardduty', def: 'index=* sourcetype=aws:cloudwatch:guardduty' }] },
   { id: 'llm', secrets: [{ name: 'llm_api_key', providers: ['anthropic', 'openai', 'gemini'] },
     { name: 'aws_access_key_id', providers: ['bedrock'] }, { name: 'aws_secret_access_key', providers: ['bedrock'] }], fields: [
     { id: 'provider', stanza: 'llm', key: 'provider', options: ['anthropic', 'openai', 'bedrock', 'gemini'] },
@@ -188,8 +191,9 @@ function SetupPage({ theme }) {
     .then((rows) => { const s = {}; rows.forEach((r) => { s[r.username] = true; }); setStored(s); });
 
   useEffect(() => {
-    Promise.all([rest('configs/conf-jev_triage', { params: { count: 0 } }), rest('configs/conf-macros/jev_cloudtrail'), rest('configs/conf-macros/jev_endpoint')])
-      .then(([conf, m1, m2]) => {
+    Promise.all([rest('configs/conf-jev_triage', { params: { count: 0 } }), rest('configs/conf-macros/jev_cloudtrail'), rest('configs/conf-macros/jev_endpoint'),
+      rest('configs/conf-macros/jev_guardduty').catch(() => ({}))])
+      .then(([conf, m1, m2, m3]) => {
         const c = {}; entries(conf).forEach((e) => { c[e.name] = e.content || {}; });
         const v = {};
         ALL_FIELDS.forEach((f) => {
@@ -197,7 +201,7 @@ function SetupPage({ theme }) {
           if (f.bool) { x = /^(1|true|yes|t)$/i.test(String(x)) ? 'true' : (x === '' ? '' : 'false'); }
           v[f.id] = String(x);
         });
-        [m1, m2].forEach((m) => { const e = entries(m)[0]; if (e) { v[e.name] = (e.content || {}).definition || ''; } });
+        [m1, m2, m3].forEach((m) => { const e = entries(m)[0]; if (e) { v[e.name] = (e.content || {}).definition || ''; } });
         setVals(v); setSavedVals(JSON.stringify(v));
       }, (e) => setMsg({ type: 'error', text: T.loadFail + e.message }));
     loadSecrets().catch(() => {});
@@ -255,7 +259,7 @@ function SetupPage({ theme }) {
       const jobs = [];
       ALL_FIELDS.forEach((f) => {
         const v = (vals[f.id] || '').trim();
-        if (f.macro) { jobs.push(rest(`configs/conf-macros/${f.macro}`, { method: 'POST', params: { definition: v || 'index=*' } })); }
+        if (f.macro) { jobs.push(rest(`configs/conf-macros/${f.macro}`, { method: 'POST', params: { definition: v || f.def || 'index=*' } })); }
         else { (byStanza[f.stanza] = byStanza[f.stanza] || {})[f.key] = v; }
       });
       Object.keys(byStanza).forEach((s) => jobs.push(rest(`configs/conf-jev_triage/${s}`, { method: 'POST', params: byStanza[s] })));

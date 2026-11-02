@@ -21,7 +21,8 @@
 | `[limits] llm_auto_daily` | 100 | 自動の LLM 説明の1日の上限（空欄 = 無制限） |
 | `[limits] jev_auto_daily` | 空欄 | 自動実行で Jev に送る Finding の1日の上限 |
 
-マクロ: `jev_cloudtrail`（CloudTrail のデータ）、`jev_endpoint`（エンドポイントのプロセスデータ）、
+マクロ: `jev_cloudtrail`（CloudTrail のデータ）、`jev_endpoint`（エンドポイントのプロセスデータと Windows のセキュリティイベント）、
+`jev_guardduty`（GuardDuty の検出結果。既定は `index=* sourcetype=aws:cloudwatch:guardduty`）、
 `jev_findings`（Finding の取得元、`` `notable` ``）。
 
 キー: `storage/passwords`、realm `second_opinion_triage`、名前は `typesafe_api_key`、`llm_api_key`、

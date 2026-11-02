@@ -7,6 +7,7 @@ import fnmatch
 import ipaddress
 import json
 import os
+import re
 import threading
 
 from .state import _mv, _one, is_rollup
@@ -38,6 +39,15 @@ def is_url(v):
 
 
 AUTH_ACTIONS = {"success", "failure", "error"}   # CIM values of Authentication.action
+
+
+GD_TYPE = re.compile(r"^[A-Za-z]+:[A-Za-z0-9]+/[A-Za-z0-9.!_-]+$")   # GuardDuty finding type, e.g. Recon:EC2/PortProbeUnprotectedPort
+LOOKALIKE = str.maketrans({"0": "o", "1": "l", "i": "l", "|": "l", "3": "e", "5": "s", "$": "s", "@": "a"})
+
+
+def lookalike_key(name):
+    """frothly, fr0thly and fr0thIy give the same key."""
+    return str(name).lower().translate(LOOKALIKE).replace("rn", "m")
 
 
 def short(host):
@@ -117,6 +127,92 @@ class Enricher(object):
         if (cat or "").lower() == "employee":
             facts.append("%s is a named personal account, not a default, shared, or vendor account" % user)
         return facts, _mv(r.get("hosts"))
+
+    def cloud_origin_facts(self, user, e, l):
+        """How the account came to exist and whether its name imitates another one (rare, strong signals).
+        Tested and left out: console sign-ins with or without MFA, the kind of API client and the number of active days
+        lowered correct verdicts (a legitimate employee without MFA, an attacker's script looking like automation)."""
+        facts = []
+        try:
+            ef = float(e)
+            e7, e1 = str(int(ef - 7 * 86400)), str(int(ef - 86400))
+        except (TypeError, ValueError):
+            ef, e7, e1 = None, "-8d", "-2d"
+        u = str(user)
+        if "/" not in u and u.lower() != "root":
+            rows = self._q("cloud_user_origin", u, e7, l)
+            r = rows[0] if rows else {}
+            if r.get("created"):
+                created = float(_one(r.get("created")))
+                actor, atype, aip = _one(r.get("actor")) or "unknown", _one(r.get("actor_type")) or "", _one(r.get("actor_ip")) or ""
+                who = {"AssumedRole": "a role session (%s)" % actor, "IAMUser": "the user %s" % actor,
+                       "Root": "the root account"}.get(atype, actor)
+                when = ("during this period" if ef is None or created >= ef
+                        else "%d day(s) before this period" % max(1, int((ef - created) // 86400)))
+                frm = ("from %s" % aip) if is_ip(aip) else "through an AWS service"
+                facts.append("the account %s was created %s by %s %s" % (u, when, who, frm))
+                ev = set(_mv(r.get("events")))
+                given = []
+                if "CreateLoginProfile" in ev:
+                    given.append("a console password")
+                if "CreateAccessKey" in ev:
+                    given.append("an access key")
+                if _mv(r.get("groups")):
+                    given.append("membership in group %s" % ", ".join(_mv(r.get("groups"))[:3]))
+                pols = _mv(r.get("policies")) + _mv(r.get("inline_policies"))
+                if pols:
+                    given.append("policies %s" % ", ".join(p.split("/")[-1] for p in pols[:3]))
+                if given:
+                    facts.append("the new account was then given %s" % ", ".join(given))
+            known = self._q("cloud_users_known", "", e1, l)
+            names = _mv(known[0].get("users")) if known else []
+            twins = [n for n in names if n != u and n.lower() != u.lower() and lookalike_key(n) == lookalike_key(u)]
+            if twins:
+                facts.append("the user name %s closely resembles another account in the same logs, %s (look-alike characters such as 0/o or I/l)" % (u, twins[0]))
+        return facts
+
+    def win_actor_facts(self, user, e, l):
+        """What the same person did on Windows in the period: log clearing, account deletion and creation, group changes."""
+        rows = self._q("win_actor", user, e, l)
+        if not rows:
+            return []
+        r = rows[0]
+        n = lambda k: int(float(_one(r.get(k)) or 0))
+        facts = []
+        if n("cleared_hosts"):
+            facts.append("the same user cleared the Windows Security event log on %d host(s) in this period" % n("cleared_hosts"))
+        if n("deleted"):
+            names = _mv(r.get("deleted_users"))
+            facts.append("the same user deleted %d user account(s) on %d host(s) in this period: %s%s" % (
+                n("deleted"), n("deleted_hosts"), ", ".join(names[:6]), ", ..." if len(names) > 6 else ""))
+        if n("created"):
+            facts.append("the same user created %d user account(s) in this period" % n("created"))
+        if n("group_adds"):
+            g = _mv(r.get("groups"))
+            facts.append("the same user added %d account(s) to security groups%s" % (n("group_adds"), (" (" + ", ".join(g[:3]) + ")") if g else ""))
+        return facts
+
+    def guardduty_facts(self, gtype, e, l):
+        rows = self._q("guardduty_detail", gtype, e, l)
+        if not rows or not _one(rows[0].get("sev")):
+            return []
+        r = rows[0]
+        facts = []
+        sev = float(_one(r.get("sev")) or 0)
+        facts.append("GuardDuty rated this finding severity %s (%s)" % (
+            ("%g" % sev), "high" if sev >= 7 else "medium" if sev >= 4 else "low"))
+        ports = _mv(r.get("ports"))
+        if ports:
+            facts.append("the instance was probed on port %s by %d different remote address(es); GuardDuty counted %s probes" % (
+                ", ".join(ports[:3]), int(float(_one(r.get("remote_ips")) or 0)), _one(r.get("count")) or "several"))
+            orgs = _mv(r.get("probe_orgs"))
+            if orgs:
+                facts.append("probing addresses belong to: %s" % ", ".join(orgs[:3]))
+        if _mv(r.get("api_org")):
+            facts.append("the API call%s came from an address of %s%s" % (
+                (" " + ", ".join(_mv(r.get("api"))[:2])) if _mv(r.get("api")) else "", ", ".join(_mv(r.get("api_org"))[:2]),
+                (" in " + ", ".join(_mv(r.get("api_country"))[:2])) if _mv(r.get("api_country")) else ""))
+        return facts
 
     def cloud_user_facts(self, user, e, l):
         rows = self._q("cloud_user", user, e, l)
@@ -236,6 +332,11 @@ class Enricher(object):
 
     def src_facts(self, src, domain, e, l):
         facts = []
+        if is_ip(src) and ipaddress.ip_address(src).is_global:
+            loc = self._q("ip_location", src, "-1m", "now")
+            country = _one(loc[0].get("Country")) if loc else ""
+            if country:
+                facts.append("source %s is located in %s" % (src, country))
         if is_ip(src) and ipaddress.ip_address(src).is_private:
             if not self._q("asset", src, "0", "now"):
                 facts.append("asset: source %s is not in the asset inventory" % src)
@@ -342,10 +443,15 @@ class Enricher(object):
             win = self.rollup_window(f, list(dict.fromkeys(users + hosts + srcs)))
             if win:
                 e, l = win
+        sig = _one(f.get("signature")) or ""
+        if GD_TYPE.match(sig):
+            facts += self.guardduty_facts(sig, e, l)
         for u in dict.fromkeys(users):
             idf, ws = self.identity_facts(u)
             facts += idf
+            facts += self.cloud_origin_facts(u, e, l)
             facts += self.cloud_user_facts(u, e, l)
+            facts += self.win_actor_facts(u, e, l)
             facts += self.workstation_facts(ws, e, l, "this user's own")
         missing = []
         for h in dict.fromkeys(hosts):

@@ -21,7 +21,8 @@ Normally changed on the Setup page. Defaults are in `default/jev_triage.conf`; c
 | `[limits] llm_auto_daily` | 100 | Automatic LLM explanations per day (empty = no limit) |
 | `[limits] jev_auto_daily` | empty | Findings sent to Jev per day by automatic runs |
 
-Macros: `jev_cloudtrail` (CloudTrail data), `jev_endpoint` (endpoint process data),
+Macros: `jev_cloudtrail` (CloudTrail data), `jev_endpoint` (endpoint process data and Windows Security events),
+`jev_guardduty` (GuardDuty findings, default `index=* sourcetype=aws:cloudwatch:guardduty`),
 `jev_findings` (findings source, `` `notable` ``).
 
 Keys: `storage/passwords`, realm `second_opinion_triage`, names `typesafe_api_key`, `llm_api_key`,
