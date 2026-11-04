@@ -13,6 +13,8 @@
 | `[jev] confidence_threshold` | 0.60 | これ未満の Disposition は判別不可 |
 | `[jev] escalation_floor` | 0.80 | Jev の「エスカレーションが必要」がこれ以上なら Urgency を High 以上に |
 | `[jev] rollup_urgency_cap` | high | リスク集約・Finding グループの Urgency の上限 |
+| `[jev] undetermined_urgency_cap` | medium | 判別不可の Finding の Urgency の上限（空 = 上限なし） |
+| `[jev] critical_min_probability` | 0.60 | Jev が Critical に付けた確率がこれ以上のときだけ Critical、未満は High（0 = 使わない） |
 | `[jev] order_check` | true | 選択肢を逆順にしてもう一度聞き、食い違えば判別不可 |
 | `[jev] timeout`, `parallel`, `proxy` | 30, 4, — | タイムアウト（秒）、同時に処理する Finding 数（1〜8）、HTTPS プロキシ |
 | `[enrichment] enabled`, `max_facts`, `shared_entities` | true, 12, `*.amazonaws.com,…` | 情報収集。結合キーに使わないパターン |

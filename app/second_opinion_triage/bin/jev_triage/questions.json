@@ -1,5 +1,5 @@
 {
-  "version": "q-2026-10-06-r2a",
+  "version": "q-2026-11-04-r4",
   "questions": {
     "disposition": {
       "type": "choice",
@@ -24,27 +24,31 @@
           ]
         },
         {
-          "what": "Medium: unexplained or unauthorized change or activity that needs checking today, with no sign of compromise yet",
+          "what": "Medium: unexplained or unauthorized change or activity that needs checking today, with no sign of compromise yet; read-only discovery of resources stays medium even by a suspicious account",
           "examples": [
             "A cloud network or security group change with unknown actor",
             "An internal host not in the asset inventory generating unusual traffic",
-            "Script execution on a workstation with no details"
+            "Script execution on a workstation with no details",
+            "Listing or describing many cloud resources without changing them"
           ]
         },
         {
-          "what": "High: likely compromise of an account or host, or a privileged or watchlisted account behaving unusually",
+          "what": "High: likely compromise of an account or host, a privileged or watchlisted account behaving unusually, or covering tracks on hosts",
           "examples": [
             "Successful login after brute force",
             "A watchlisted service account making changes",
+            "Security event logs cleared on a host",
+            "User accounts deleted on several hosts",
             "Several detections on the same user or host"
           ]
         },
         {
-          "what": "Critical: active compromise with impact in progress",
+          "what": "Critical: impact in progress, or administrator access being granted to an account the attacker controls",
           "examples": [
             "Mass creation of cloud instances across many regions",
-            "Deleting access keys or logs",
-            "Data theft or destruction under way"
+            "Data theft or destruction under way",
+            "A new IAM user added to an administrator group by a role session from an outside network",
+            "An access key created for such a new administrator user"
           ]
         }
       ]

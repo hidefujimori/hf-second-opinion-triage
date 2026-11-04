@@ -13,6 +13,8 @@ Normally changed on the Setup page. Defaults are in `default/jev_triage.conf`; c
 | `[jev] confidence_threshold` | 0.60 | Below this the disposition is Undetermined |
 | `[jev] escalation_floor` | 0.80 | If Jev's "should be escalated" is at or above this, urgency is at least High |
 | `[jev] rollup_urgency_cap` | high | Highest urgency for risk / finding-group roll-ups |
+| `[jev] undetermined_urgency_cap` | medium | Highest urgency of an Undetermined finding (empty = no cap) |
+| `[jev] critical_min_probability` | 0.60 | Critical only when Jev gives it at least this probability, otherwise High (0 = off) |
 | `[jev] order_check` | true | Ask a second time with the options reversed; disagreement → Undetermined |
 | `[jev] timeout`, `parallel`, `proxy` | 30, 4, — | Request timeout (s), findings processed at the same time (1–8), HTTPS proxy |
 | `[enrichment] enabled`, `max_facts`, `shared_entities` | true, 12, `*.amazonaws.com,…` | Context collection; patterns never used as join keys |

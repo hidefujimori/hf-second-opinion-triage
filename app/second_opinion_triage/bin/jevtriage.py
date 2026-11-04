@@ -63,6 +63,7 @@ class JevTriageCommand(StreamingCommand):
     def _settings(self):
         s = {"model": "jev-1.13.0", "questions_file": "questions.json", "confidence_threshold": "0.60",
              "escalation_floor": "0.80", "rollup_urgency_cap": "high", "order_check": "true",
+             "undetermined_urgency_cap": "medium", "critical_min_probability": "0.60",
              "timeout": "30", "proxy": "", "parallel": "4", "enrichment_enabled": "true", "endpoint": "",
              "request_extra": "", "confidence_field": "", "model_rules": "auto",
              "shared_entities": "*.amazonaws.com,*.amazon.com,*.microsoft.com,*.office.com,*.google.com", "max_facts": "12"}
@@ -157,7 +158,8 @@ class JevTriageCommand(StreamingCommand):
             rev = f_rev.result() if f_rev else None
             out.update(policy.decide(res["answers"], rev["answers"] if rev else None, state.is_rollup(rec),
                                      float(s["confidence_threshold"]), float(s["escalation_floor"]),
-                                     s["rollup_urgency_cap"] or None))
+                                     s["rollup_urgency_cap"] or None, s["undetermined_urgency_cap"] or None,
+                                     float(s["critical_min_probability"] or 0)))
             if enricher and self.ers in ("urgency", "both"):
                 policy.ers_adjust(out, enricher.ers)
             out["jev_answers"] = json.dumps(res["answers"])

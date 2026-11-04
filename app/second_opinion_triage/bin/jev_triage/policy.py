@@ -12,7 +12,8 @@ def reversed_disposition(questions):
     return {"disposition": d}
 
 
-def decide(ans, ans_rev, rollup, conf_threshold=0.60, escalation_floor=0.80, rollup_cap="high"):
+def decide(ans, ans_rev, rollup, conf_threshold=0.60, escalation_floor=0.80, rollup_cap="high",
+           undetermined_cap="medium", critical_min=0.60):
     reasons = []
     d = ans["disposition"]
     disp, conf = d["choice"], float(d["confidence"])
@@ -28,6 +29,14 @@ def decide(ans, ans_rev, rollup, conf_threshold=0.60, escalation_floor=0.80, rol
     if esc >= escalation_floor and lvl < 2:
         reasons.append("escalation %.2f raised urgency" % esc)
         lvl = 2
+    if lvl == 3 and critical_min and float(probs.get("3", probs.get(3, 0)) or 0) < critical_min:
+        # critical only when the model is fairly sure: a near coin toss between high and critical stays high
+        reasons.append("critical %.2f below %.2f" % (float(probs.get("3", probs.get(3, 0)) or 0), critical_min))
+        lvl = 2
+    if disp == "undetermined" and undetermined_cap and lvl > LEVELS.index(undetermined_cap):
+        # not known to be real: "needs checking today" (medium) rather than "likely compromise" (high)
+        reasons.append("undetermined capped at %s" % undetermined_cap)
+        lvl = LEVELS.index(undetermined_cap)
     if rollup and rollup_cap and lvl > LEVELS.index(rollup_cap):
         reasons.append("roll-up capped at %s" % rollup_cap)
         lvl = LEVELS.index(rollup_cap)
