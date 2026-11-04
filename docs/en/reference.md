@@ -30,6 +30,11 @@ Source addresses: the country comes from `iplocation`; the network owner comes f
 data the owner is left out. A source address listed in the threat intelligence of Enterprise Security (`ip_intel`:
 downloaded feeds, local lists) is reported with the list names; no match, no fact.
 
+Asset and identity: the ES inventories (`identity_lookup_expanded`, `asset_lookup_by_str`) give the role, department,
+priority, watchlist and end date of an identity, and the category, business
+unit, owner and expected flag of an asset. With Exposure Analytics (ES 8.x), its inventories add whether an account is
+a non-human identity, the person behind it, and whether an account or a host has been known for at least 30 days before the alert period.
+
 Keys: `storage/passwords`, realm `second_opinion_triage`, names `typesafe_api_key`, `llm_api_key`,
 `aws_access_key_id`, `aws_secret_access_key`.
 

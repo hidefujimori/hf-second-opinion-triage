@@ -29,6 +29,10 @@
 `maxmind_geoip_asn_ipv4`。URL に MaxMind の無料ライセンスキーが必要）から付けます。このデータがない場合は持ち主を省きます。送信元アドレスが Enterprise Security の脅威インテリジェンス（`ip_intel`: ダウンロードした
 フィード、ローカルのリスト）に載っていれば、リスト名を付けて伝えます。一致しなければ何も書きません。
 
+資産・ID: ES の台帳（`identity_lookup_expanded`、`asset_lookup_by_str`）から、人物の役割・部署・優先度・ウォッチリスト・終了日
+と、資産のカテゴリ・部署・所有者・想定内かを伝えます。Exposure Analytics（ES 8.x）がある
+場合は、人以外の ID か、その背後の人物、アカウントや端末がアラート期間の30日以上前から把握されているかも伝えます。
+
 キー: `storage/passwords`、realm `second_opinion_triage`、名前は `typesafe_api_key`、`llm_api_key`、
 `aws_access_key_id`、`aws_secret_access_key`。
 

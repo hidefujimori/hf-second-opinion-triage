@@ -66,6 +66,40 @@ def lookalike_key(name):
     return str(name).lower().translate(LOOKALIKE).replace("rn", "m")
 
 
+def as_epoch(v):
+    """Epoch seconds from an epoch number or an ISO date (YYYY-MM-DD[ HH:MM:SS]); None for anything else
+    (inventories often carry misaligned columns, e.g. a city in endDate)."""
+    import datetime
+    v = str(v or "").strip()
+    if not v:
+        return None
+    try:
+        f = float(v)
+        return f if f > 86400 * 365 else None
+    except ValueError:
+        pass
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d", "%Y/%m/%d"):
+        try:
+            d = datetime.datetime.strptime(v[:19] if "T" in v or " " in v else v[:10], fmt)
+            return (d - datetime.datetime(1970, 1, 1)).total_seconds()
+        except ValueError:
+            continue
+    return None
+
+
+def when_seen(t, e, min_days=30):
+    """'N days before this period' when first-seen time t is at least min_days before period start e, else None.
+    A recent first-seen time mostly reflects when the data started, not when the account or host appeared, so it is not stated."""
+    try:
+        e = float(e)
+    except (TypeError, ValueError):
+        return None
+    d = int((e - t) // 86400)
+    if d < min_days:
+        return None
+    return "%d days before this period" % d
+
+
 def short(host):
     return str(host).split(".")[0]
 
@@ -121,7 +155,9 @@ class Enricher(object):
         return any(fnmatch.fnmatch(str(v).lower(), p.lower()) for p in self.shared)
 
     # ---- fact builders ----
-    def identity_facts(self, user, who="this account"):
+    def identity_facts(self, user, who="this account", l=None):
+        # A role session (Role/session) is looked up as itself, not by its role: the inventory describing the role
+        # made sessions of a misused role look like a known service account (tested, lowered true positives).
         rows = self._q("identity", user.lower(), "0", "now")
         if not rows:
             return ["identity: %s is not in the identity inventory" % user], []
@@ -142,6 +178,15 @@ class Enricher(object):
         facts = [", ".join(parts)]
         if (cat or "").lower() == "employee":
             facts.append("%s is a named personal account, not a default, shared, or vendor account" % user)
+        end = as_epoch(_one(r.get("endDate")))
+        if end:
+            import time as _t
+            try:
+                after = l is not None and float(l) > end
+            except (TypeError, ValueError):
+                after = False
+            facts.append("the identity inventory gives %s an end date (left the organisation or retired) of %s%s" % (
+                user, _t.strftime("%Y-%m-%d", _t.gmtime(end)), ", before this activity" if after else ""))
         return facts, _mv(r.get("hosts"))
 
     def cloud_origin_facts(self, user, e, l):
@@ -185,6 +230,50 @@ class Enricher(object):
             twins = [n for n in names if n != u and n.lower() != u.lower() and lookalike_key(n) == lookalike_key(u)]
             if twins:
                 facts.append("the user name %s closely resembles another account in the same logs, %s (look-alike characters such as 0/o or I/l)" % (u, twins[0]))
+        return facts
+
+    def _ea(self, name, value):
+        """A row of the Exposure Analytics inventories, or {} (no row, or no Exposure Analytics: then say nothing)."""
+        if getattr(self, "_no_ea", False):
+            return {}
+        n = len(self.errors)
+        rows = self._q(name, value, "-1m", "now")
+        if len(self.errors) > n:
+            del self.errors[n:]
+            self._no_ea = True
+            return {}
+        return rows[0] if rows else {}
+
+    def ea_user_facts(self, user, e, idf):
+        u = str(user)
+        r = self._ea("ea_user", u)   # a role session as itself, as in identity_facts
+        if not r:
+            return []
+        facts = []
+        known_service = any("service account" in x for x in idf)
+        if str(_one(r.get("nhi")) or "").lower() == "true" and not known_service:
+            facts.append("Exposure Analytics marks %s as a non-human identity (automation, service principal)" % u)
+        if _one(r.get("primary_user")):
+            facts.append("Exposure Analytics links %s to the person %s" % (u, _one(r.get("primary_user"))))
+        fs = as_epoch(_one(r.get("firstseen")))
+        w = when_seen(fs, e) if fs else None
+        if w:
+            facts.append("Exposure Analytics has known the account %s since %s" % (u, w))
+        return facts
+
+    def ea_host_facts(self, host, e):
+        r = self._ea("ea_host", host)
+        if not r:
+            return []
+        facts = []
+        fs = as_epoch(_one(r.get("firstseen")))
+        w = when_seen(fs, e) if fs else None
+        if w:
+            facts.append("Exposure Analytics has known the host %s since %s" % (host, w))
+        env = [x for x in (_one(r.get("environment")), _one(r.get("provider"))) if x]
+        if env:
+            facts.append("host %s: %s%s" % (host, ", ".join(env),
+                         ", short-lived (ephemeral) instance" if str(_one(r.get("ephemeral")) or "").lower() == "true" else ""))
         return facts
 
     def win_actor_facts(self, user, e, l):
@@ -335,7 +424,16 @@ class Enricher(object):
         rows = self._q("asset", host.lower(), "0", "now")
         if rows:
             r = rows[0]
-            facts.append("asset: %s in the inventory (category %s, priority %s)" % (host, _one(r.get("category")) or "unknown", _one(r.get("priority")) or "unknown"))
+            cats = [c for c in _mv(r.get("category")) if c]
+            extra = []
+            if _one(r.get("bunit")):
+                extra.append("business unit %s" % _one(r.get("bunit")))
+            if _one(r.get("owner")):
+                extra.append("owner %s" % _one(r.get("owner")))
+            facts.append("asset: %s in the inventory (category %s, priority %s%s)" % (
+                host, "/".join(cats) or "unknown", _one(r.get("priority")) or "unknown", "".join(", " + x for x in extra)))
+            if str(_one(r.get("is_expected")) or "").lower() == "false":
+                facts.append("asset: %s is not marked as an expected asset" % host)
         else:
             facts.append("asset: %s is not in the asset inventory" % host)
         ps = self._q("endpoint_powershell", host, e, l)
@@ -500,15 +598,16 @@ class Enricher(object):
         if GD_TYPE.match(sig):
             facts += self.guardduty_facts(sig, e, l)
         for u in dict.fromkeys(users):
-            idf, ws = self.identity_facts(u)
+            idf, ws = self.identity_facts(u, l=l)
             facts += idf
+            facts += self.ea_user_facts(u, e, idf)
             facts += self.cloud_origin_facts(u, e, l)
             facts += self.cloud_user_facts(u, e, l)
             facts += self.win_actor_facts(u, e, l)
             facts += self.workstation_facts(ws, e, l, "this user's own")
         missing = []
         for h in dict.fromkeys(hosts):
-            for x in self.host_facts(h, e, l):
+            for x in self.host_facts(h, e, l) + self.ea_host_facts(h, e):
                 if x == "asset: %s is not in the asset inventory" % h:
                     missing.append(h)   # one line for all of them, so they do not crowd out other facts
                 else:
