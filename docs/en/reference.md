@@ -35,6 +35,10 @@ priority, watchlist and end date of an identity, and the category, business
 unit, owner and expected flag of an asset. With Exposure Analytics (ES 8.x), its inventories add whether an account is
 a non-human identity, the person behind it, and whether an account or a host has been known for at least 30 days before the alert period.
 
+Entity risk score (off by default, `ers=` of `jevtriage`): with Enterprise Security 8 (entity risk scoring), the score of each user and up to two hosts or
+addresses (0-100 over the previous 7 days, `index=ers source=ers_history`) as of the alert, with the other detections
+that contributed. The latest score up to 20 minutes after the alert's `lastTime` (or `_time`) is used; no score, no fact.
+
 Keys: `storage/passwords`, realm `second_opinion_triage`, names `typesafe_api_key`, `llm_api_key`,
 `aws_access_key_id`, `aws_secret_access_key`.
 
@@ -42,7 +46,7 @@ Keys: `storage/passwords`, realm `second_opinion_triage`, names `typesafe_api_ke
 
 | Command | Use |
 |---|---|
-| `jevtriage [persist=true] [auto=true] [dryrun=true] [enrich=false] [ordercheck=false] [parallel=1-8] [timeout=s]` | Triage rows of `` `jev_findings` `` |
+| `jevtriage [persist=true] [auto=true] [dryrun=true] [enrich=false] [ordercheck=false] [ers=fact\|urgency\|both\|off] [riskband=true] [parallel=1-8] [timeout=s]` | Triage rows of `` `jev_findings` ``. `ers`: off by default (measured: no gain). Entity risk score as a fact for the model, only to bound urgency afterwards (<25 with no other detection: at most medium; <50: at most high; >=50: at least medium), or both. `riskband=true`: also give the band of the running risk score ES gives the finding (`risk_score`; off by default: it includes later detections and made the model doubt true positives) |
 | `jevtriage endpoint=<url> model=<name>` | Evaluate another decision model without changing settings (admins; not saved; no key sent) |
 | `jevtriage questions=<version id>\|default` | Triage with a given version of the Jev questions (admins; not saved; used by the support-mode test) |
 | `jevprompt action=status\|support_on\|support_off\|get\|save\|test\|apply\|revert\|export\|import\|evalset_prompt` | Support mode for the Jev questions (see below). Everything but `status` is for admins |

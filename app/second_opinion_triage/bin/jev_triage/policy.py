@@ -45,3 +45,28 @@ def decide(ans, ans_rev, rollup, conf_threshold=0.60, escalation_floor=0.80, rol
         "jev_tactic": ans.get("attack_tactic", {}).get("choice"),
         "jev_policy": " / ".join(reasons),
     }
+
+
+def ers_adjust(out, ers):
+    """Urgency after the model, from the entity risk score of Enterprise Security (ers=urgency|both).
+    The score is a mechanical sum of detections, so it only bounds urgency; the disposition is never changed.
+    Highest score < 25 with no other detection: at most medium. < 50: at most high. >= 50: at least medium."""
+    if not ers or out.get("jev_urgency") not in LEVELS:
+        return out
+    top = max(t[1] for t in ers)
+    others = any(t[3] for t in ers)
+    lvl = LEVELS.index(out["jev_urgency"])
+    new, why = lvl, ""
+    if top < 25 and not others and lvl > 1:
+        new, why = 1, "capped at medium"
+    elif top < 50 and lvl > 2:
+        new, why = 2, "capped at high"
+    elif top >= 50 and lvl < 1:
+        new, why = 1, "raised to medium"
+    out["jev_ers"] = top
+    if new != lvl:
+        out["jev_urgency_model"] = out["jev_urgency"]
+        out["jev_urgency"] = LEVELS[new]
+        note = "entity risk score %g %s" % (top, why)
+        out["jev_policy"] = " / ".join([x for x in (out.get("jev_policy"), note) if x])
+    return out

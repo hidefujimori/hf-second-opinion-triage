@@ -104,6 +104,19 @@ def short(host):
     return str(host).split(".")[0]
 
 
+# An optional ES feature (Exposure Analytics, ASN data, threat intelligence, entity risk scores) that is not there
+# fails the same way every time; a busy search head fails now and then. Stop asking only when it is clearly missing,
+# or after a few failures in a row, so that one transient error does not drop the feature for the whole run.
+MISSING = re.compile(r"does not exist|not found|could not find|unknown index|no such|not available|permission|lookup table", re.I)
+
+
+def _optional_failed(obj, flag, msg):
+    """Count a failure of an optional feature; True when it should no longer be asked in this run."""
+    fails = getattr(obj, flag + "_fails", 0) + 1
+    setattr(obj, flag + "_fails", fails)
+    if MISSING.search(str(msg)) or fails >= 3:
+        setattr(obj, flag, True)
+
 class Enricher(object):
     def __init__(self, run, templates=None, shared=("*.amazonaws.com", "*.amazon.com", "*.microsoft.com", "*.office.com", "*.google.com"), max_facts=12):
         """run(spl, earliest, latest) -> list[dict]"""
@@ -239,8 +252,9 @@ class Enricher(object):
         n = len(self.errors)
         rows = self._q(name, value, "-1m", "now")
         if len(self.errors) > n:
+            msg = " ".join(self.errors[n:])
             del self.errors[n:]
-            self._no_ea = True
+            _optional_failed(self, "_no_ea", msg)
             return {}
         return rows[0] if rows else {}
 
@@ -452,8 +466,9 @@ class Enricher(object):
         n = len(self.errors)
         rows = self._q("ip_asn", ip, "-1m", "now")
         if len(self.errors) > n:
+            msg = " ".join(self.errors[n:])
             del self.errors[n:]
-            self._no_asn = True
+            _optional_failed(self, "_no_asn", msg)
             return ""
         return _one(rows[0].get("autonomous_system_organization")) if rows else ""
 
@@ -465,8 +480,9 @@ class Enricher(object):
         n = len(self.errors)
         rows = self._q("ip_intel", ip, "-1m", "now")
         if len(self.errors) > n:
+            msg = " ".join(self.errors[n:])
             del self.errors[n:]
-            self._no_intel = True
+            _optional_failed(self, "_no_intel", msg)
             return []
         r = rows[0] if rows else {}
         if not int(float(_one(r.get("count")) or 0)):
@@ -573,8 +589,59 @@ class Enricher(object):
         return facts
 
     # ---- main ----
+    def ers_facts(self, f, users, systems):
+        """Entity risk score of Enterprise Security 8 (index=ers, source=ers_history: 0-100 over the previous 7 days,
+        recalculated every 20 minutes) as of the alert: the latest score up to 20 minutes after the activity.
+        No ers index, or no score for the entity at that time, says nothing."""
+        self._tl.ers = []
+        mode = getattr(self, "ers_mode", "off")
+        if mode == "off" or getattr(self, "_no_ers", False):
+            return []
+        at = re.sub(r"[^0-9T:. -]", "", str(_one(f.get("lastTime")) or _one(f.get("_time")) or ""))
+        approx = as_epoch(at)
+        if not approx:
+            return []
+        e, l = str(int(approx - 8 * 86400)), str(int(approx + 2 * 86400))   # wide: lastTime may be local time
+        base = lambda n: re.sub(r"\s+-\s+rule$", "", str(n).strip(), flags=re.I).lower()
+        own = base(_one(f.get("search_name")) or _one(f.get("rule_name")) or "")
+        found = []
+        for kind, ents in (("user", users), ("system", systems)):
+            for x in dict.fromkeys(ents):
+                n = len(self.errors)
+                rows = self._q("entity_risk", x, e, l, at=at)
+                if len(self.errors) > n:
+                    msg = " ".join(self.errors[n:])
+                    del self.errors[n:]
+                    _optional_failed(self, "_no_ers", msg)
+                    return []
+                if not rows or _one(rows[0].get("ers")) in (None, ""):
+                    continue
+                try:
+                    score = float(_one(rows[0].get("ers")))
+                except ValueError:
+                    continue
+                others = [re.sub(r"\s+-\s+Rule$", "", d) for d in _mv(rows[0].get("detections")) if base(d) != own]
+                found.append((kind, score, x, others))
+        users_f = [t for t in found if t[0] == "user"]
+        systems_f = sorted([t for t in found if t[0] == "system"], key=lambda t: -t[1])[:2]
+        self._tl.ers = users_f + systems_f
+        if mode not in ("fact", "both"):
+            return []
+        facts = []
+        for kind, score, x, others in users_f + systems_f:
+            tail = ("no other detection contributed" if not others else
+                    "%d other detection(s) contributed: %s%s" % (len(others), ", ".join(others[:3]), ", ..." if len(others) > 3 else ""))
+            facts.append("Enterprise Security entity risk score of %s at the time of this alert: %g out of 100 (previous 7 days); %s" % (x, score, tail))
+        return facts
+
+    @property
+    def ers(self):
+        """Entity risk scores found by the last collect() in this thread: [(kind, score, entity, other detections)]."""
+        return getattr(self._tl, "ers", [])
+
     def collect(self, f):
         self.errors = []
+        self._tl.ers = []
         e = _one(f.get("info_min_time")) or "-24h"
         l = _one(f.get("info_max_time")) or "now"
         domain = (_one(f.get("security_domain")) or "").lower()
@@ -617,6 +684,7 @@ class Enricher(object):
         elif missing:
             facts.append("asset: none of the %d hosts are in the asset inventory (%s%s)" % (
                 len(missing), ", ".join(missing[:4]), ", ..." if len(missing) > 4 else ""))
+        facts += self.ers_facts(f, users, hosts + srcs)
         for s in dict.fromkeys(srcs):
             facts += self.src_facts(s, domain or "access", e, l)
         if f.get("command"):

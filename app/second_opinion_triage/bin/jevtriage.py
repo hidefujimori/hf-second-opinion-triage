@@ -57,6 +57,8 @@ class JevTriageCommand(StreamingCommand):
     extra = Option(require=False, default=None)
     conffield = Option(require=False, default=None)
     usekey = Option(require=False, default=None, validate=validators.Set("alt", "alt2"))
+    riskband = Option(require=False, validate=validators.Boolean(), default=False)
+    ers = Option(require=False, default="off", validate=validators.Set("fact", "urgency", "both", "off"))
 
     def _settings(self):
         s = {"model": "jev-1.13.0", "questions_file": "questions.json", "confidence_threshold": "0.60",
@@ -130,14 +132,16 @@ class JevTriageCommand(StreamingCommand):
             return out
         out = dict(rec)
         out.update({"jev_version": __version__, "jev_model": s["model"], "jev_questions": qset.get("version"),
-                    "jev_time": int(time.time()), "jev_rules": s.get("rules_text", "")})
+                    "jev_time": int(time.time()), "jev_rules": s.get("rules_text", ""),
+                    # every row carries the same fields: the search keeps only the fields of the first rows
+                    "jev_ers": "", "jev_urgency_model": "", "jev_policy": ""})
         if self._q_warn:
             out["jev_enrich_errors"] = self._q_warn
         try:
             t0 = time.time()
             facts, related = enricher.collect(rec) if enricher else ([], [])
             out["jev_enrich_ms"] = int((time.time() - t0) * 1000)
-            st = state.build_state(rec, facts, related)
+            st = state.build_state(rec, facts, related, risk_band_on=self.riskband)
             out["jev_state"] = json.dumps(st, ensure_ascii=False)
             if enricher and enricher.errors:
                 out["jev_enrich_errors"] = " | ".join(([self._q_warn] if self._q_warn else []) + enricher.errors[-3:])
@@ -154,6 +158,8 @@ class JevTriageCommand(StreamingCommand):
             out.update(policy.decide(res["answers"], rev["answers"] if rev else None, state.is_rollup(rec),
                                      float(s["confidence_threshold"]), float(s["escalation_floor"]),
                                      s["rollup_urgency_cap"] or None))
+            if enricher and self.ers in ("urgency", "both"):
+                policy.ers_adjust(out, enricher.ers)
             out["jev_answers"] = json.dumps(res["answers"])
             out["jev_latency_ms"] = res.get("latency_ms")
             out["jev_input_tokens"] = (res.get("usage") or {}).get("input_tokens", 0) + ((rev or {}).get("usage") or {}).get("input_tokens", 0)
@@ -191,6 +197,8 @@ class JevTriageCommand(StreamingCommand):
         do_enrich = truthy(s["enrichment_enabled"]) if self.enrich is None else self.enrich
         do_order = truthy(s["order_check"]) if self.ordercheck is None else self.ordercheck
         enricher = Enricher(self._run_spl, load_templates(), s["shared_entities"].split(","), int(s["max_facts"])) if do_enrich else None
+        if enricher:
+            enricher.ers_mode = self.ers   # fact: tell the model; urgency: bound urgency afterwards; both; off
         if self.endpoint or self.model or self.questions or self.extra or self.conffield or self.usekey:   # evaluation of another decision model / questions
             if not settings.can_admin(self.service):
                 raise RuntimeError("endpoint= / model= / questions= / extra= / conffield= are for admins (edit_storage_passwords or admin_all_objects)")
@@ -221,6 +229,10 @@ class JevTriageCommand(StreamingCommand):
         if self.ordercheck is None:
             do_order = r["order_check"]
         s["rules_text"] = rules.describe(s["model"], dict(r, order_check=do_order))
+        if self.ers != "off":
+            s["rules_text"] += "; entity risk score: %s" % self.ers
+        if self.riskband:
+            s["rules_text"] += "; risk score band: on"
         qset, self._q_warn = self._load_questions(s)
         Q = qset["questions"]
         Qrev = policy.reversed_disposition(Q)

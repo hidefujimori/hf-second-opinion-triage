@@ -21,5 +21,6 @@
   "ip_asn": "| inputlookup asn_lookup_by_cidr | where cidrmatch(ip, \"{value}\") | head 1 | table autonomous_system_number autonomous_system_organization",
   "ip_intel": "| inputlookup ip_intel | where (isnull(disabled) OR NOT match(lower(disabled), \"^(1|true)$\")) AND (ip=\"{value}\" OR (match(ip, \"/\") AND cidrmatch(ip, \"{value}\"))) | stats count values(threat_key) as sources values(description) as descriptions max(weight) as weight",
   "ea_user": "| inputlookup ea_user_asset_inventory | where lower(user_id)=\"{value}\" | head 1 | table firstseen lastseen nhi user_type primary_user",
-  "ea_host": "| inputlookup ea_network_asset_inventory | where lower(nt_host)=\"{value}\" OR lower(instance_id)=\"{value}\" | head 1 | table firstseen lastseen environment provider ephemeral"
+  "ea_host": "| inputlookup ea_network_asset_inventory | where lower(nt_host)=\"{value}\" OR lower(instance_id)=\"{value}\" | head 1 | table firstseen lastseen environment provider ephemeral",
+  "entity_risk": "search index=ers source=ers_history normalized_risk_object=\"{value}\" | eval at=\"{at}\" | eval at=if(match(at, \"^[0-9.]+$\"), tonumber(at), coalesce(strptime(at, \"%Y-%m-%dT%H:%M:%S\"), strptime(at, \"%Y-%m-%d %H:%M:%S\"))) | where _time<=at+1200 AND _time>=at-604800 | sort 1 - _time | eval detections=split(replace(mvjoin(detections, \"|\"), \" - Rule \", \" - Rule|\"), \"|\") | table _time ers detections"
 }

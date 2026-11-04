@@ -33,6 +33,10 @@
 と、資産のカテゴリ・部署・所有者・想定内かを伝えます。Exposure Analytics（ES 8.x）がある
 場合は、人以外の ID か、その背後の人物、アカウントや端末がアラート期間の30日以上前から把握されているかも伝えます。
 
+エンティティのリスクスコア（既定は使わない。`jevtriage` の `ers=`）: Enterprise Security 8 のエンティティリスクスコア（過去7日間で 0〜100、`index=ers source=ers_history`）から、
+アラート時点の各ユーザーと最大2つのホスト・アドレスのスコアを、寄与したほかの検知とともに伝えます。アラートの `lastTime`（なければ `_time`）
+から20分後までの最新のスコアを使います。スコアがなければ何も書きません。
+
 キー: `storage/passwords`、realm `second_opinion_triage`、名前は `typesafe_api_key`、`llm_api_key`、
 `aws_access_key_id`、`aws_secret_access_key`。
 
@@ -40,7 +44,7 @@
 
 | コマンド | 用途 |
 |---|---|
-| `jevtriage [persist=true] [auto=true] [dryrun=true] [enrich=false] [ordercheck=false] [parallel=1-8] [timeout=秒]` | `` `jev_findings` `` の行をトリアージ |
+| `jevtriage [persist=true] [auto=true] [dryrun=true] [enrich=false] [ordercheck=false] [ers=fact\|urgency\|both\|off] [riskband=true] [parallel=1-8] [timeout=秒]` | `` `jev_findings` `` の行をトリアージ。`ers`: 既定は使わない（測定で改善なし）。エンティティのリスクスコアを事実としてモデルに渡す、判定後の緊急度の上限・下限だけに使う（25未満でほかの検知なし: 最大 medium、50未満: 最大 high、50以上: 最低 medium）、両方。`riskband=true`: ES が Finding に付ける累計リスクスコア（`risk_score`）の目安も渡す（既定は渡さない。後の検知を含み、TP の確信度を下げたため） |
 | `jevtriage endpoint=<URL> model=<名前>` | 設定を変えずに別の判定モデルを評価（管理者のみ、保存しない、キーは送らない） |
 | `jevtriage questions=<版 ID>\|default` | 指定した版の Jev の質問でトリアージ（管理者のみ、保存しない、サポートモードの試験で使用） |
 | `jevprompt action=status\|support_on\|support_off\|get\|save\|test\|apply\|revert\|export\|import\|evalset_prompt` | Jev の質問のサポートモード（下記）。`status` 以外は管理者のみ |

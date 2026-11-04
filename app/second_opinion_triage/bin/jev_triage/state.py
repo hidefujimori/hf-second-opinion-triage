@@ -77,7 +77,7 @@ def entities(f):
     return out
 
 
-def build_state(f, facts=None, related=None):
+def build_state(f, facts=None, related=None, risk_band_on=False):
     desc = _one(f.get("rule_description")) or _one(f.get("orig_rule_description")) or ""
     desc = EPOCH.sub("", desc)
     s = {
@@ -112,7 +112,9 @@ def build_state(f, facts=None, related=None):
         s["risk_object"] = entity(_one(f.get("risk_object")))
     if f.get("risk_object_type"):
         s["risk_object_type"] = _one(f.get("risk_object_type"))
-    if f.get("risk_score"):
+    # risk_score: the running total ES adds up for the entity when the finding is shown (later detections included,
+    # old 100/200 scale). Off by default: the band made the model doubt true positives (measured).
+    if risk_band_on and f.get("risk_score"):
         s["risk_score_band"] = risk_band(_one(f.get("risk_score")))
     contrib = _mv(f.get("orig_source")) or _mv(f.get("sources")) or _mv(f.get("risk_message"))
     if contrib:
