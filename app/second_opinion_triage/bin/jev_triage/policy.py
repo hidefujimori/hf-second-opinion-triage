@@ -13,7 +13,7 @@ def reversed_disposition(questions):
 
 
 def decide(ans, ans_rev, rollup, conf_threshold=0.60, escalation_floor=0.80, rollup_cap="high",
-           undetermined_cap="medium", critical_min=0.60):
+           undetermined_cap="medium", critical_min=0.60, negative_cap="low"):
     reasons = []
     d = ans["disposition"]
     disp, conf = d["choice"], float(d["confidence"])
@@ -37,6 +37,10 @@ def decide(ans, ans_rev, rollup, conf_threshold=0.60, escalation_floor=0.80, rol
         # not known to be real: "needs checking today" (medium) rather than "likely compromise" (high)
         reasons.append("undetermined capped at %s" % undetermined_cap)
         lvl = LEVELS.index(undetermined_cap)
+    if disp in ("benign", "false_positive") and negative_cap and lvl > LEVELS.index(negative_cap):
+        # judged benign or a false alert: nothing urgent to act on
+        reasons.append("%s capped at %s" % (TAGS[disp], negative_cap))
+        lvl = LEVELS.index(negative_cap)
     if rollup and rollup_cap and lvl > LEVELS.index(rollup_cap):
         reasons.append("roll-up capped at %s" % rollup_cap)
         lvl = LEVELS.index(rollup_cap)

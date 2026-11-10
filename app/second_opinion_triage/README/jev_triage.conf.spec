@@ -10,6 +10,7 @@ escalation_floor = <float>
 rollup_urgency_cap = low|medium|high|critical|<empty>
 undetermined_urgency_cap = low|medium|high|critical|<empty>
 critical_min_probability = <float 0-1>
+benign_urgency_cap = low|medium|high|critical|<empty>
 order_check = <bool>
 timeout = <int>
 proxy = <url>

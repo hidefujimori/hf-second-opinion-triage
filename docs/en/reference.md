@@ -15,6 +15,7 @@ Normally changed on the Setup page. Defaults are in `default/jev_triage.conf`; c
 | `[jev] rollup_urgency_cap` | high | Highest urgency for risk / finding-group roll-ups |
 | `[jev] undetermined_urgency_cap` | medium | Highest urgency of an Undetermined finding (empty = no cap) |
 | `[jev] critical_min_probability` | 0.60 | Critical only when Jev gives it at least this probability, otherwise High (0 = off) |
+| `[jev] benign_urgency_cap` | low | Highest urgency of a finding judged Benign or FP (empty = no cap) |
 | `[jev] order_check` | true | Ask a second time with the options reversed; disagreement → Undetermined |
 | `[jev] timeout`, `parallel`, `proxy` | 30, 4, — | Request timeout (s), findings processed at the same time (1–8), HTTPS proxy |
 | `[enrichment] enabled`, `max_facts`, `shared_entities` | true, 12, `*.amazonaws.com,…` | Context collection; patterns never used as join keys |
@@ -37,6 +38,12 @@ priority, watchlist and end date of an identity, and the category, business
 unit, owner and expected flag of an asset. With Exposure Analytics (ES 8.x), its inventories add whether an account is
 a non-human identity, the person behind it, and whether an account or a host has been known for at least 30 days before the alert period.
 
+Detection output (0.14.0, off by default, `details=true` of `jevtriage`): the fields the detection itself wrote to the finding (the result row of the correlation search, minus ES bookkeeping and fields already used) are passed as short "name: value" lines: up to 8 lines, 160 characters each, numbers as ranges. Security group rules and S3 ACL grants are shown in plain words (e.g. "tcp/443 from 0.0.0.0/0", "grants: everyone (AllUsers) READ"). Measured on labelled findings, the wording of the rules themselves pulled benign findings towards true positive, so it is kept for evaluation.
+
+Cloud sessions (0.14.2): when CloudTrail records that an identity's calls were made by an AWS service on its behalf (`invokedBy`, e.g. CloudFormation, Auto Scaling) or that it signed in with SAML single sign-on, that is stated (with SAML, AWS records `MFAUsed=No` because MFA is checked by the identity provider).
+
+GuardDuty (always): details are narrowed to the finding's instance or access-key user, and a sample finding is reported as such.
+
 Entity risk score (off by default, `ers=` of `jevtriage`): with Enterprise Security 8 (entity risk scoring), the score of each user and up to two hosts or
 addresses (0-100 over the previous 7 days, `index=ers source=ers_history`) as of the alert, with the other detections
 that contributed. The latest score up to 20 minutes after the alert's `lastTime` (or `_time`) is used; no score, no fact.
@@ -48,7 +55,7 @@ Keys: `storage/passwords`, realm `second_opinion_triage`, names `typesafe_api_ke
 
 | Command | Use |
 |---|---|
-| `jevtriage [persist=true] [auto=true] [dryrun=true] [enrich=false] [ordercheck=false] [ers=fact\|urgency\|both\|off] [riskband=true] [parallel=1-8] [timeout=s]` | Triage rows of `` `jev_findings` ``. `ers`: off by default (measured: no gain). Entity risk score as a fact for the model, only to bound urgency afterwards (<25 with no other detection: at most medium; <50: at most high; >=50: at least medium), or both. `riskband=true`: also give the band of the running risk score ES gives the finding (`risk_score`; off by default: it includes later detections and made the model doubt true positives) |
+| `jevtriage [persist=true] [auto=true] [dryrun=true] [enrich=false] [ordercheck=false] [ers=fact\|urgency\|both\|off] [riskband=true] [details=true] [parallel=1-8] [timeout=s]` | Triage rows of `` `jev_findings` ``. `ers`: off by default (measured: no gain). Entity risk score as a fact for the model, only to bound urgency afterwards (<25 with no other detection: at most medium; <50: at most high; >=50: at least medium), or both. `riskband=true`: also give the band of the running risk score ES gives the finding (`risk_score`; off by default: it includes later detections and made the model doubt true positives). `details=true`: also give the detection output (below; off by default) |
 | `jevtriage endpoint=<url> model=<name>` | Evaluate another decision model without changing settings (admins; not saved; no key sent) |
 | `jevtriage questions=<version id>\|default` | Triage with a given version of the Jev questions (admins; not saved; used by the support-mode test) |
 | `jevprompt action=status\|support_on\|support_off\|get\|save\|test\|apply\|revert\|export\|import\|evalset_prompt` | Support mode for the Jev questions (see below). Everything but `status` is for admins |

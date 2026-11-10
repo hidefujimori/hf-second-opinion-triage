@@ -15,6 +15,7 @@
 | `[jev] rollup_urgency_cap` | high | リスク集約・Finding グループの Urgency の上限 |
 | `[jev] undetermined_urgency_cap` | medium | 判別不可の Finding の Urgency の上限（空 = 上限なし） |
 | `[jev] critical_min_probability` | 0.60 | Jev が Critical に付けた確率がこれ以上のときだけ Critical、未満は High（0 = 使わない） |
+| `[jev] benign_urgency_cap` | low | Benign・FP と判定した Finding の Urgency の上限（空 = 上限なし） |
 | `[jev] order_check` | true | 選択肢を逆順にしてもう一度聞き、食い違えば判別不可 |
 | `[jev] timeout`, `parallel`, `proxy` | 30, 4, — | タイムアウト（秒）、同時に処理する Finding 数（1〜8）、HTTPS プロキシ |
 | `[enrichment] enabled`, `max_facts`, `shared_entities` | true, 12, `*.amazonaws.com,…` | 情報収集。結合キーに使わないパターン |
@@ -35,6 +36,12 @@
 と、資産のカテゴリ・部署・所有者・想定内かを伝えます。Exposure Analytics（ES 8.x）がある
 場合は、人以外の ID か、その背後の人物、アカウントや端末がアラート期間の30日以上前から把握されているかも伝えます。
 
+検知の出力（0.14.0。既定は渡さない。`jevtriage` の `details=true`）: 検知自身が Finding に書いた項目（相関サーチの結果の行。ES の管理用の項目と、すでに使っている項目を除く）を「名前: 値」の短い行で渡します。最大8行、1行160文字、数値は幅に直します。Security Group のルールと S3 の ACL は言葉に直します（例: 「tcp/443 from 0.0.0.0/0」「grants: everyone (AllUsers) READ」）。正解付きの Finding で測ると、ルール自身の文言が良性の Finding を TP 寄りにしたため、評価用に残しています。
+
+クラウドのセッション（0.14.2）: CloudTrail に、その ID の呼び出しを AWS のサービスが代わりに行った記録（`invokedBy`、例: CloudFormation、Auto Scaling）や、SAML のシングルサインオンでのログインの記録があれば伝えます（SAML の場合、MFA は ID プロバイダ側で確認されるため AWS は `MFAUsed=No` と記録します）。
+
+GuardDuty（常に）: 詳細はその検出結果のインスタンスまたはアクセスキーのユーザーに絞り、サンプルの検出結果はその旨を伝えます。
+
 エンティティのリスクスコア（既定は使わない。`jevtriage` の `ers=`）: Enterprise Security 8 のエンティティリスクスコア（過去7日間で 0〜100、`index=ers source=ers_history`）から、
 アラート時点の各ユーザーと最大2つのホスト・アドレスのスコアを、寄与したほかの検知とともに伝えます。アラートの `lastTime`（なければ `_time`）
 から20分後までの最新のスコアを使います。スコアがなければ何も書きません。
@@ -46,7 +53,7 @@
 
 | コマンド | 用途 |
 |---|---|
-| `jevtriage [persist=true] [auto=true] [dryrun=true] [enrich=false] [ordercheck=false] [ers=fact\|urgency\|both\|off] [riskband=true] [parallel=1-8] [timeout=秒]` | `` `jev_findings` `` の行をトリアージ。`ers`: 既定は使わない（測定で改善なし）。エンティティのリスクスコアを事実としてモデルに渡す、判定後の緊急度の上限・下限だけに使う（25未満でほかの検知なし: 最大 medium、50未満: 最大 high、50以上: 最低 medium）、両方。`riskband=true`: ES が Finding に付ける累計リスクスコア（`risk_score`）の目安も渡す（既定は渡さない。後の検知を含み、TP の確信度を下げたため） |
+| `jevtriage [persist=true] [auto=true] [dryrun=true] [enrich=false] [ordercheck=false] [ers=fact\|urgency\|both\|off] [riskband=true] [details=true] [parallel=1-8] [timeout=秒]` | `` `jev_findings` `` の行をトリアージ。`ers`: 既定は使わない（測定で改善なし）。エンティティのリスクスコアを事実としてモデルに渡す、判定後の緊急度の上限・下限だけに使う（25未満でほかの検知なし: 最大 medium、50未満: 最大 high、50以上: 最低 medium）、両方。`riskband=true`: ES が Finding に付ける累計リスクスコア（`risk_score`）の目安も渡す（既定は渡さない。後の検知を含み、TP の確信度を下げたため）。`details=true`: 検知の出力（下記）も渡す（既定は渡さない） |
 | `jevtriage endpoint=<URL> model=<名前>` | 設定を変えずに別の判定モデルを評価（管理者のみ、保存しない、キーは送らない） |
 | `jevtriage questions=<版 ID>\|default` | 指定した版の Jev の質問でトリアージ（管理者のみ、保存しない、サポートモードの試験で使用） |
 | `jevprompt action=status\|support_on\|support_off\|get\|save\|test\|apply\|revert\|export\|import\|evalset_prompt` | Jev の質問のサポートモード（下記）。`status` 以外は管理者のみ |

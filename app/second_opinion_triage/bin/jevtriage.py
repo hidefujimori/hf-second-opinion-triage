@@ -58,12 +58,13 @@ class JevTriageCommand(StreamingCommand):
     conffield = Option(require=False, default=None)
     usekey = Option(require=False, default=None, validate=validators.Set("alt", "alt2"))
     riskband = Option(require=False, validate=validators.Boolean(), default=False)
+    details = Option(require=False, validate=validators.Boolean(), default=False)
     ers = Option(require=False, default="off", validate=validators.Set("fact", "urgency", "both", "off"))
 
     def _settings(self):
         s = {"model": "jev-1.13.0", "questions_file": "questions.json", "confidence_threshold": "0.60",
              "escalation_floor": "0.80", "rollup_urgency_cap": "high", "order_check": "true",
-             "undetermined_urgency_cap": "medium", "critical_min_probability": "0.60",
+             "undetermined_urgency_cap": "medium", "critical_min_probability": "0.60", "benign_urgency_cap": "low",
              "timeout": "30", "proxy": "", "parallel": "4", "enrichment_enabled": "true", "endpoint": "",
              "request_extra": "", "confidence_field": "", "model_rules": "auto",
              "shared_entities": "*.amazonaws.com,*.amazon.com,*.microsoft.com,*.office.com,*.google.com", "max_facts": "12"}
@@ -142,7 +143,7 @@ class JevTriageCommand(StreamingCommand):
             t0 = time.time()
             facts, related = enricher.collect(rec) if enricher else ([], [])
             out["jev_enrich_ms"] = int((time.time() - t0) * 1000)
-            st = state.build_state(rec, facts, related, risk_band_on=self.riskband)
+            st = state.build_state(rec, facts, related, risk_band_on=self.riskband, details_on=self.details)
             out["jev_state"] = json.dumps(st, ensure_ascii=False)
             if enricher and enricher.errors:
                 out["jev_enrich_errors"] = " | ".join(([self._q_warn] if self._q_warn else []) + enricher.errors[-3:])
@@ -159,7 +160,7 @@ class JevTriageCommand(StreamingCommand):
             out.update(policy.decide(res["answers"], rev["answers"] if rev else None, state.is_rollup(rec),
                                      float(s["confidence_threshold"]), float(s["escalation_floor"]),
                                      s["rollup_urgency_cap"] or None, s["undetermined_urgency_cap"] or None,
-                                     float(s["critical_min_probability"] or 0)))
+                                     float(s["critical_min_probability"] or 0), s["benign_urgency_cap"] or None))
             if enricher and self.ers in ("urgency", "both"):
                 policy.ers_adjust(out, enricher.ers)
             out["jev_answers"] = json.dumps(res["answers"])
@@ -235,6 +236,8 @@ class JevTriageCommand(StreamingCommand):
             s["rules_text"] += "; entity risk score: %s" % self.ers
         if self.riskband:
             s["rules_text"] += "; risk score band: on"
+        if self.details:
+            s["rules_text"] += "; detection output: on"
         qset, self._q_warn = self._load_questions(s)
         Q = qset["questions"]
         Qrev = policy.reversed_disposition(Q)

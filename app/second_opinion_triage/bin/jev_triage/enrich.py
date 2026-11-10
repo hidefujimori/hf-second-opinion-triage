@@ -311,12 +311,24 @@ class Enricher(object):
             facts.append("the same user added %d account(s) to security groups%s" % (n("group_adds"), (" (" + ", ".join(g[:3]) + ")") if g else ""))
         return facts
 
-    def guardduty_facts(self, gtype, e, l):
-        rows = self._q("guardduty_detail", gtype, e, l)
+    def guardduty_facts(self, gtype, e, l, f=None):
+        """Details of this GuardDuty finding. Narrowed to the finding's instance or access-key user, so that other
+        findings of the same type (another instance, another attacker) are not mixed in."""
+        f = f or {}
+        inst = [v for v in _mv(f.get("dest")) if str(v).startswith("i-")][:5]
+        keyu = [v for v in _mv(f.get("user")) if v][:5]
+        conds = ['iid="%s"' % esc(v) for v in inst] + ['kuser="%s"' % esc(v) for v in keyu]
+        scope = ""
+        if conds:
+            scope = ("| spath path=detail.resource.instanceDetails.instanceId output=iid "
+                     "| spath path=detail.resource.accessKeyDetails.userName output=kuser | where %s " % " OR ".join(conds))
+        rows = self._q("guardduty_detail", gtype, e, l, scope=scope)
         if not rows or not _one(rows[0].get("sev")):
             return []
         r = rows[0]
         facts = []
+        if any(str(v).lower() == "true" for v in _mv(r.get("sample"))):
+            facts.append("GuardDuty marks this finding as a sample finding (generated for testing, not real activity)")
         sev = float(_one(r.get("sev")) or 0)
         facts.append("GuardDuty rated this finding severity %s (%s)" % (
             ("%g" % sev), "high" if sev >= 7 else "medium" if sev >= 4 else "low"))
@@ -331,6 +343,39 @@ class Enricher(object):
             facts.append("the API call%s came from an address of %s%s" % (
                 (" " + ", ".join(_mv(r.get("api"))[:2])) if _mv(r.get("api")) else "", ", ".join(_mv(r.get("api_org"))[:2]),
                 (" in " + ", ".join(_mv(r.get("api_country"))[:2])) if _mv(r.get("api_country")) else ""))
+        return facts
+
+    def cloud_session_facts(self, user, e, l):
+        """How a cloud identity's calls were made: by an AWS service on its behalf (userIdentity.invokedBy), or in a
+        SAML single sign-on session. Facts CloudTrail records about the session itself; nothing when neither applies."""
+        if getattr(self, "_no_cts", False):
+            return []
+        u = str(user)
+        if "/" in u:   # Role/session
+            match = 'userIdentity.arn="*:assumed-role/%s"' % esc(u)
+        else:
+            match = '(userIdentity.userName="%s" OR userIdentity.sessionContext.sessionIssuer.userName="%s")' % (esc(u), esc(u))
+        n = len(self.errors)
+        rows = self._q("cloud_session", u, e, l, match=match)
+        if len(self.errors) > n:
+            msg = " ".join(self.errors[n:])
+            del self.errors[n:]
+            _optional_failed(self, "_no_cts", msg)
+            return []
+        if not rows or not int(float(_one(rows[0].get("count")) or 0)):
+            return []
+        r = rows[0]
+        facts = []
+        # a service principal, not the console (signin., console.) that a person uses
+        svc = [v for v in _mv(r.get("invoked_by")) if str(v).endswith(".amazonaws.com")
+               and not str(v).startswith(("signin.", "console."))]
+        if svc:
+            facts.append("CloudTrail records that the calls of %s were made by the AWS service %s on its behalf (invokedBy)"
+                         % (u, ", ".join(svc[:2])))
+        saml = _mv(r.get("saml"))
+        if saml:
+            facts.append("%s signed in with SAML single sign-on through the identity provider %s; for such sign-ins AWS "
+                         "records MFAUsed=No because any MFA is checked by the identity provider" % (u, str(saml[0]).split("/")[-1]))
         return facts
 
     def cloud_user_facts(self, user, e, l):
@@ -663,12 +708,13 @@ class Enricher(object):
                 e, l = win
         sig = _one(f.get("signature")) or ""
         if GD_TYPE.match(sig):
-            facts += self.guardduty_facts(sig, e, l)
+            facts += self.guardduty_facts(sig, e, l, f)
         for u in dict.fromkeys(users):
             idf, ws = self.identity_facts(u, l=l)
             facts += idf
             facts += self.ea_user_facts(u, e, idf)
             facts += self.cloud_origin_facts(u, e, l)
+            facts += self.cloud_session_facts(u, e, l)
             facts += self.cloud_user_facts(u, e, l)
             facts += self.win_actor_facts(u, e, l)
             facts += self.workstation_facts(ws, e, l, "this user's own")
