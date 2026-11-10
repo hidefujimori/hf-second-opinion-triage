@@ -175,7 +175,7 @@ contains API keys, and the endpoint and proxy hosts are hidden.
 | Explanation fails with `The read operation timed out` | The LLM did not answer within Timeout (busy server, thinking model, model loading). The app tries once more; then raise Timeout or try later |
 | Explanation fails with `unknown url type` or `endpoint must start with http://` | Endpoint is missing `http://` (and the port / `/v1`), e.g. `http://<host>:11434/v1` |
 | Explanation fails with `empty answer … thinking` | A thinking model used up Max tokens: set Thinking level (`none`, or `low` for gpt-oss) or raise Max tokens |
-| Analysts get "API key not found" | Give them the `jev_triage_user` role, then click **Save** on Setup once |
+| Analysts get "API key not found" | Give them the `jev_triage_user` role (capability `jev_triage_run`); the keys must be saved on Setup |
 | Response action shows *failure* | `index=cim_modactions action_name=jev_triage`, and `index=_internal source=*jev_triage_modalert.log` |
 | Detection runs but nothing is triaged | Is *Second Opinion Triage - Response Queue* enabled? Look at `jev_usage` limits (status *skipped*) |
 | Command errors | The job's search.log (Job Inspector) — look for `ChunkedExternProcessor` |

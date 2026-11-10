@@ -30,9 +30,9 @@ const L = {
     supTitle: 'Support', supDesc: 'Makes a diagnostics file to send with a question or problem report: versions, settings, a connection test, recent errors, response-action results and app logs of the last 24 hours. API keys are never included, and the hosts of the endpoint and proxy are hidden. Anyone who can open this page can make it (beta).',
     supBtn: 'Make diagnostics file', supBusy: 'Collecting… ', supDone: 'Saved as a download. Items collected: ', supMissing: ' Not collected (no permission or no data): ',
     check: 'Check: ', proxyPw: 'Proxy URL must not contain user:password@', unsaved: 'Not saved yet. Click Save, then Test connection.', testUnsaved: 'Save first: Test connection uses the saved settings.', badUrl: ' must start with http:// or https://', urlEx: ' (e.g. http://<host>:11434/v1)', noCap: 'Your role cannot save keys (needs edit_storage_passwords or admin_all_objects). You can view settings.',
-    loadFail: 'Could not load settings: ', aclFail: 'Could not share these keys with the jev_triage_user role: ', none: '(none)', cols: ['Target', 'Key', 'Model', 'Status', 'Detail', 'ms'],
+    loadFail: 'Could not load settings: ', aclFail: 'Could not limit these keys to admins: ', none: '(none)', cols: ['Target', 'Key', 'Model', 'Status', 'Detail', 'ms'],
     sections: {
-      jev: ['Decision model (TypeSafe Jev or compatible)', 'Jev suggests the disposition and urgency. The Splunk search head must reach https://api.typesafe.ai (or the endpoint below). Keys can be read by admins and the role jev_triage_user (give that role to your analysts).'],
+      jev: ['Decision model (TypeSafe Jev or compatible)', 'Jev suggests the disposition and urgency. The Splunk search head must reach https://api.typesafe.ai (or the endpoint below). Only admins can read the keys; analysts with the role jev_triage_user can run triage and explanations without reading other credentials.'],
       enrichment: ['Enrichment', 'Facts collected with SPL before asking Jev. Point the macros at your indexes; the default index=* is slow.'],
       llm: ['LLM explanation', 'Used only when someone clicks Explain. Choose any provider; the credential is stored per app.'],
       note: ['Notes on ES findings', ''],
@@ -79,9 +79,9 @@ const L = {
     supTitle: 'サポート', supDesc: '問い合わせや不具合の報告に添える診断ファイルを作ります。内容は版、設定、接続テスト、最近のエラー、レスポンスアクションの結果、直近24時間のアプリのログです。API キーは含みません。エンドポイントとプロキシのホスト名は伏せます。このページを開ける人なら誰でも作れます（β版の間）。',
     supBtn: '診断ファイルを作成', supBusy: '収集中… ', supDone: 'ダウンロードとして保存しました。取得した項目: ', supMissing: ' 取得できなかった項目（権限がない・データがない）: ',
     check: '確認してください: ', proxyPw: 'プロキシの URL に user:password@ を含めないでください', unsaved: '変更はまだ保存されていません。保存してから接続テストを行ってください。', testUnsaved: '先に保存してください（接続テストは保存済みの設定を使います）。', badUrl: ' は http:// または https:// で始めてください', urlEx: '（例: http://<ホスト>:11434/v1）', noCap: 'このロールではキーを保存できません（edit_storage_passwords または admin_all_objects が必要）。設定の表示はできます。',
-    loadFail: '設定を読み込めませんでした: ', aclFail: '次のキーを jev_triage_user ロールに共有できませんでした: ', none: '（なし）', cols: ['対象', 'キー', 'モデル', '状態', '詳細', 'ms'],
+    loadFail: '設定を読み込めませんでした: ', aclFail: '次のキーを管理者だけに限定できませんでした: ', none: '（なし）', cols: ['対象', 'キー', 'モデル', '状態', '詳細', 'ms'],
     sections: {
-      jev: ['判定モデル（TypeSafe Jev または互換モデル）', 'Jev が Disposition と Urgency を提案します。Splunk の検索ヘッドから https://api.typesafe.ai（または下のエンドポイント）に接続できる必要があります。キーを読めるのは管理者と jev_triage_user ロールです（アナリストのロールにこのロールを追加してください）。'],
+      jev: ['判定モデル（TypeSafe Jev または互換モデル）', 'Jev が Disposition と Urgency を提案します。Splunk の検索ヘッドから https://api.typesafe.ai（または下のエンドポイント）に接続できる必要があります。キーを読めるのは管理者だけです。jev_triage_user ロールのアナリストは、ほかの資格情報を読めないまま、トリアージと説明を実行できます。'],
       enrichment: ['Enrichment（情報収集）', 'Jev に聞く前に SPL で集める情報です。マクロを実際の index に向けてください（既定の index=* は遅くなります）。'],
       llm: ['LLM による説明', '「LLM で説明」を押したときだけ使います。プロバイダは選べます。資格情報はアプリごとに保存されます。'],
       note: ['ES の Finding への Note', ''],
@@ -270,8 +270,8 @@ function SetupPage({ theme }) {
           'param.write_note': vals.manual_note === 'true' ? '1' : '0', 'param.auto_explain': vals.manual_explain === 'true' ? '1' : '0' } });
       } catch (e) { /* the response action keeps its own defaults */ }
       for (const s of ALL_SECRETS) { await saveSecret(s.name); }   // eslint-disable-line no-await-in-loop
-      // Who may read the keys: admins and the role jev_triage_user (give it to analysts).
-      // Users also need list_storage_passwords, which that role has. Applied to every stored key on each save.
+      // Who may read the keys: admins only. Analysts (role jev_triage_user) get the Jev / LLM keys through the app's
+      // endpoint /services/second_opinion_triage/keys (capability jev_triage_run). Applied to every stored key on each save.
       const aclFailed = [];
       const present = await search(`| rest splunk_server=local count=0 /servicesNS/nobody/${APP}/storage/passwords | search realm="${REALM}" | rename eai:acl.owner as owner | table username owner`);
       for (const row of present) {   // eslint-disable-line no-restricted-syntax
@@ -280,7 +280,7 @@ function SetupPage({ theme }) {
           // in the namespace of its current owner (keys saved by a user are owned by that user)
           await rest(`configs/conf-passwords/${encodeURIComponent(`credential:${REALM}:${row.username}:`)}/acl`, { method: 'POST',   // eslint-disable-line no-await-in-loop
             owner: row.owner || 'nobody',
-            params: { sharing: 'app', owner: 'nobody', 'perms.read': 'admin,sc_admin,jev_triage_user', 'perms.write': 'admin,sc_admin' } });
+            params: { sharing: 'app', owner: 'nobody', 'perms.read': 'admin,sc_admin', 'perms.write': 'admin,sc_admin' } });
         } catch (e) { aclFailed.push(row.username); }
       }
       await rest(`/apps/local/${APP}`, { method: 'POST', params: { configured: '1' } });

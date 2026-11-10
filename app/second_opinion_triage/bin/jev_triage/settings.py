@@ -24,6 +24,23 @@ def stanza(service, name, defaults=None, logger=None):
 
 
 def secrets(service):
+    """username -> clear password of this app's keys.
+
+    Admins read storage/passwords directly. Other users (role jev_triage_user, capability jev_triage_run) get the
+    Jev / LLM keys from the app's endpoint, which runs with the system session and returns only this app's keys."""
+    direct = _secrets_direct(service)
+    if any(direct.get(k) for k in (JEV_SECRET, "llm_api_key", "aws_access_key_id")):
+        return direct
+    try:
+        import json
+        resp = service.get("/services/second_opinion_triage/keys", output_mode="json")
+        keys = json.loads(resp.body.read().decode("utf-8")).get("keys") or {}
+        return dict(direct, **keys)
+    except Exception:
+        return direct
+
+
+def _secrets_direct(service):
     """username -> clear password for this app's realm.
 
     The keys are shared at app level, so a search started from another app (e.g. Search & Reporting) does not see
@@ -33,7 +50,10 @@ def secrets(service):
         resp = service.get("storage/passwords", owner="-", app=APP, count=0, output_mode="json")
         entries = json.loads(resp.body.read().decode("utf-8")).get("entry", [])
     except Exception:
-        return {p.username: p.clear_password for p in service.storage_passwords if (p.realm or "") in (APP, "")}
+        try:
+            return {p.username: p.clear_password for p in service.storage_passwords if (p.realm or "") in (APP, "")}
+        except Exception:
+            return {}
     out = {}
     # entries without a realm only when they belong to this app; this app's realm wins
     for e in sorted(entries, key=lambda x: 1 if ((x.get("content") or {}).get("realm") or "") == APP else 0):

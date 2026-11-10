@@ -167,7 +167,7 @@ Clef 27B が外した Finding（#5）と Urgency の2件（#22、#32）は Jev �
 | 説明が `The read operation timed out` で失敗する | LLM がタイムアウト内に応答しなかった（混雑、思考するモデル、モデルの読み込み中）。アプリは1回だけやり直します。続く場合はタイムアウトを延ばすか、時間をおいて実行 |
 | 説明が `unknown url type` や `endpoint must start with http://` で失敗する | エンドポイントに `http://`（とポート・`/v1`）がありません。例: `http://<ホスト>:11434/v1` |
 | 説明が `empty answer … thinking` で失敗する | 思考するモデルが最大トークン数を使い切っています。Thinking level を設定する（`none`、gpt-oss は `low`）か、最大トークン数を増やす |
-| アナリストで「API key not found」 | `jev_triage_user` ロールを付与し、Setup 画面で一度**保存**を押す |
+| アナリストで「API key not found」 | `jev_triage_user` ロール（権限 `jev_triage_run`）を付与する。キーは Setup 画面で保存しておく |
 | レスポンスアクションが failure | `index=cim_modactions action_name=jev_triage` と `index=_internal source=*jev_triage_modalert.log` |
 | 検知は動くがトリアージされない | *Second Opinion Triage - Response Queue* が有効か。`jev_usage` の上限（状態が skipped） |
 | コマンドのエラー | ジョブの search.log（Job Inspector）で `ChunkedExternProcessor` を探す |

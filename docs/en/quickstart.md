@@ -98,8 +98,8 @@ Conditions and results: [Reference > Decision models other than Jev](reference.m
 ## 3. Let analysts use it
 
 Add the role **`jev_triage_user`** to your analyst roles (Settings > Roles > *your analyst role* >
-Inheritance). Then click **Save** once more on the Setup page, so the stored keys are shared with
-that role. Admins need nothing extra.
+Inheritance). Analysts can then run triage and explanations; they cannot read the keys or other
+credentials. Admins need nothing extra.
 
 ## 4. Triage findings
 

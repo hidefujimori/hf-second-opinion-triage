@@ -33,7 +33,7 @@ COLLECTIONS = ("jev_triage_latest", "jev_usage", "jev_prompt_versions", "jev_pro
 MACROS = ("jev_cloudtrail", "jev_endpoint", "jev_findings")
 SAVED = (("Jev Triage - Untriaged Findings", "Second Opinion Triage - Untriaged Findings"),
          ("Jev Triage - Response Queue", "Second Opinion Triage - Response Queue"))
-KEY_READ = "admin,sc_admin,jev_triage_user"
+KEY_READ = "admin,sc_admin"
 KEY_WRITE = "admin,sc_admin"
 
 
