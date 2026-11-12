@@ -44,6 +44,10 @@ From ES you can open a finding directly: finding menu (⋯) > **Open in Second O
 Confidence: Jev returns probabilities; the app turns them into a confidence between 0 and 1.
 Below the **confidence threshold** (default 0.60) the disposition is *Undetermined*.
 
+Urgency rules (0.13.14–0.14.3): an *Undetermined* finding is at most **Medium**, a *Benign* or *FP* finding at most
+**Low**, and **Critical** needs a clear answer from Jev (probability 0.60 or more), otherwise High. When a rule changes
+Jev's answer, the reason is shown with the result (`jev_policy`).
+
 ## One click from ES: "Run Second Opinion Triage" (0.11.0)
 
 In Enterprise Security, open the menu of a finding and choose **Run Second Opinion Triage** (a workflow action). The triage page
@@ -103,9 +107,11 @@ If you run a local LLM, leave the LLM limit empty.
 
 ## Good to know
 
-- Jev receives English text built from the finding and from facts collected with SPL
-  (identity, asset, cloud account behaviour, authentication / traffic outcome, PowerShell on the
-  host, related alerts). Shared services such as `*.amazonaws.com` are never used to join data.
+- Jev receives English text built from the finding and from facts collected with SPL (asset and
+  identity, Exposure Analytics, threat intelligence, cloud account behaviour and origin, authentication /
+  traffic outcome, Windows activity, GuardDuty details, related alerts). Shared services such as
+  `*.amazonaws.com` are never used to join data. Scores that sum up risk and the rule's own wording are
+  not passed: they pulled the model in tests. See [How it works](how-it-works.md).
 - The LLM receives the same facts plus Jev's suggestion. It is told not to change the suggestion
   and to treat text from logs as data.
 - Accuracy in our test (33 findings from the BOTS v3 dataset): disposition 32/33, no true positive

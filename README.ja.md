@@ -11,14 +11,18 @@ Splunk アプリ（`second_opinion_triage`、旧 `TA-jev-triage`）です。Find
 - トリアージ画面（React、Splunk UI Toolkit）: 一覧＋詳細ペイン、英語・日本語
 - ES の Finding のメニューに **Run Second Opinion Triage**: Setup の既定値で1クリック実行
 - レスポンスアクション **Second Opinion Triage**: 1件の Finding に、または検知のすべての Finding に
-- SPL による情報収集（ID、資産、クラウドアカウントの挙動、結果、関連アラート）
+- Enterprise Security からの SPL による情報収集: 資産・ID、Exposure Analytics（ES 8.x）、脅威インテリジェンスとネットワークの持ち主、
+  クラウドアカウントの成り立ちとセッションの種類、同じ人物の Windows での行動、GuardDuty の詳細、結果、関連アラート（[仕組み](docs/ja/how-it-works.md)）
+- 緊急度のルール: 判別不可は最大 Medium、良性・FP は最大 Low、Critical はモデルがはっきり答えたときだけ
 - LLM は差し替え可能: Anthropic、Amazon Bedrock、OpenAI 互換、Google Gemini。Ollama のローカルモデルや
   Apple Foundation Models（macOS の `fm serve`）も使えます
 - セカンドオピニオン: ES AI SOC Analyst の結果を Jev と並べて表示し、判断ガイドを Note として ES に書き込める
 - トリアージ画面からまとめて再トリアージ
-- 判定モデル: TypeSafe Jev（既定）、または条件付きでローカルの Cloudflare Clef 27B（llama.cpp、リファレンス参照）
+- 判定モデル: TypeSafe Jev（既定）、または条件付きでローカルの Cloudflare Clef 27B（llama.cpp、リファレンス参照）。
+  ホスト版の Clef と OpenAI の gpt-6-luna は評価用
 - 自動実行での Jev・LLM の1日の上限
 - サポートモード（0.10.0）: 管理者が期限付きで Jev の質問の文言を判定モデルごとに編集できる（版管理、適用前の試験、書き出し・読み込み、監査ログ）
+- アナリストに必要なのは `jev_triage_user` ロールだけ。キーやほかの資格情報を読めないまま、トリアージと説明を実行できる（0.15.0）
 - Splunk Cloud 対応: AppInspect の Cloud 向け審査に合格し、Splunk Cloud で動作確認済み
 
 ## ドキュメント
@@ -29,6 +33,7 @@ Splunk アプリ（`second_opinion_triage`、旧 `TA-jev-triage`）です。Find
 | 導入ガイド | [docs/ja/install.md](docs/ja/install.md) | [docs/en/install.md](docs/en/install.md) |
 | 利用ガイド | [docs/ja/user-guide.md](docs/ja/user-guide.md) | [docs/en/user-guide.md](docs/en/user-guide.md) |
 | リファレンス | [docs/ja/reference.md](docs/ja/reference.md) | [docs/en/reference.md](docs/en/reference.md) |
+| 仕組み（判定モデルに渡すコンテキスト） | [docs/ja/how-it-works.md](docs/ja/how-it-works.md) | [docs/en/how-it-works.md](docs/en/how-it-works.md) |
 
 ## リポジトリの構成
 
@@ -45,9 +50,9 @@ Splunk アプリ（`second_opinion_triage`、旧 `TA-jev-triage`）です。Find
 
 ## 状況
 
-パブリックβ（最新: [v0.11.6-beta](docs/release-notes/v0.11.6-beta.md)）。Splunk Enterprise 10.4.2 ＋ Enterprise Security 8.7.1、
+パブリックβ（最新は [Releases](../../releases) を参照）。Splunk Enterprise 10.4.2 ＋ Enterprise Security 8.7.1、
 および Splunk Cloud 10.4 ＋ Enterprise Security 8.7.0 / 8.7.1（ES AI SOC Analyst 有効）で検証済み。リリースノート: [docs/release-notes](docs/release-notes)。
-評価データでの精度: Disposition 32/33、TP の見逃しなし、Urgency 完全一致 31/33・1段階以内 33/33。
+評価データ（BOTS v3、正解付き Finding 33件、Jev 1.13）での精度: Disposition 32/33、TP の見逃しなし、Urgency 完全一致 31/33・1段階以内 33/33。
 
 ## Splunk の外に送るデータ
 

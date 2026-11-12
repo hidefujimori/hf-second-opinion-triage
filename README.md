@@ -12,14 +12,20 @@ written to the ES finding as a Note. ES fields are never changed: analysts decid
 - Triage page (React, Splunk UI Toolkit): list + detail pane, English / Japanese
 - **Run Second Opinion Triage** in the menu of an ES finding: one click, with the defaults set on the Setup page
 - Adaptive response action **Second Opinion Triage**: on one finding, or on every finding of a detection
-- Context collection with SPL (identity, asset, cloud account behaviour, outcomes, related alerts)
+- Context collection with SPL from Enterprise Security: asset and identity, Exposure Analytics (ES 8.x), threat
+  intelligence and network owner, how a cloud account came to exist and how its sessions were made, Windows activity
+  of the same person, GuardDuty details, outcomes and related alerts ([How it works](docs/en/how-it-works.md))
+- Urgency rules: Undetermined at most Medium, Benign / FP at most Low, Critical only when the model is clear
 - Pluggable LLM: Anthropic, Amazon Bedrock, OpenAI-compatible, Google Gemini — including local
   models on Ollama and Apple Foundation Models (macOS `fm serve`)
 - Second opinion: the ES AI SOC Analyst result next to Jev's, with a decision guide that can be written to ES as a Note
 - Bulk re-run from the triage page
-- Decision model: TypeSafe Jev (default), or conditionally a local Cloudflare Clef 27B on llama.cpp (see the Reference)
+- Decision model: TypeSafe Jev (default), or conditionally a local Cloudflare Clef 27B on llama.cpp (see the Reference);
+  hosted Clef and OpenAI gpt-6-luna for evaluation
 - Daily limits for automatic Jev and LLM use
 - Support mode (0.10.0): admins can edit the wording of the Jev questions for a limited time, per decision model, with versioning, a test before applying, export / import and an audit log
+- Analysts need only the role `jev_triage_user`: they can run triage and explanations without reading the keys or any
+  other credential (0.15.0)
 - Splunk Cloud: passes AppInspect cloud vetting and runs on Splunk Cloud
 
 ## Documentation
@@ -30,6 +36,7 @@ written to the ES finding as a Note. ES fields are never changed: analysts decid
 | Installation | [docs/en/install.md](docs/en/install.md) | [docs/ja/install.md](docs/ja/install.md) |
 | User guide | [docs/en/user-guide.md](docs/en/user-guide.md) | [docs/ja/user-guide.md](docs/ja/user-guide.md) |
 | Reference | [docs/en/reference.md](docs/en/reference.md) | [docs/ja/reference.md](docs/ja/reference.md) |
+| How it works (context for the model) | [docs/en/how-it-works.md](docs/en/how-it-works.md) | [docs/ja/how-it-works.md](docs/ja/how-it-works.md) |
 
 ## Repository layout
 
@@ -46,11 +53,11 @@ Release packages (`second_opinion_triage-<version>.spl`) are attached to GitHub 
 
 ## Status
 
-Public beta (latest: [v0.11.6-beta](docs/release-notes/v0.11.6-beta.md)). Tested on Splunk Enterprise 10.4.2 with
+Public beta (latest: see [Releases](../../releases)). Tested on Splunk Enterprise 10.4.2 with
 Enterprise Security 8.7.1, and on Splunk Cloud 10.4 with Enterprise Security 8.7.0 / 8.7.1 (ES AI SOC Analyst enabled).
 Release notes: [docs/release-notes](docs/release-notes).
-Accuracy on the evaluation set: disposition 32/33, no true positive missed, urgency exact 31/33,
-within one level 33/33.
+Accuracy on the evaluation set (BOTS v3, 33 labelled findings, Jev 1.13): disposition 32/33, no true positive missed,
+urgency exact 31/33, within one level 33/33.
 
 ## Data sent outside Splunk
 
