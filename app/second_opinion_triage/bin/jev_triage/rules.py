@@ -4,7 +4,7 @@ whether the option-order check (a second call with the disposition options rever
 The values were tuned for each model on the 33 labelled findings (poc/decision-models/README.md):
   jev-* and other models: [jev] confidence_threshold / order_check (default 0.60, on; Jev 32/33)
   gpt-6-luna   0.50, order check off  (OpenAI Decisions: its answers change when options are reversed)
-  clef         0.15, order check on   (Cloudflare Workers AI: low confidence values)
+  clef         0.05, order check off  (Cloudflare Workers AI: low confidence values; 71 labelled findings, 2026-11)
   clef-27b     0.45, order check on   (local Clef 27B Q4)
 [jev] model_rules = off always uses [jev] confidence_threshold / order_check.
 Override for one model in jev_triage.conf:  [model_rules:<model>]  confidence_threshold = ...  order_check = ..."""
@@ -12,7 +12,7 @@ import re
 
 BUILT_IN = [
     (r"^gpt-6-luna", {"confidence_threshold": 0.50, "order_check": False}),
-    (r"^clef$", {"confidence_threshold": 0.15, "order_check": True}),
+    (r"^clef$", {"confidence_threshold": 0.05, "order_check": False}),
     (r"^clef-27b", {"confidence_threshold": 0.45, "order_check": True}),
 ]
 
