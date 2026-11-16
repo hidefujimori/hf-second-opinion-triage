@@ -1,9 +1,9 @@
-# Quick start — HF Decision Model Triage and Second Opinion App (beta)
+# Quick start — HF Decision Model Triage and Second Opinion App
 
 About 15 minutes from install to the first suggestion. For details see the
 [Installation guide](install.md), the [User guide](user-guide.md) and the [Reference](reference.md).
 
-> **Beta.** Second Opinion Triage *suggests* a disposition and an urgency for ES findings. It never changes
+> Second Opinion Triage *suggests* a disposition and an urgency for ES findings. It never changes
 > ES fields. Analysts make the final decision in Enterprise Security.
 
 ## What you need

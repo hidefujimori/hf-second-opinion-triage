@@ -1,4 +1,4 @@
-# HF Decision Model Triage and Second Opinion App (public beta)
+# HF Decision Model Triage and Second Opinion App
 
 [日本語](README.ja.md)
 
@@ -47,13 +47,13 @@ written to the ES finding as a Note. ES fields are never changed: analysts decid
 | `app/tests/` | Offline helpers for enrichment (record / replay SPL) |
 | `poc/` | Proof of concept: question sets, enrichment rounds, runs and reports |
 | `ground_truth_v*.csv` | Labelled evaluation set (33 findings from the BOTS v3 dataset); `v5` is current |
-| `docs/` | Beta documentation (English and Japanese) |
+| `docs/` | Documentation (English and Japanese) |
 
 Release packages (`second_opinion_triage-<version>.spl`) are attached to GitHub Releases, not committed.
 
 ## Status
 
-Public beta (latest: see [Releases](../../releases)). Tested on Splunk Enterprise 10.4.2 with
+Version 1.0 (latest: see [Releases](../../releases)). Tested on Splunk Enterprise 10.4.2 with
 Enterprise Security 8.7.1, and on Splunk Cloud 10.4 with Enterprise Security 8.7.0 / 8.7.1 (ES AI SOC Analyst enabled).
 Release notes: [docs/release-notes](docs/release-notes).
 Accuracy on the evaluation set (BOTS v3, 33 labelled findings, Jev 1.13): disposition 32/33, no true positive missed,
@@ -73,7 +73,7 @@ See [Installation](docs/en/install.md).
 
 ## Support
 
-Public beta, supported by the author on a best-effort basis: [GitHub Issues](../../issues) for questions, bugs and
+Supported by the author on a best-effort basis: [GitHub Issues](../../issues) for questions, bugs and
 ideas (attach the diagnostics file from Setup > Support). Security problems: see [SECURITY.md](SECURITY.md).
 
 ## License

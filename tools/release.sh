@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
 # Publish a GitHub release for this repository.
-#   tools/release.sh 0.12.0            -> tag v0.12.0-beta, notes docs/release-notes/v0.12.0-beta.md
-#   tools/release.sh 0.12.0 --dry-run  -> only check
+#   tools/release.sh 0.12.0            -> tag v0.12.0-beta (pre-release), notes docs/release-notes/v0.12.0-beta.md
+#   tools/release.sh 1.0.0-rc1         -> tag v1.0.0-rc1 (pre-release), notes docs/release-notes/v1.0.0-rc1.md
+#   tools/release.sh 1.0.0             -> tag v1.0.0 (latest release), notes docs/release-notes/v1.0.0.md
+#   tools/release.sh <version> --dry-run  -> only check
 # Needs: git, gh (GitHub CLI, signed in: gh auth login), shasum.
-# Steps: check -> git push -> tag -> gh release create (pre-release) with the .spl attached.
+# Steps: check -> git push -> tag -> gh release create with the .spl attached.
 set -euo pipefail
 
 V="${1:?usage: tools/release.sh <version> [--dry-run]}"
 DRY="${2:-}"
-TAG="v${V}-beta"
+case "$V" in
+  0.*) TAG="v${V}-beta"; PRE="--prerelease" ;;   # beta versions
+  *-*) TAG="v${V}";      PRE="--prerelease" ;;   # release candidates, e.g. 1.0.0-rc1
+  *)   TAG="v${V}";      PRE="--latest" ;;
+esac
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 NOTES="docs/release-notes/${TAG}.md"
@@ -32,7 +38,7 @@ TITLE="$(head -1 "$NOTES" | sed 's/^# *//')"
 git fetch --tags -q origin
 if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then die "tag $TAG already exists"; fi
 
-echo "Release : $TAG"
+echo "Release : $TAG (${PRE#--})"
 echo "Title   : $TITLE"
 echo "Package : $SPL ($SHA)"
 echo "Commit  : $(git log --oneline -1)"
@@ -45,5 +51,5 @@ read -r -p "Publish? [y/N] " ok
 git push origin main
 git tag -a "$TAG" -m "$TITLE"
 git push origin "$TAG"
-gh release create "$TAG" "$SPL" --prerelease --verify-tag --title "$TITLE" --notes-file "$NOTES"
+gh release create "$TAG" "$SPL" $PRE --verify-tag --title "$TITLE" --notes-file "$NOTES"
 echo "Done: $(gh release view "$TAG" --json url -q .url)"

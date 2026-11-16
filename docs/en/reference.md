@@ -1,4 +1,4 @@
-# Reference — HF Decision Model Triage and Second Opinion App (beta)
+# Reference — HF Decision Model Triage and Second Opinion App
 
 ## Settings (`jev_triage.conf`)
 
@@ -71,7 +71,11 @@ Examples:
 `jev_findings` | head 3 | jevtriage dryrun=true | table event_id jev_state
 | inputlookup jev_triage_latest where event_id="<id>" | jevexplain lang=ja
 | jevcheck
+`jev_findings` | head 5 | jevtriage dryrun=true parallel=1 | table rule_name jev_enrich_ms jev_enrich_profile
 ```
+
+`jev_enrich_ms` is the time spent collecting context for a finding; `jev_enrich_profile` lists the slowest
+context searches (`name ms(xcount)`). Both are search output only and are not stored.
 
 ## Stored data
 
@@ -181,7 +185,7 @@ contains API keys, and the endpoint and proxy hosts are hidden.
 | Command errors | The job's search.log (Job Inspector) — look for `ChunkedExternProcessor` |
 | Slow triage | Point the enrichment macros at real indexes; lower `[jev] parallel` if the search head is busy |
 
-## Known limitations (beta)
+## Known limitations
 
 - Tested on Splunk Enterprise 10.4.2 + ES 8.7.1 and Splunk Cloud 10.4.2604 + ES 8.7.0 (see the
   [Installation guide](install.md#splunk-cloud-notes)).

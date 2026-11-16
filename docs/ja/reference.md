@@ -1,4 +1,4 @@
-# リファレンス — HF Decision Model Triage and Second Opinion App（β版）
+# リファレンス — HF Decision Model Triage and Second Opinion App
 
 ## 設定（`jev_triage.conf`）
 
@@ -69,7 +69,11 @@ GuardDuty（常に）: 詳細はその検出結果のインスタンスまたは
 `jev_findings` | head 3 | jevtriage dryrun=true | table event_id jev_state
 | inputlookup jev_triage_latest where event_id="<id>" | jevexplain lang=ja
 | jevcheck
+`jev_findings` | head 5 | jevtriage dryrun=true parallel=1 | table rule_name jev_enrich_ms jev_enrich_profile
 ```
+
+`jev_enrich_ms` は Finding 1件の情報収集にかかった時間、`jev_enrich_profile` は時間のかかった情報収集の検索の一覧
+（`名前 ミリ秒(x回数)`）です。どちらも検索の出力だけで、保存はしません。
 
 ## 保存されるデータ
 
@@ -173,7 +177,7 @@ Clef 27B が外した Finding（#5）と Urgency の2件（#22、#32）は Jev �
 | コマンドのエラー | ジョブの search.log（Job Inspector）で `ChunkedExternProcessor` を探す |
 | トリアージが遅い | 情報収集のマクロを実際の index に向ける。検索ヘッドが混んでいれば `[jev] parallel` を下げる |
 
-## 既知の制限（β版）
+## 既知の制限
 
 - 検証は Splunk Enterprise 10.4.2 ＋ ES 8.7.1、および Splunk Cloud 10.4.2604 ＋ ES 8.7.0
   （[導入ガイド](install.md#splunk-cloud-での注意)を参照）。

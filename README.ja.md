@@ -1,4 +1,4 @@
-# HF Decision Model Triage and Second Opinion App（パブリックβ）
+# HF Decision Model Triage and Second Opinion App
 
 [English](README.md)
 
@@ -44,13 +44,13 @@ Splunk アプリ（`second_opinion_triage`、旧 `TA-jev-triage`）です。Find
 | `app/tests/` | 情報収集のオフライン用ヘルパー（SPL の記録・再生） |
 | `poc/` | PoC: 質問セット、情報収集の各回、実行結果とレポート |
 | `ground_truth_v*.csv` | 評価用の正解データ（BOTS v3 由来の Finding 33件）。現行は `v5` |
-| `docs/` | β版のドキュメント（日本語・英語） |
+| `docs/` | ドキュメント（日本語・英語） |
 
 配布用パッケージ（`second_opinion_triage-<版>.spl`）はリポジトリには入れず、GitHub の Releases に添付します。
 
 ## 状況
 
-パブリックβ（最新は [Releases](../../releases) を参照）。Splunk Enterprise 10.4.2 ＋ Enterprise Security 8.7.1、
+バージョン 1.0（最新は [Releases](../../releases) を参照）。Splunk Enterprise 10.4.2 ＋ Enterprise Security 8.7.1、
 および Splunk Cloud 10.4 ＋ Enterprise Security 8.7.0 / 8.7.1（ES AI SOC Analyst 有効）で検証済み。リリースノート: [docs/release-notes](docs/release-notes)。
 評価データ（BOTS v3、正解付き Finding 33件、Jev 1.13）での精度: Disposition 32/33、TP の見逃しなし、Urgency 完全一致 31/33・1段階以内 33/33。
 
@@ -68,7 +68,7 @@ Setup >「TA-jev-triage からの移行」で設定・キー・結果をコピ�
 
 ## サポート
 
-パブリックβの間、作者がベストエフォートで対応します。質問・不具合・要望は [GitHub Issues](../../issues) へ
+作者がベストエフォートで対応します。質問・不具合・要望は [GitHub Issues](../../issues) へ
 （Setup > サポートの診断ファイルを添付してください）。セキュリティの問題は [SECURITY.md](SECURITY.md) を参照してください。
 
 ## ライセンス

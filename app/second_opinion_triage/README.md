@@ -196,7 +196,7 @@ LLM explanations cost tokens, so automatic use is limited. Setup page > "Limits 
   only), a connection test, result / error summary from `jev_triage_latest`, the queue, usage, saved
   searches and their runs, `cim_modactions` results and app / search-command errors of the last 24 hours.
 - No key values. Endpoint and proxy hosts, and every URL host in the file, are replaced with `***`.
-- Anyone who can open the Setup page can make it (beta). Steps the user may not run (for example no
+- Anyone who can open the Setup page can make it. Steps the user may not run (for example no
   access to `_internal`) are listed as not collected; the rest is still saved.
 - LLM calls that time out are tried once more (a busy server).
 

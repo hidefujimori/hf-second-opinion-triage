@@ -1,4 +1,4 @@
-# User guide — HF Decision Model Triage and Second Opinion App (beta)
+# User guide — HF Decision Model Triage and Second Opinion App
 
 Second Opinion Triage sends each ES finding, with context collected from your data, to TypeSafe Jev and
 shows Jev's **suggested disposition** (TP, FP, Benign, Undetermined) and **suggested urgency**

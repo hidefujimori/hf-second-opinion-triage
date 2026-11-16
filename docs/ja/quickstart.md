@@ -1,9 +1,9 @@
-# クイックスタート — HF Decision Model Triage and Second Opinion App（β版）
+# クイックスタート — HF Decision Model Triage and Second Opinion App
 
 インストールから最初の提案が出るまで、約15分です。詳しくは[導入ガイド](install.md)、
 [利用ガイド](user-guide.md)、[リファレンス](reference.md)を参照してください。
 
-> **β版です。** Second Opinion Triage は ES の Finding に対して Disposition と Urgency を**提案**します。
+> Second Opinion Triage は ES の Finding に対して Disposition と Urgency を**提案**します。
 > ES の項目は変更しません。最終的な判断は Enterprise Security でアナリストが行います。
 
 ## 必要なもの

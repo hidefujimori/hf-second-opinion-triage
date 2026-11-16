@@ -1,4 +1,4 @@
-# Installation guide — HF Decision Model Triage and Second Opinion App (beta)
+# Installation guide — HF Decision Model Triage and Second Opinion App
 
 ## Requirements
 

@@ -1,4 +1,4 @@
-# 導入ガイド — HF Decision Model Triage and Second Opinion App（β版）
+# 導入ガイド — HF Decision Model Triage and Second Opinion App
 
 ## 前提条件
 
@@ -29,7 +29,7 @@
 
 1. `sc_admin` で Apps > Manage Apps > **Upload App** から `.spl` を選びます。
 2. Splunk が自動審査を行います。現在の Cloud 向けチェックでは失敗 0、エラー 0、手動確認 0 です。
-   いくつか警告が残ります（[リファレンス](reference.md#既知の制限β版)を参照）。
+   いくつか警告が残ります（[リファレンス](reference.md#既知の制限)を参照）。
 
 ## TA-jev-triage からの移行（0.11.0 より前の版）
 

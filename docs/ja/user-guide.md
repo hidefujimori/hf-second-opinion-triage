@@ -1,4 +1,4 @@
-# 利用ガイド — HF Decision Model Triage and Second Opinion App（β版）
+# 利用ガイド — HF Decision Model Triage and Second Opinion App
 
 Second Opinion Triage は、ES の Finding を、データから集めた情報と一緒に TypeSafe Jev に送り、
 Jev が提案する **Disposition**（TP、FP、Benign、判別不可）と **Urgency**（Critical、High、Medium、Low）を表示します。
