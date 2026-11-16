@@ -136,13 +136,15 @@ class JevTriageCommand(StreamingCommand):
         out.update({"jev_version": __version__, "jev_model": s["model"], "jev_questions": qset.get("version"),
                     "jev_time": int(time.time()), "jev_rules": s.get("rules_text", ""),
                     # every row carries the same fields: the search keeps only the fields of the first rows
-                    "jev_ers": "", "jev_urgency_model": "", "jev_policy": ""})
+                    "jev_ers": "", "jev_urgency_model": "", "jev_policy": "", "jev_enrich_profile": ""})
         if self._q_warn:
             out["jev_enrich_errors"] = self._q_warn
         try:
             t0 = time.time()
             facts, related = enricher.collect(rec) if enricher else ([], [])
             out["jev_enrich_ms"] = int((time.time() - t0) * 1000)
+            if enricher:
+                out["jev_enrich_profile"] = enricher.profile()
             st = state.build_state(rec, facts, related, risk_band_on=self.riskband, details_on=self.details)
             out["jev_state"] = json.dumps(st, ensure_ascii=False)
             if enricher and enricher.errors:

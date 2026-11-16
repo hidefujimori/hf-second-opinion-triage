@@ -9,6 +9,7 @@ import json
 import os
 import re
 import threading
+import time
 
 from .state import _mv, _one, is_rollup
 
@@ -154,11 +155,17 @@ class Enricher(object):
             if key in self._memo:
                 self.memo_hits += 1
                 return self._memo[key]
+        t0 = time.time()
         try:
             rows = self.run(spl, earliest, latest)
         except Exception as e:  # enrichment must never stop triage
             self.errors.append("%s: %s" % (name, e))
             return []
+        finally:
+            prof = getattr(self._tl, "prof", None)
+            if prof is not None:
+                ms, n = prof.get(name, (0, 0))
+                prof[name] = (ms + int((time.time() - t0) * 1000), n + 1)
         with self._lock:
             self._memo[key] = rows
             self.spl_calls += 1
@@ -684,8 +691,15 @@ class Enricher(object):
         """Entity risk scores found by the last collect() in this thread: [(kind, score, entity, other detections)]."""
         return getattr(self._tl, "ers", [])
 
+    def profile(self, top=6):
+        """Slowest templates of the finding collected in this thread: "name ms(xcount)"."""
+        prof = getattr(self._tl, "prof", None) or {}
+        items = sorted(prof.items(), key=lambda kv: -kv[1][0])[:top]
+        return ", ".join("%s %d(x%d)" % (k, v[0], v[1]) for k, v in items)
+
     def collect(self, f):
         self.errors = []
+        self._tl.prof = {}
         self._tl.ers = []
         e = _one(f.get("info_min_time")) or "-24h"
         l = _one(f.get("info_max_time")) or "now"
