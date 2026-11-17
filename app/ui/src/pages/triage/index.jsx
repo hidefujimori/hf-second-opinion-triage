@@ -529,7 +529,7 @@ function Detail({ lang, id, listRow, mcfg, onClose, onChanged }) {
           </div>)}
       </div>
       <div className="jev-cols">
-        <EsAiColumn key={`ai-${id}`} T={T} id={id} Badge={Badge} Chip={Chip} onData={setAi} />
+        <EsAiColumn key={`ai-${id}`} T={T} lang={lang} id={id} Badge={Badge} Chip={Chip} onData={setAi} />
         <Pane key={id} T={T} lang={lang} id={id} onChanged={onChanged} />
         <GuideColumn key={`g-${id}`} T={T} lang={lang} id={id} listRow={listRow} ai={ai} />
       </div>

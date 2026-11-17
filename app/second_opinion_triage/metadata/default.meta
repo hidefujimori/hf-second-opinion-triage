@@ -28,3 +28,7 @@ access = read : [ * ], write : [ admin, sc_admin ]
 # Analyst statements for re-triage: everyone reads (the triage page lists them), only admins add or change them (Setup)
 [collections/jev_conditions]
 access = read : [ * ], write : [ admin, sc_admin ]
+
+# Translations of the ES AI texts: analysts write them through | jevtranslate
+[collections/jev_ai_translations]
+access = read : [ * ], write : [ admin, sc_admin, ess_admin, ess_analyst, jev_triage_user ]

@@ -4,10 +4,13 @@
 //   incident_id = finding event_id; summary ends with a Markdown table (Determination / Severity / Confidence)
 // - ES API public/v2/findings/{id}: ai_suggested_disposition_label (the value shown in the Analyst Queue)
 // The texts are written by the ES agent: shown as plain text only, never used as instructions or as Jev input.
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import Button from '@splunk/react-ui/Button';
+import Select from '@splunk/react-ui/Select';
 import { createRESTURL } from '@splunk/splunk-utils/url';
 import { defaultFetchInit } from '@splunk/splunk-utils/fetch';
-import { search } from '../../common/api';
+import { search, q } from '../../common/api';
+import { fmt } from '../../common/i18n';
 
 const TABLE_ROW = (name) => new RegExp(`\\|\\s*(?:${name})\\s*\\|\\s*\\*{0,2}([^|*]+?)\\*{0,2}\\s*\\|`, 'i');
 
@@ -101,8 +104,45 @@ function useAiRecord(id) {
 
 function Sec({ title, children }) { return <div className="jev-sec"><h3>{title}</h3>{children}</div>; }
 
-export function EsAiColumn({ T, id, Badge, Chip, onData }) {
+/** Stored translation of this finding's ES AI texts (KV jev_ai_translations, written by | jevtranslate). */
+function useTranslation(id, lang) {
+  const [tr, setTr] = useState(null);
+  const load = useCallback(() => {
+    if (lang === 'en') { setTr(null); return; }
+    const url = createRESTURL('storage/collections/data/jev_ai_translations', { app: 'second_opinion_triage', owner: 'nobody' })
+      + `?output_mode=json&query=${encodeURIComponent(JSON.stringify({ event_id: id, lang }))}`;
+    getJson(url).then((rows) => {
+      const d = Array.isArray(rows) && rows[0];
+      if (!d) { setTr(null); return; }
+      let parts = {};
+      try { parts = JSON.parse(d.parts || '{}'); } catch (e) { parts = {}; }
+      setTr({ parts, scope: d.scope, model: d.model, time: d.time, aiTime: String(d.ai_time || '') });
+    }, () => setTr(null));
+  }, [id, lang]);
+  useEffect(load, [load]);
+  return [tr, load];
+}
+
+export function EsAiColumn({ T, lang, id, Badge, Chip, onData }) {
   const { loading, rec, label, err } = useAiRecord(id);
+  const [tr, reloadTr] = useTranslation(id, lang);
+  const [scope, setScope] = useState('short');
+  const [orig, setOrig] = useState(false);
+  const [trSt, setTrSt] = useState({ busy: false, cls: '', msg: '' });
+  const current = tr && rec && tr.aiTime === String(rec.create_time || '');
+  const use = current && !orig ? tr.parts : {};
+  const runTr = async () => {
+    setTrSt({ busy: true, cls: '', msg: '…' });
+    try {
+      const rows = await search(`| jevtranslate id=${q(id)} scope=${scope} lang=${lang}${tr && !current ? ' force=true' : ''}`);
+      const x = rows[0] || {};
+      const st = String(x.status || '');
+      if (st.startsWith('ok') || st === 'cached') {
+        setOrig(false); reloadTr();
+        setTrSt({ busy: false, cls: st === 'ok' || st === 'cached' ? 'ok' : 'err', msg: st === 'cached' ? T.trCached : st === 'ok' ? T.trDone : `${T.trPartial} (${st})` });
+      } else { setTrSt({ busy: false, cls: 'err', msg: st }); }
+    } catch (e) { setTrSt({ busy: false, cls: 'err', msg: e.message }); }
+  };
   const p = parseSummary(rec && rec.summary);
   const dispLabel = label || p.disp;
   const cat = aiCat(dispLabel);
@@ -128,23 +168,37 @@ export function EsAiColumn({ T, id, Badge, Chip, onData }) {
               </div>
               <div className="jev-status">{T.aiNote}</div>
             </Sec>
-            {p.text && <Sec title={T.aiSummary}><div className="jev-explain">{plain(p.text)}</div></Sec>}
-            {rec && rec.justification && <Sec title={T.aiWhy}><details><summary>{T.show}</summary><div className="jev-explain">{plain(rec.justification)}</div></details></Sec>}
-            {rec && rec.evidence && <Sec title={T.aiEvidence}><details><summary>{T.show}</summary><div className="jev-explain">{plain(rec.evidence)}</div></details></Sec>}
+            {rec && lang !== 'en' && (
+              <Sec title={T.trScope}>
+                <div className="jev-actions">
+                  <Select value={scope} onChange={(e, { value }) => setScope(value)} disabled={trSt.busy}>
+                    <Select.Option label={T.trShort} value="short" />
+                    <Select.Option label={T.trFull} value="full" />
+                  </Select>
+                  <Button label={T.trRun} onClick={runTr} disabled={trSt.busy} />
+                  {current && <Button appearance="pill" label={orig ? T.trShowTr : T.trShowOrig} onClick={() => setOrig(!orig)} />}
+                </div>
+                <div className={`jev-status ${trSt.cls}`}>{trSt.busy ? T.working : trSt.msg}</div>
+                {current && !orig && <div className="jev-status">{fmt(T.trBy, { m: tr.model || '', at: tr.time ? new Date(parseFloat(tr.time) * 1000).toLocaleString() : '' })} {T.trNote}</div>}
+                {tr && !current && <div className="jev-status jev-warn">{T.trOld}</div>}
+              </Sec>)}
+            {p.text && <Sec title={T.aiSummary}><div className="jev-explain">{use.summary || plain(p.text)}</div></Sec>}
+            {rec && rec.justification && <Sec title={T.aiWhy}><details open={!!use.justification}><summary>{T.show}</summary><div className="jev-explain">{use.justification || plain(rec.justification)}</div></details></Sec>}
+            {rec && rec.evidence && <Sec title={T.aiEvidence}><details open={!!use.evidence}><summary>{T.show}</summary><div className="jev-explain">{use.evidence || plain(rec.evidence)}</div></details></Sec>}
             {tools.length > 0 && (
               <Sec title={`${T.aiTools} (${tools.length}${failed.length ? ` · ${T.aiFailed} ${failed.length}` : ''})`}>
                 <ul className="jev-facts jev-tools">
                   {tools.map((t, i) => (
                     <li key={i} className={t.status === 'failed' ? 'bad' : ''}>
                       <span className={`st ${t.status || ''}`}>{t.status === 'failed' ? '⚠' : t.status === 'success' ? '✓' : '–'}</span>{' '}
-                      {plain(t.purpose || t.app_name || '').slice(0, 220)}
+                      {use[`tool_${i}`] ? use[`tool_${i}`] : plain(t.purpose || t.app_name || '').slice(0, 220)}
                       {t.status === 'no_results' && <span className="sub"> ({T.aiNoResults})</span>}
-                      {t.status === 'failed' && t.errors && <div className="sub">{plain([].concat(t.errors).join(' / ')).slice(0, 200)}</div>}
+                      {t.status === 'failed' && t.errors && !use[`tool_${i}`] && <div className="sub">{plain([].concat(t.errors).join(' / ')).slice(0, 200)}</div>}
                     </li>))}
                 </ul>
                 {failed.length > 0 && <div className="jev-status">{T.aiFailedHint}</div>}
               </Sec>)}
-            {rec && rec.view_details && <Sec title={T.aiDetails}><details><summary>{T.show}</summary><div className="jev-explain">{plain(rec.view_details)}</div></details></Sec>}
+            {rec && rec.view_details && <Sec title={T.aiDetails}><details><summary>{T.show}</summary><div className="jev-explain">{use.view_details || plain(rec.view_details)}</div></details></Sec>}
           </>)}
       </div>
     </div>

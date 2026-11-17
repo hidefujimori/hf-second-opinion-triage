@@ -100,6 +100,7 @@ def statement_history(o, p, user=""):
     except ValueError:
         hist = []
     if o.get("jev_statements"):
+        o["jev_rerun_by"] = o.get("jev_rerun_by") or user   # the Note names who gave the statements, also on a first run
         hist.append({"time": o.get("jev_time"), "user": user, "statements": o.get("jev_statements"),
                      "disposition": o.get("jev_disposition"), "confidence": o.get("jev_disposition_confidence"),
                      "urgency": o.get("jev_urgency"), "base_disposition": o.get("jev_base_disposition"),
