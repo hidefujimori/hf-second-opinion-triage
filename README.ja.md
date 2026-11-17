@@ -22,7 +22,13 @@ Splunk アプリ（`second_opinion_triage`、旧 `TA-jev-triage`）です。Find
   ホスト版の Clef と OpenAI の gpt-6-luna は評価用
 - 自動実行での Jev・LLM の1日の上限
 - サポートモード（0.10.0）: 管理者が期限付きで Jev の質問の文言を判定モデルごとに編集できる（版管理、適用前の試験、書き出し・読み込み、監査ログ）
-- アナリストに必要なのは `jev_triage_user` ロールだけ。キーやほかの資格情報を読めないまま、トリアージと説明を実行できる（0.15.0）
+- アナリストに必要なのは `jev_triage_user` ロールだけ。アナリストの検索はアプリのエンドポイントにモデルの呼び出しを頼むので、
+  API キーやほかの資格情報を受け取らない（0.15.0、1.1）
+- アナリストの申告をもとにした再トリアージ（1.1）: 判別不可の Finding に、SIEM にはない知っていること（承認済みの変更、
+  本人に確認済み、侵害が分かっている など）を選んで再実行。申告なしの判定と、事実と食い違うときの警告を並べて残し、
+  試した内容はすべて Note に書く。管理者が独自の申告を追加できる
+- ES AI SOC Analyst の文章をアプリの LLM で日本語に翻訳（1.1）: 要約と根拠、またはすべて。保存して使い回し、判定モデルには渡さない
+- ライト・ダークの両テーマに対応（1.1）
 - Splunk Cloud 対応: AppInspect の Cloud 向け審査に合格し、Splunk Cloud で動作確認済み
 
 ## ドキュメント
@@ -50,14 +56,14 @@ Splunk アプリ（`second_opinion_triage`、旧 `TA-jev-triage`）です。Find
 
 ## 状況
 
-バージョン 1.0（最新は [Releases](../../releases) を参照）。Splunk Enterprise 10.4.2 ＋ Enterprise Security 8.7.1、
+バージョン 1.1（最新は [Releases](../../releases) を参照）。Splunk Enterprise 10.4.2 ＋ Enterprise Security 8.7.1、
 および Splunk Cloud 10.4 ＋ Enterprise Security 8.7.0 / 8.7.1（ES AI SOC Analyst 有効）で検証済み。リリースノート: [docs/release-notes](docs/release-notes)。
 評価データ（BOTS v3、正解付き Finding 33件、Jev 1.13）での精度: Disposition 32/33、TP の見逃しなし、Urgency 完全一致 31/33・1段階以内 33/33。
 
 ## Splunk の外に送るデータ
 
 検索ヘッドは、各 Finding の事実を判定モデル（別のエンドポイントを設定しない限り TypeSafe Jev）に送ります。説明やガイドを
-求めたときは、設定した LLM にも送ります。API キーは各自で用意し、利用料金は各プロバイダから請求されます。詳しくは
+求めたとき、ES AI の文章の翻訳を求めたときは、設定した LLM にも送ります。API キーは各自で用意し、利用料金は各プロバイダから請求されます。詳しくは
 [リファレンス](docs/ja/reference.md) の「Splunk の外に送るデータ」を参照してください。
 
 ## TA-jev-triage からの移行

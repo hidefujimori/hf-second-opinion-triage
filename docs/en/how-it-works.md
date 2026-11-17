@@ -4,7 +4,7 @@
 
 This page shows how Second Opinion Triage turns an ES finding into a suggestion: which Enterprise Security data it
 reads, which facts it passes to the decision model, how the answer becomes a disposition and an urgency, and which
-kinds of context were tried and left out. Version 0.15.
+kinds of context were tried and left out. Version 1.1.
 
 ## 1. Overall flow
 
@@ -25,7 +25,8 @@ flowchart LR
   E --> S["State for the model<br/>up to 12 facts<br/>related findings"]
   S --> Q["Question set<br/>default / support-mode version"]
   Q --> M["Decision model<br/>Jev (default) / Clef / gpt-6-luna"]
-  KEY["Keys<br/>through the app's endpoint<br/>analysts: jev_triage_run"] -.-> M
+  KEY["App endpoint /call<br/>analysts' calls; keys stay in Splunk<br/>jev_triage_run"] -.-> M
+  ST["Analyst statements<br/>re-triage, optional"] -.-> S
   M --> R["Decision rules<br/>threshold, option-order check<br/>urgency caps"]
   R --> O["Disposition / Urgency"]
   O --> KV["KV jev_triage_latest<br/>index=jev_triage"]
@@ -155,6 +156,10 @@ flowchart TD
   UD --> OUT
   U --> OUT
 ```
+
+With analyst statements (1.1), the state also carries `analyst_statements`, apart from the facts. The model takes
+them as true, so the same run also asks without them; the result without statements and a warning when the facts
+alone point to a true positive are kept and written to the Note.
 
 The threshold and the order check depend on the model, and the rules used are kept in `jev_rules`; the reasons for
 any change to the model's answer are in `jev_policy`. The wording of the questions can be changed in support mode;

@@ -24,8 +24,15 @@ written to the ES finding as a Note. ES fields are never changed: analysts decid
   hosted Clef and OpenAI gpt-6-luna for evaluation
 - Daily limits for automatic Jev and LLM use
 - Support mode (0.10.0): admins can edit the wording of the Jev questions for a limited time, per decision model, with versioning, a test before applying, export / import and an audit log
-- Analysts need only the role `jev_triage_user`: they can run triage and explanations without reading the keys or any
-  other credential (0.15.0)
+- Analysts need only the role `jev_triage_user`: their searches ask the app's endpoint to call the models, so they
+  never receive the API keys or any other credential (0.15.0, 1.1)
+- Re-triage with the analyst's statements (1.1): for an Undetermined finding, pick what you know and the SIEM does not
+  (approved change, confirmed with the owner, known compromised, ...); the result without the statements and a
+  warning when they contradict the facts are kept beside it, and every attempt is written to the Note. Admins can
+  add their own statements
+- Translation of the ES AI SOC Analyst text into Japanese with the app's LLM (1.1): summary and justification, or
+  everything; stored and reused, never sent to the decision model
+- Light and dark themes (1.1)
 - Splunk Cloud: passes AppInspect cloud vetting and runs on Splunk Cloud
 
 ## Documentation
@@ -53,7 +60,7 @@ Release packages (`second_opinion_triage-<version>.spl`) are attached to GitHub 
 
 ## Status
 
-Version 1.0 (latest: see [Releases](../../releases)). Tested on Splunk Enterprise 10.4.2 with
+Version 1.1 (latest: see [Releases](../../releases)). Tested on Splunk Enterprise 10.4.2 with
 Enterprise Security 8.7.1, and on Splunk Cloud 10.4 with Enterprise Security 8.7.0 / 8.7.1 (ES AI SOC Analyst enabled).
 Release notes: [docs/release-notes](docs/release-notes).
 Accuracy on the evaluation set (BOTS v3, 33 labelled findings, Jev 1.13): disposition 32/33, no true positive missed,
@@ -62,7 +69,7 @@ urgency exact 31/33, within one level 33/33.
 ## Data sent outside Splunk
 
 The search head sends the facts of each finding to the decision model (TypeSafe Jev unless you configure another
-endpoint) and, when someone asks for an explanation or a guide, to the LLM you configure. You need your own API keys,
+endpoint) and, when someone asks for an explanation, a guide or a translation of the ES AI text, to the LLM you configure. You need your own API keys,
 and their use is billed by those providers. See [Data sent outside Splunk](docs/en/reference.md).
 
 ## Moving from TA-jev-triage

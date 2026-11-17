@@ -29,6 +29,7 @@ shows Jev's **suggested disposition** (TP, FP, Benign, Undetermined) and **sugge
   the context sent to Jev, other alerts on the same entity, the LLM explanation, and the actions.
 - **Language**: *English / 日本語 (JA)* at the top right switches this page and Splunk's menus
   (the page reopens under the other locale). Your choice is remembered in the browser.
+- **Theme** (1.1): the pages follow your Splunk theme (*Account settings > Theme*, light or dark).
 
 From ES you can open a finding directly: finding menu (⋯) > **Open in Second Opinion Triage**.
 
@@ -40,6 +41,27 @@ From ES you can open a finding directly: finding menu (⋯) > **Open in Second O
 | **Write Note to ES** | Adds the suggestion (and the explanation, if there is one) as a Note on the ES finding. One Note per result. If you make the explanation after the Note was written (or make a new one with **Explain again**), pressing the button again adds the explanation as a second Note ("LLM explanation (added)"); otherwise it says *already written* |
 | **Re-run triage** | Sends the finding to Jev again and replaces the result. The old explanation and Note record are cleared (they belonged to the old result); the pane shows *Triaged again* with the previous result. Ask the LLM again if you need an explanation |
 | **Open in ES** | Opens the finding in the ES Analyst Queue |
+
+### Re-triage with your statements (1.1)
+
+For an *Undetermined* finding, the Jev column shows **Re-triage with your statements**: tick up to 3 things you
+know and the SIEM does not (for example *Approved change or maintenance*, *Confirmed with the account owner*,
+*Account or host known to be compromised*), then **Re-triage with these statements**.
+
+- Jev takes your statements as true and does not check them against the facts. The result means "if the
+  statements are right". The result without them is shown beside it.
+- When the facts alone point to a true positive but your statements moved the result away from it, a red warning
+  is shown: check the statements before closing the finding.
+- Each attempt is listed under *Attempts with statements* and written to the ES finding as a Note (who, which
+  statements, the result without them, the warning).
+- Admins can add statements on **Setup > Analyst statements** (see the [Reference](reference.md)).
+
+### Translating the ES AI text (1.1)
+
+On the Japanese page, the ES AI column has **翻訳の範囲** (*Summary and justification* or *Everything*, which adds
+the evidence, details and every check) and **日本語に翻訳**. The app's LLM translates the text (about 20-60 s);
+the translation is kept for everyone and reused until ES AI writes a new analysis. **原文を表示** switches back to
+the English. The translation is for reading only and is never sent to Jev.
 
 Confidence: Jev returns probabilities; the app turns them into a confidence between 0 and 1.
 Below the **confidence threshold** (default 0.60) the disposition is *Undetermined*.

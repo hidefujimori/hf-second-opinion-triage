@@ -104,6 +104,12 @@ in `local/macros.conf` (defaults search `index=*`, which is slow):
 ## Changes in 0.4.0
 - Setup page (`jev_setup`): Jev / enrichment / LLM / Note settings, keys, data-location macros
 - `| jevcheck [target=jev|llm|all]`: connection test (one tiny request each; never prints keys)
+- `| jevstatements`: analyst statements for re-triage (built-in in `bin/jev_triage/conditions.py`, admin-defined in
+  KV `jev_conditions`); `jevtriage statements=<ids>` uses them (1.1)
+- `| jevtranslate id=<finding> scope=short|full lang=ja`: translation of the ES AI SOC Analyst texts (KV
+  `jev_ai_translations`, 1.1)
+- REST `/services/second_opinion_triage/call` (`bin/jev_call.py`, capability `jev_triage_run`): calls Jev and the LLM
+  for users who cannot read the keys (analysts); the keys stay in splunkd (1.1)
 
 ## Changes in 0.5.0
 - Faster: findings are processed in parallel (`[jev] parallel`, default 4), the same enrichment search is
@@ -264,7 +270,7 @@ LLM explanations cost tokens, so automatic use is limited. Setup page > "Limits 
 - The Second Opinion Triage page and the Setup page are React pages built with Splunk UI Toolkit
   (`@splunk/react-ui`, `@splunk/react-page`). One page for both languages: switch English / 日本語 (JA)
   at the top right. The switch opens the same page under the en-US / ja-JP locale, so Splunk's own
-  menus change language too; the choice is remembered in the browser (default English). Light and dark themes follow the user's Splunk theme.
+  menus change language too; the choice is remembered in the browser (default English). Light and dark themes follow the user's Splunk theme (needs `supported_themes = light,dark` in app.conf [ui], 1.1).
 - Source: `../ui/src` (outside the app package). Build output: `appserver/static/pages/<view>.js`
   (`jev_triage.js`, `jev_setup.js`; `jev_triage_ja.js` is a copy for the old Japanese view name).
   The views use Splunk's built-in template `pages/splunk_ui_app.html` (no custom Mako templates,

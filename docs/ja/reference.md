@@ -54,6 +54,9 @@ GuardDuty（常に）: 詳細はその検出結果のインスタンスまたは
 | コマンド | 用途 |
 |---|---|
 | `jevtriage [persist=true] [auto=true] [dryrun=true] [enrich=false] [ordercheck=false] [ers=fact\|urgency\|both\|off] [riskband=true] [details=true] [parallel=1-8] [timeout=秒]` | `` `jev_findings` `` の行をトリアージ。`ers`: 既定は使わない（測定で改善なし）。エンティティのリスクスコアを事実としてモデルに渡す、判定後の緊急度の上限・下限だけに使う（25未満でほかの検知なし: 最大 medium、50未満: 最大 high、50以上: 最低 medium）、両方。`riskband=true`: ES が Finding に付ける累計リスクスコア（`risk_score`）の目安も渡す（既定は渡さない。後の検知を含み、TP の確信度を下げたため）。`details=true`: 検知の出力（下記）も渡す（既定は渡さない） |
+| `jevtriage statements=<id>[,<id>,<id>] persist=true` | アナリストの申告（3つまで）をもとに再トリアージ（1.1、下記）。申告なしの判定も同じ実行で出して並べて残す |
+| `jevstatements` | 使える申告の一覧（組み込みと、管理者が Setup で追加したもの） |
+| `jevtranslate id=<Finding> [scope=short\|full] [lang=ja] [force=true]` | ES AI SOC Analyst の文章をアプリの LLM で翻訳（1.1）。`short` = 要約と根拠、`full` = 証拠・詳細・すべての確認も。保存し、ES AI が新しい分析を書くまで使い回す。Jev には渡さない |
 | `jevtriage endpoint=<URL> model=<名前>` | 設定を変えずに別の判定モデルを評価（管理者のみ、保存しない、キーは送らない） |
 | `jevtriage questions=<版 ID>\|default` | 指定した版の Jev の質問でトリアージ（管理者のみ、保存しない、サポートモードの試験で使用） |
 | `jevprompt action=status\|support_on\|support_off\|get\|save\|test\|apply\|revert\|export\|import\|evalset_prompt` | Jev の質問のサポートモード（下記）。`status` 以外は管理者のみ |
@@ -83,11 +86,36 @@ GuardDuty（常に）: 詳細はその検出結果のインスタンスまたは
 | KV ストア `jev_usage` | 日ごとの件数（`jev_auto`、`jev_manual`、`llm_auto`、`llm_manual`） |
 | KV ストア `jev_triage_queue` | 検知からの依頼。完了した依頼は1日後に削除 |
 | index `jev_triage` | 履歴（自動実行は `jev:triage:result`、再トリアージは `jev:triage:json`） |
+| KV ストア `jev_conditions` | 管理者が追加した申告（Setup > アナリストの申告） |
+| KV ストア `jev_ai_translations` | ES AI の文章の翻訳（Finding と言語ごとに1つ） |
 | KV ストア `jev_prompt_versions` | 編集した Jev の質問の版（サポートモード） |
 | KV ストア `jev_prompt_state` | サポートモードの状態と、判定モデルごとの使用中の版 |
 | index `jev_triage` sourcetype `jev:prompt:audit` | 誰が、いつ、なぜ、どの版でサポートモードの開始・保存・試験・適用・戻す・書き出し・読み込みを行ったか |
 | index `cim_modactions` | Finding ごとのレスポンスアクションの状態（`action_name=jev_triage`） |
 | ES の Note | 提案の文章。操作したユーザーの名前で書き込まれます |
+
+## アナリストの申告をもとにした再トリアージ（1.1）
+
+アナリストは、SIEM にはない自分が知っていることを一覧から選んで（3つまで）、Finding を再トリアージできます。
+
+| 組み込みの申告 | 画面の名前 | 判定モデルに渡す英文 |
+|---|---|---|
+| `approved_change` | 承認済みの変更・作業 | The analyst confirmed that this activity was an approved, planned change or maintenance task. |
+| `owner_confirmed` | 本人に確認済み | The analyst confirmed with the account owner that they performed this activity themselves. |
+| `authorized_test` | 承認済みのセキュリティテスト | The analyst confirmed that this activity is an authorized security test (penetration test, red team exercise or vulnerability scanner). |
+| `internal_source` | 送信元は自組織のネットワーク | The analyst confirmed that the source address belongs to the organization (office, VPN or the organization's own cloud). |
+| `known_compromised` | 侵害が分かっているアカウント・ホスト | The analyst knows that this account or host is already compromised by an attacker. |
+| `part_of_incident` | 対応中のインシデントの一部 | The analyst confirmed that this alert is part of a security incident that is already being handled. |
+
+- 申告は SIEM の事実とは別の欄（`analyst_statements`）で判定モデルに渡します。
+- **判定モデルは申告を正しいものとして扱い、事実と突き合わせません**（正解付きの Finding で測定。誤った「承認済みの
+  変更」で TP が良性になった）。そのため毎回、申告なしの判定も出して残し（`jev_base_disposition`・
+  `jev_base_confidence`・`jev_base_urgency`）、事実だけでは TP を示すのに申告で結果が TP から離れたときは
+  `jev_statement_conflict=1` にします。画面と Note に警告が出ます。
+- 試した内容はすべて `jev_statement_history`（時刻、ユーザー、申告、結果、申告なしの結果）に残り、Note も書きます。
+  最終判断は ES で行います。
+- 管理者は **Setup > アナリストの申告** で申告を追加できます。ID（英小文字・数字・`_`）、英語と日本語の名前、240 文字までの
+  英文1つ（"The analyst confirmed ..."）。判定モデルは英語だけを読みます。アナリストは使えますが変更はできません。
 
 ## Jev の質問の編集（サポートモード、0.10.0 以降）
 
@@ -156,7 +184,9 @@ Clef 27B が外した Finding（#5）と Urgency の2件（#22、#32）は Jev �
 
 - **TypeSafe Jev**（`api.typesafe.ai`）へ: Finding の英語の説明（ルール、項目、区分に変換した件数）と、
   情報収集で得た事実（アカウント名・ホスト名、分類、結果）。生のイベントは送りません。
-- **LLM** へ（説明するときだけ）: 同じ説明と Jev の提案。
+- **LLM** へ（説明・翻訳するときだけ）: 同じ説明と Jev の提案、または翻訳する ES AI SOC Analyst の文章。
+- アナリストの検索は、これらの呼び出しをアプリのエンドポイント `/services/second_opinion_triage/call` に頼むので（1.1）、
+  API キーは Splunk の外に出ません。
 - ローカルの判定モデル（自前のサーバーを `[jev] endpoint` に設定）を使う場合、説明は TypeSafe ではなくそのサーバーに送ります。
 - 画面を開くだけでは何も送りません。
 
@@ -171,7 +201,11 @@ Clef 27B が外した Finding（#5）と Urgency の2件（#22、#32）は Jev �
 | 説明が `The read operation timed out` で失敗する | LLM がタイムアウト内に応答しなかった（混雑、思考するモデル、モデルの読み込み中）。アプリは1回だけやり直します。続く場合はタイムアウトを延ばすか、時間をおいて実行 |
 | 説明が `unknown url type` や `endpoint must start with http://` で失敗する | エンドポイントに `http://`（とポート・`/v1`）がありません。例: `http://<ホスト>:11434/v1` |
 | 説明が `empty answer … thinking` で失敗する | 思考するモデルが最大トークン数を使い切っています。Thinking level を設定する（`none`、gpt-oss は `low`）か、最大トークン数を増やす |
-| アナリストで「API key not found」 | `jev_triage_user` ロール（権限 `jev_triage_run`）を付与する。キーは Setup 画面で保存しておく |
+| アナリストで「API key not found」や `app endpoint HTTP 403` | `jev_triage_user` ロール（権限 `jev_triage_run`）を付与する。キーは Setup 画面で保存しておく |
+| アナリストで `app endpoint HTTP 400: Jev API key not set` | 管理者が Setup 画面で Jev のキーを保存する |
+| 翻訳で「一部は翻訳されませんでした」 | LLM が一部を答えに含めなかった。欠けた部分は英語のまま。もう一度翻訳するか、大きめのモデルを使う |
+| 翻訳や説明が時間切れになる | 翻訳は約 1,800 文字ずつ呼び出す。遅い LLM では Setup の Timeout を延ばす |
+| ダークテーマでもアプリの画面が明るいまま | Splunk 9.x か、`app.conf` [ui] に `supported_themes = light,dark` がない古いアプリ（1.1） |
 | レスポンスアクションが failure | `index=cim_modactions action_name=jev_triage` と `index=_internal source=*jev_triage_modalert.log` |
 | 検知は動くがトリアージされない | *Second Opinion Triage - Response Queue* が有効か。`jev_usage` の上限（状態が skipped） |
 | コマンドのエラー | ジョブの search.log（Job Inspector）で `ChunkedExternProcessor` を探す |

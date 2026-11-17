@@ -3,7 +3,7 @@
 [English](../en/how-it-works.md)
 
 Second Opinion Triage が ES の Finding から提案を作るまでの流れです。Enterprise Security のどのデータを読み、どの事実を判定
-モデルに渡し、答えをどう Disposition と Urgency にするか、また試して外した情報をまとめています。0.15 時点。
+モデルに渡し、答えをどう Disposition と Urgency にするか、また試して外した情報をまとめています。1.1 時点。
 
 ## 1. 全体の流れ
 
@@ -23,7 +23,8 @@ flowchart LR
   E --> S["判定に渡す状態<br/>事実 最大12件<br/>関連する Finding"]
   S --> Q["質問セット<br/>既定 / サポートモードの版"]
   Q --> M["判定モデル<br/>Jev（既定）/ Clef / gpt-6-luna"]
-  KEY["キー<br/>アプリのエンドポイント経由<br/>アナリストは jev_triage_run"] -.-> M
+  KEY["アプリのエンドポイント /call<br/>アナリストの呼び出し、キーは Splunk の中<br/>jev_triage_run"] -.-> M
+  ST["アナリストの申告<br/>再トリアージ、任意"] -.-> S
   M --> R["判定ルール<br/>閾値・順序確認<br/>緊急度の上限・下限"]
   R --> O["Disposition / Urgency"]
   O --> KV["KV jev_triage_latest<br/>index=jev_triage"]
@@ -151,6 +152,9 @@ flowchart TD
   UD --> OUT
   U --> OUT
 ```
+
+アナリストの申告（1.1）があるときは、状態に事実とは別に `analyst_statements` が入ります。モデルは申告を正しいものとして
+扱うので、同じ実行で申告なしでも聞き、申告なしの判定と、事実だけでは TP を示すときの警告を残して Note に書きます。
 
 閾値と順序確認の有無はモデルごとに決まり、使ったルールは `jev_rules` に、モデルの答えを変えた理由は `jev_policy` に残ります。
 質問の文言はサポートモードで差し替えられ、使った版は `jev_questions` に残ります。

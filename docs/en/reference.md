@@ -56,6 +56,9 @@ Keys: `storage/passwords`, realm `second_opinion_triage`, names `typesafe_api_ke
 | Command | Use |
 |---|---|
 | `jevtriage [persist=true] [auto=true] [dryrun=true] [enrich=false] [ordercheck=false] [ers=fact\|urgency\|both\|off] [riskband=true] [details=true] [parallel=1-8] [timeout=s]` | Triage rows of `` `jev_findings` ``. `ers`: off by default (measured: no gain). Entity risk score as a fact for the model, only to bound urgency afterwards (<25 with no other detection: at most medium; <50: at most high; >=50: at least medium), or both. `riskband=true`: also give the band of the running risk score ES gives the finding (`risk_score`; off by default: it includes later detections and made the model doubt true positives). `details=true`: also give the detection output (below; off by default) |
+| `jevtriage statements=<id>[,<id>,<id>] persist=true` | Re-triage with up to 3 analyst statements (1.1; see below). The result without them is computed in the same run and kept beside it |
+| `jevstatements` | The analyst statements available (built-in and added by admins on Setup) |
+| `jevtranslate id=<finding> [scope=short\|full] [lang=ja] [force=true]` | Translate the ES AI SOC Analyst texts with the app's LLM (1.1): `short` = summary and justification, `full` = also evidence, details and every check. Stored and reused until ES AI writes a new analysis; never sent to Jev |
 | `jevtriage endpoint=<url> model=<name>` | Evaluate another decision model without changing settings (admins; not saved; no key sent) |
 | `jevtriage questions=<version id>\|default` | Triage with a given version of the Jev questions (admins; not saved; used by the support-mode test) |
 | `jevprompt action=status\|support_on\|support_off\|get\|save\|test\|apply\|revert\|export\|import\|evalset_prompt` | Support mode for the Jev questions (see below). Everything but `status` is for admins |
@@ -85,11 +88,38 @@ context searches (`name ms(xcount)`). Both are search output only and are not st
 | KV store `jev_usage` | Daily counters (`jev_auto`, `jev_manual`, `llm_auto`, `llm_manual`) |
 | KV store `jev_triage_queue` | Requests from detections; done requests are removed after a day |
 | index `jev_triage` | History (`jev:triage:result` from automatic runs, `jev:triage:json` from Re-run) |
+| KV store `jev_conditions` | Analyst statements added by admins (Setup > Analyst statements) |
+| KV store `jev_ai_translations` | Translations of the ES AI texts, one per finding and language |
 | KV store `jev_prompt_versions` | Edited versions of the Jev questions (support mode) |
 | KV store `jev_prompt_state` | Support mode on/off and the version in use per decision model |
 | index `jev_triage` sourcetype `jev:prompt:audit` | Who started support mode, saved, tested, applied, reverted, exported or imported which version, when and why |
 | index `cim_modactions` | Response-action status per finding (`action_name=jev_triage`) |
 | ES Notes | Text of the suggestion, written by the user who triggered it |
+
+## Re-triage with analyst statements (1.1)
+
+An analyst can re-triage a finding with what they know and the SIEM does not, picked from a list (up to 3):
+
+| Built-in statement | Text sent to the decision model |
+|---|---|
+| `approved_change` | The analyst confirmed that this activity was an approved, planned change or maintenance task. |
+| `owner_confirmed` | The analyst confirmed with the account owner that they performed this activity themselves. |
+| `authorized_test` | The analyst confirmed that this activity is an authorized security test (penetration test, red team exercise or vulnerability scanner). |
+| `internal_source` | The analyst confirmed that the source address belongs to the organization (office, VPN or the organization's own cloud). |
+| `known_compromised` | The analyst knows that this account or host is already compromised by an attacker. |
+| `part_of_incident` | The analyst confirmed that this alert is part of a security incident that is already being handled. |
+
+- The statements go to the model in their own field (`analyst_statements`), apart from the facts from the SIEM.
+- **The model takes them as true and does not check them against the facts** (measured on labelled findings: a
+  wrong "approved change" turned true positives into benign). So every run also computes the result without the
+  statements (`jev_base_disposition`, `jev_base_confidence`, `jev_base_urgency`), and `jev_statement_conflict=1`
+  when the facts alone point to a true positive but the statements moved the result away from it. The page and
+  the Note show a warning.
+- Every attempt is kept in `jev_statement_history` (time, user, statements, result, result without them) and a
+  Note is written; the final decision is made in ES.
+- Admins add statements on **Setup > Analyst statements**: an ID (lower-case letters, digits, `_`), labels in
+  English and Japanese, and one English sentence of at most 240 characters ("The analyst confirmed ..."). The model
+  reads English only. Analysts can use them but not change them.
 
 ## Editing the Jev questions (support mode, 0.10.0+)
 
@@ -163,7 +193,10 @@ Set-up files for tests: `tools/local-decision/` in the repository; details: `poc
 - **To TypeSafe Jev** (`api.typesafe.ai`): an English description of the finding (rule, fields,
   bucketed counts) and the facts collected by enrichment (account / host names, categories,
   outcomes). No raw events.
-- **To the LLM** (only when explaining): the same description plus Jev's suggestion.
+- **To the LLM** (only when explaining or translating): the same description plus Jev's suggestion, or the ES AI
+  SOC Analyst texts to translate.
+- Analysts' searches ask the app's endpoint `/services/second_opinion_triage/call` to make these calls (1.1), so
+  the API keys stay inside Splunk.
 - With a local decision model (`[jev] endpoint` on your own server) the description goes to that server instead of TypeSafe.
 - Nothing is sent when you only open the page.
 
@@ -179,7 +212,11 @@ contains API keys, and the endpoint and proxy hosts are hidden.
 | Explanation fails with `The read operation timed out` | The LLM did not answer within Timeout (busy server, thinking model, model loading). The app tries once more; then raise Timeout or try later |
 | Explanation fails with `unknown url type` or `endpoint must start with http://` | Endpoint is missing `http://` (and the port / `/v1`), e.g. `http://<host>:11434/v1` |
 | Explanation fails with `empty answer … thinking` | A thinking model used up Max tokens: set Thinking level (`none`, or `low` for gpt-oss) or raise Max tokens |
-| Analysts get "API key not found" | Give them the `jev_triage_user` role (capability `jev_triage_run`); the keys must be saved on Setup |
+| Analysts get "API key not found" or `app endpoint HTTP 403` | Give them the `jev_triage_user` role (capability `jev_triage_run`); the keys must be saved on Setup |
+| Analysts get `app endpoint HTTP 400: Jev API key not set` | An admin saves the Jev key on Setup |
+| Translation shows *Some parts were not translated* | The LLM left a part out; the missing piece stays in English. Translate again, or use a larger model |
+| Translation or explanation times out | Each translation call is about 1,800 characters; a slow LLM may still need a larger Timeout on Setup |
+| The app pages stay light with the dark theme | Splunk 9.x, or an app copy without `supported_themes = light,dark` in `app.conf` [ui] (1.1) |
 | Response action shows *failure* | `index=cim_modactions action_name=jev_triage`, and `index=_internal source=*jev_triage_modalert.log` |
 | Detection runs but nothing is triaged | Is *Second Opinion Triage - Response Queue* enabled? Look at `jev_usage` limits (status *skipped*) |
 | Command errors | The job's search.log (Job Inspector) — look for `ChunkedExternProcessor` |
