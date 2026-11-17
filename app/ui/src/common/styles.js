@@ -5,7 +5,13 @@ const CSS = `
   --hover:#f3f6f9; --critbg:#fff5f5; --critsel:#ffe8e8; --policy:#fff8e6; --policyline:#f3d38a; --rerun:#f5f3ff; --rerunline:#c4b5fd;
   padding:16px 20px; font-size:13px; color:var(--text); }
 .jev-root.dark { --line:#3c444d; --muted:#a3acb6; --bg:#1a1c20; --card:#212527; --sel:#1f3550; --text:#e1e6eb; --hover:#2a2f33;
-  --critbg:#3a1d1f; --critsel:#4a2326; --policy:#3a3220; --policyline:#7a6230; --rerun:#2a2340; --rerunline:#5b4a9a; }
+  --critbg:#3a1d1f; --critsel:#4a2326; --policy:#3a3220; --policyline:#7a6230; --rerun:#2a2340; --rerunline:#5b4a9a;
+  --crit:#ef4444; --tp:#f87171; --fp:#4ade80; --ben:#60a5fa; --low:#3b82f6; --und:#9ca3af; --err:#f87171; }
+.jev-root.dark .jev-chip.TP { background:rgba(248,113,113,.12); } .jev-root.dark .jev-chip.FP { background:rgba(74,222,128,.10); }
+.jev-root.dark .jev-chip.Benign { background:rgba(96,165,250,.12); } .jev-root.dark .jev-chip.error { color:#1f2933; }
+.jev-root.dark .jev-tag { background:#3b2a63; color:#ddd6fe; }
+.jev-root.dark .jev-rerun .t { color:#c4b5fd; }
+.jev-root.dark .jev-badge.none { background:#4b5563; color:#e5e7eb; }
 .jev-root * { box-sizing:border-box; }
 .jev-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:10px; }
 .jev-top h1 { font-size:22px; margin:0 0 2px; font-weight:600; }
