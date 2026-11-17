@@ -15,8 +15,10 @@ KV_FIELDS = ("event_id rule_name rule_title security_domain urgency src dest use
              "jev_enrich_ms jev_input_tokens jev_explanation jev_explain_status jev_explain_model jev_explain_lang "
              "jev_explain_time jev_explain_for jev_explain_ms jev_note_status jev_note_id jev_note_time jev_note_for jev_note_expl_for jev_prev_time jev_prev_disposition jev_prev_urgency jev_prev_had_explanation jev_rerun_count jev_rerun_by "
              "jev_guide jev_guide_status jev_guide_key jev_guide_model jev_guide_lang jev_guide_time jev_guide_for jev_guide_ai_time jev_guide_ms "
-             "jev_note_guide_status jev_note_guide_id jev_note_guide_time jev_note_guide_for").split()
-NUMERIC = {"jev_time", "jev_disposition_confidence", "jev_urgency_score", "jev_explain_time", "jev_prev_time", "jev_rerun_count", "jev_guide_time"}
+             "jev_note_guide_status jev_note_guide_id jev_note_guide_time jev_note_guide_for "
+             "jev_statements jev_base_disposition jev_base_disposition_raw jev_base_confidence jev_base_urgency "
+             "jev_statement_conflict jev_statement_history").split()
+NUMERIC = {"jev_time", "jev_disposition_confidence", "jev_base_confidence", "jev_urgency_score", "jev_explain_time", "jev_prev_time", "jev_rerun_count", "jev_guide_time"}
 # a new triage result replaces the old explanation, guide and note records (they belong to the old result)
 CLEARED_ON_TRIAGE = [f for f in KV_FIELDS if f.startswith("jev_explain") or f.startswith("jev_note") or f.startswith("jev_guide")]
 
@@ -73,6 +75,8 @@ def mark_rerun(service, outs, user=""):
     old = {d.get("event_id"): d for d in json.loads(resp.body.read().decode("utf-8") or "[]")}
     for o in outs:
         p = old.get(o.get("event_id"))
+        if o.get("jev_status") == "ok":
+            statement_history(o, p, user)
         if not p or o.get("jev_status") != "ok":
             continue
         o["jev_prev_time"] = p.get("jev_time", "")
@@ -81,3 +85,24 @@ def mark_rerun(service, outs, user=""):
         o["jev_prev_had_explanation"] = "1" if p.get("jev_explanation") else "0"
         o["jev_rerun_count"] = int(_num(p.get("jev_rerun_count") or 0) or 0) + 1
         o["jev_rerun_by"] = user
+
+
+HISTORY_KEEP = 20
+
+
+def statement_history(o, p, user=""):
+    """Every re-triage with analyst statements is kept (time, who, statements, result, result without them), so
+    the page and the Note show how the answer was reached; runs without statements keep the list."""
+    try:
+        hist = json.loads((p or {}).get("jev_statement_history") or "[]")
+        if not isinstance(hist, list):
+            hist = []
+    except ValueError:
+        hist = []
+    if o.get("jev_statements"):
+        hist.append({"time": o.get("jev_time"), "user": user, "statements": o.get("jev_statements"),
+                     "disposition": o.get("jev_disposition"), "confidence": o.get("jev_disposition_confidence"),
+                     "urgency": o.get("jev_urgency"), "base_disposition": o.get("jev_base_disposition"),
+                     "base_raw": o.get("jev_base_disposition_raw"), "conflict": o.get("jev_statement_conflict") == "1"})
+    if hist:
+        o["jev_statement_history"] = json.dumps(hist[-HISTORY_KEEP:])

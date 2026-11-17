@@ -113,6 +113,12 @@ ul.jev-facts { margin:0; padding-left:18px; } ul.jev-facts li { margin:3px 0; }
 .jev-status { font-size:12px; margin-top:6px; color:var(--muted); }
 .jev-status.ok { color:var(--fp); } .jev-status.err { color:var(--err); }
 .jev-warn { color:var(--err); }
+.jev-stmt { display:flex; gap:6px; align-items:flex-start; margin:3px 0; cursor:pointer; }
+.jev-stmt input { margin-top:3px; }
+.jev-stmt-result { border:1px solid var(--policyline); background:var(--policy); border-radius:4px; padding:6px 8px; margin-bottom:8px; }
+.jev-conflict { color:var(--err); font-weight:700; margin-top:6px; }
+.jev-hist { border-collapse:collapse; width:100%; font-size:12px; margin-top:4px; }
+.jev-hist td { border-top:1px solid var(--line, #ddd); padding:3px 4px; vertical-align:top; }
 .jev-form { max-width:940px; }
 .jev-form h2 { font-size:15px; margin:22px 0 4px; padding-bottom:4px; border-bottom:1px solid var(--line); }
 .jev-form .hint { color:var(--muted); margin:2px 0 10px; }

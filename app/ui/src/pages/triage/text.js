@@ -68,6 +68,11 @@ export const TEXT = {
     gNoteDone: 'Guide written as a Note', gNoteAlready: 'This guide is already on the finding as a Note.', gNoteLast: 'Last written to ES: {at}',
     gNoAi: 'No ES AI SOC Analyst result for this finding, so there is nothing to compare. Use the Jev result.',
     gNoJev: 'No Jev result yet. Re-run triage first.',
+    stTitle: 'Re-triage with your statements',
+    stHint: 'Tell Jev what you know that the SIEM does not (up to {n}). Jev takes your statements as true and does not check them against the facts: the result means "if the statements are right". The result without them is kept beside it, the Note records every attempt, and you decide in ES.',
+    stRun: 'Re-triage with these statements', stDone: 'Re-triaged with your statements; Note written', stNoteFail: 'Re-triaged, but the Note was not written: {e}',
+    stUsed: 'Your statements', stBase: 'Without the statements', stConflict: 'The facts alone point to a true positive. Your statements changed the result: check them before closing the finding.',
+    stHist: 'Attempts with statements', stSent: 'Statements sent to Jev', stMax: 'At most {n} statements.', stCustom: 'added by an admin', stNone: 'No statements are available.',
   },
   ja: {
     title: 'セカンドオピニオン トリアージ', desc: 'ES の Finding に対する Jev の提案です。最終的な Disposition と Urgency は Enterprise Security でアナリストが設定します。',
@@ -138,5 +143,10 @@ export const TEXT = {
     gNoteDone: 'ガイドを Note として書き込みました', gNoteAlready: 'このガイドは書き込み済みです。', gNoteLast: '最後に ES へ書き込んだ時刻: {at}',
     gNoAi: 'この Finding には ES AI SOC Analyst の判定がないため、比較できません。Jev の結果を参考にしてください。',
     gNoJev: 'Jev の結果がまだありません。先に再トリアージしてください。',
+    stTitle: '申告をもとに再トリアージ',
+    stHint: 'SIEM にはない、あなたが知っていることを Jev に伝えます（{n} つまで）。Jev は申告を正しいものとして扱い、事実と突き合わせません。結果は「申告が正しければ」の答えです。申告なしの判定も並べて残し、試した内容はすべて Note に記録します。最終判断は ES で行ってください。',
+    stRun: 'この申告で再トリアージ', stDone: '申告をもとに再トリアージし、Note を書き込みました', stNoteFail: '再トリアージしましたが、Note は書き込めませんでした: {e}',
+    stUsed: 'あなたの申告', stBase: '申告なしの判定', stConflict: '事実だけでは TP を示しています。申告によって結果が変わりました。Finding をクローズする前に申告の内容を確認してください。',
+    stHist: '申告をもとにした試行', stSent: 'Jev に渡した申告', stMax: '申告は {n} つまでです。', stCustom: '管理者が追加', stNone: '使える申告がありません。',
   },
 };

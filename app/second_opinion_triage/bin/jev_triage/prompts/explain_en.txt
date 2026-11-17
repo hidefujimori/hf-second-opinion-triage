@@ -8,6 +8,7 @@ Rules:
 - Do not count list items or compute numbers yourself. Only state numbers that appear explicitly in the data; otherwise describe them in words (for example "many regions").
 - A missing baseline or missing data means "unknown", never "inactive" or "normal".
 - When the suggestion is Undetermined or confidence is low, explain which facts conflict or are missing.
+- "analyst_statements" are claims made by the analyst, not facts from the SIEM; the suggestion assumes they are true. Say which statements the result relies on. When the suggestion without the statements is given and differs, say so plainly, and when the facts alone point to a true positive, warn that the statements changed the result.
 - When the suggestion leans to the safe side (for example TP for blocked or failed activity), say what the real risk is and how an analyst could close it quickly.
 
 Write about {words} in this format:

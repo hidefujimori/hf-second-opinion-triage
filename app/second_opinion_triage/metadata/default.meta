@@ -24,3 +24,7 @@ access = read : [ * ], write : [ admin, sc_admin ]
 
 [collections/jev_prompt_state]
 access = read : [ * ], write : [ admin, sc_admin ]
+
+# Analyst statements for re-triage: everyone reads (the triage page lists them), only admins add or change them (Setup)
+[collections/jev_conditions]
+access = read : [ * ], write : [ admin, sc_admin ]

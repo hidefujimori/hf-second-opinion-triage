@@ -85,3 +85,13 @@ export function b64(text) {
   bytes.forEach((b) => { s += String.fromCharCode(b); });
   return window.btoa(s);
 }
+
+/** KV store collection of this app: list, save (insert or replace by _key) or delete documents (JSON body). */
+export async function kv(collection, { method = 'GET', key = '', doc = null } = {}) {
+  let url = createRESTURL(`storage/collections/data/${collection}${key ? `/${encodeURIComponent(key)}` : ''}`, { app: APP, owner: 'nobody' });
+  if (method === 'GET' || method === 'DELETE') {
+    url += `${url.includes('?') ? '&' : '?'}output_mode=json`;
+    return parse(await fetch(url, init(method)));
+  }
+  return parse(await fetch(url, init('POST', JSON.stringify(doc || {}), 'application/json')));
+}

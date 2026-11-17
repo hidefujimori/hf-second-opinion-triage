@@ -170,7 +170,7 @@ def detection_output(f):
     return out
 
 
-def build_state(f, facts=None, related=None, risk_band_on=False, details_on=False):
+def build_state(f, facts=None, related=None, risk_band_on=False, details_on=False, statements=None):
     desc = _one(f.get("rule_description")) or _one(f.get("orig_rule_description")) or ""
     desc = EPOCH.sub("", desc)
     s = {
@@ -220,4 +220,6 @@ def build_state(f, facts=None, related=None, risk_band_on=False, details_on=Fals
         s["context_from_siem"] = facts
     if related:
         s["other_alerts_on_same_entity"] = related
+    if statements:   # what the analyst says, kept apart from what the SIEM shows
+        s["analyst_statements"] = list(statements)
     return {k: v for k, v in s.items() if v not in (None, "", [])}

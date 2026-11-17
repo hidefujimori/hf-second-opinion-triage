@@ -61,6 +61,11 @@ class JevExplainCommand(StreamingCommand):
             "detection_logic_mismatch_probability": rec.get("jev_logic_mismatch"), "attack_tactic": rec.get("jev_tactic"),
             "policy_notes": rec.get("jev_policy") or "none",
         }
+        if rec.get("jev_statements"):
+            suggestion["without_analyst_statements"] = {
+                "disposition": rec.get("jev_base_disposition"), "raw": rec.get("jev_base_disposition_raw"),
+                "confidence": rec.get("jev_base_confidence"), "urgency": rec.get("jev_base_urgency")}
+            suggestion["facts_alone_point_to_true_positive"] = str(rec.get("jev_statement_conflict")) == "1"
         user = ("<alert_data>\n" + json.dumps({"alert": st, "jev_suggestion": suggestion}, ensure_ascii=False, indent=1)
                 + "\n</alert_data>\n\nExplain the Jev suggestion for this alert.")
         return system, user

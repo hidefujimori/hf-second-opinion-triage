@@ -17,6 +17,7 @@ import { collect, download } from './support';
 import LangSwitch from '../../common/LangSwitch';
 import PromptPanel from './prompts';
 import MigratePanel from './migrate';
+import StatementsPanel from './statements';
 import { rulesFor } from '../../common/model';
 
 const REALM = APP;
@@ -375,6 +376,7 @@ function SetupPage({ theme }) {
           <tbody>{check.map((r) => (
             <tr key={r.target}>{[r.target === 'jev' ? 'Jev' : 'LLM', r.key_set, r.model, r.status, r.detail, r.latency_ms || ''].map((v, i) => <td key={i}>{v}</td>)}</tr>))}
           </tbody></table>)}
+      <StatementsPanel lang={lang} canSave={canSave} />
       <PromptPanel lang={lang} />
       <h2 style={{ marginTop: 32 }}>{T.supTitle}</h2>
       <div className="hint">{T.supDesc}</div>

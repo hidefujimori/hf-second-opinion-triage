@@ -237,6 +237,69 @@ function useAction() {
   return [st, run];
 }
 
+// ---------- re-triage with the analyst's statements (1.1) ----------
+const MAX_STATEMENTS = 3;
+function Statements({ T, lang, id, r, onDone, st, run }) {
+  const [list, setList] = useState(null);
+  const [sel, setSel] = useState([]);
+  useEffect(() => { search('| jevstatements').then((rows) => setList(rows), () => setList([])); }, []);
+  const byId = Object.fromEntries((list || []).map((c) => [c.id, c]));
+  const label = (i) => { const c = byId[i]; return c ? ((lang === 'ja' ? c.label_ja || c.label_en : c.label_en || c.label_ja) || c.id) : i; };
+  let hist = [];
+  try { hist = JSON.parse(r.jev_statement_history || '[]'); } catch (e) { hist = []; }
+  const used = (r.jev_statements || '').split(',').filter(Boolean);
+  const show = r.jev_status === 'ok' && (r.jev_disposition === 'Undetermined' || used.length > 0 || hist.length > 0);
+  if (!show) { return null; }
+  const toggle = (i) => setSel((s) => (s.includes(i) ? s.filter((x) => x !== i) : (s.length >= MAX_STATEMENTS ? s : [...s, i])));
+  const go = () => run(async () => {
+    const t = epochFromId(id);
+    const rows = await search(`search \`jev_findings\` | search event_id=${q(id)} | head 1 | jevtriage persist=true statements=${q(sel.join(','))}`
+      + ` | jevnote persist=true lang=${lang} | table jev_status jev_error jev_persist_error jev_note_status`,
+    t ? String(t - 3600) : '-90d', t ? String(t + 3600) : 'now');
+    const x = rows[0] || {};
+    if (x.jev_status !== 'ok' || x.jev_persist_error) { return { ok: false, msg: `${T.failed}: ${x.jev_error || x.jev_persist_error || x.jev_status || 'no finding'}` }; }
+    setSel([]); onDone();
+    return String(x.jev_note_status || '').startsWith('ok') ? { ok: true, msg: T.stDone } : { ok: false, msg: fmt(T.stNoteFail, { e: x.jev_note_status || '' }) };
+  });
+  return (
+    <Sec title={T.stTitle}>
+      {used.length > 0 && (
+        <div className="jev-stmt-result">
+          <div className="sub">{T.stUsed}</div>
+          <ul className="jev-facts">{used.map((i) => <li key={i}>{label(i)}</li>)}</ul>
+          {r.jev_base_disposition && (
+            <div className="sub">{T.stBase}: <Chip d={r.jev_base_disposition} T={T} /> <Conf v={r.jev_base_confidence} label={T.confidence} /></div>)}
+          {r.jev_statement_conflict === '1' && <div className="jev-conflict">{T.stConflict}</div>}
+        </div>)}
+      <div className="jev-status" style={{ marginBottom: 6 }}>{fmt(T.stHint, { n: MAX_STATEMENTS })}</div>
+      {list === null && <div className="sub">{T.loading}</div>}
+      {list && list.length === 0 && <div className="sub">{T.stNone}</div>}
+      {list && list.map((c) => (
+        <label key={c.id} className="jev-stmt" title={c.text}>
+          <input type="checkbox" checked={sel.includes(c.id)} onChange={() => toggle(c.id)}
+            disabled={st.busy || (!sel.includes(c.id) && sel.length >= MAX_STATEMENTS)} />
+          <span>{label(c.id)}{String(c.custom) === '1' ? <span className="sub"> ({T.stCustom})</span> : null}</span>
+        </label>))}
+      <div className="jev-actions" style={{ marginTop: 8 }}>
+        <Button label={T.stRun} onClick={go} disabled={st.busy || sel.length === 0} />
+      </div>
+      {hist.length > 0 && (
+        <div style={{ marginTop: 10 }}>
+          <div className="sub">{T.stHist}</div>
+          <table className="jev-hist"><tbody>
+            {hist.slice().reverse().map((h, k) => (
+              <tr key={k}>
+                <td>{fmtTime(h.time)}</td><td>{h.user || ''}</td>
+                <td>{String(h.statements || '').split(',').filter(Boolean).map(label).join(', ')}</td>
+                <td><Chip d={h.disposition} T={T} /> {h.base_disposition ? <span className="sub">({T.stBase}: {T[h.base_disposition] || h.base_disposition})</span> : null}
+                  {h.conflict ? <span className="jev-warn"> ⚠</span> : null}</td>
+              </tr>))}
+          </tbody></table>
+        </div>)}
+    </Sec>
+  );
+}
+
 function Pane({ T, lang, id, onChanged }) {
   const [rec, setRec] = useState(undefined);
   const [err, setErr] = useState('');
@@ -255,6 +318,7 @@ function Pane({ T, lang, id, onChanged }) {
   let st = {};
   try { st = JSON.parse(r.jev_state || '{}'); } catch (e) { st = {}; }
   const facts = mv(st.context_from_siem);
+  const statements = mv(st.analyst_statements);
   const others = mv(st.other_alerts_on_same_entity);
   const hasExpl = r.jev_explanation && r.jev_explain_for === r.jev_time;
   const shownExpl = expl != null ? expl : (hasExpl ? r.jev_explanation : null);
@@ -326,7 +390,9 @@ function Pane({ T, lang, id, onChanged }) {
               </div>
             </Sec>
           </>)}
+        {rec && <Statements T={T} lang={lang} id={id} r={r} st={acSt} run={runAc} onDone={() => { load(); onChanged(); }} />}
         {facts.length > 0 && <Sec title={T.context}><ul className="jev-facts">{facts.map((x, i) => <li key={i}>{x}</li>)}</ul></Sec>}
+        {statements.length > 0 && <Sec title={T.stSent}><ul className="jev-facts">{statements.map((x, i) => <li key={i}>{x}</li>)}</ul></Sec>}
         {others.length > 0 && <Sec title={T.other}><ul className="jev-facts">{others.map((x, i) => <li key={i}>{x}</li>)}</ul></Sec>}
         {r.jev_enrich_errors && <Sec title={T.enrichErr}><div className="sub jev-warn">{r.jev_enrich_errors}</div></Sec>}
         {rec && (

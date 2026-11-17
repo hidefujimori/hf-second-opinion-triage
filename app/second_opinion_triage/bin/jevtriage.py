@@ -34,7 +34,7 @@ sys.path.insert(0, HERE)
 from splunklib import results  # noqa: E402
 from splunklib.searchcommands import Configuration, Option, StreamingCommand, dispatch, validators  # noqa: E402
 
-from jev_triage import __version__, jev_client, persist, policy, prompts_store, remote, rules, settings, state, usage  # noqa: E402
+from jev_triage import __version__, conditions, jev_client, persist, policy, prompts_store, remote, rules, settings, state, usage  # noqa: E402
 from jev_triage.enrich import Enricher, load_templates  # noqa: E402
 
 APP = "second_opinion_triage"
@@ -60,8 +60,10 @@ class JevTriageCommand(StreamingCommand):
     riskband = Option(require=False, validate=validators.Boolean(), default=False)
     details = Option(require=False, validate=validators.Boolean(), default=False)
     ers = Option(require=False, default="off", validate=validators.Set("fact", "urgency", "both", "off"))
+    statements = Option(require=False, default=None)   # analyst statements (ids, comma-separated), see conditions.py
 
     _remote = False
+    _statements = ()
 
     def _settings(self):
         s = {"model": "jev-1.13.0", "questions_file": "questions.json", "confidence_threshold": "0.60",
@@ -138,7 +140,9 @@ class JevTriageCommand(StreamingCommand):
         out.update({"jev_version": __version__, "jev_model": s["model"], "jev_questions": qset.get("version"),
                     "jev_time": int(time.time()), "jev_rules": s.get("rules_text", ""),
                     # every row carries the same fields: the search keeps only the fields of the first rows
-                    "jev_ers": "", "jev_urgency_model": "", "jev_policy": "", "jev_enrich_profile": ""})
+                    "jev_ers": "", "jev_urgency_model": "", "jev_policy": "", "jev_enrich_profile": "",
+                    "jev_statements": "", "jev_base_disposition": "", "jev_base_disposition_raw": "",
+                    "jev_base_confidence": "", "jev_base_urgency": "", "jev_statement_conflict": ""})
         if self._q_warn:
             out["jev_enrich_errors"] = self._q_warn
         try:
@@ -147,27 +151,39 @@ class JevTriageCommand(StreamingCommand):
             out["jev_enrich_ms"] = int((time.time() - t0) * 1000)
             if enricher:
                 out["jev_enrich_profile"] = enricher.profile()
-            st = state.build_state(rec, facts, related, risk_band_on=self.riskband, details_on=self.details)
+            st = state.build_state(rec, facts, related, risk_band_on=self.riskband, details_on=self.details,
+                                   statements=[c["text"] for c in self._statements])
+            st_base = state.build_state(rec, facts, related, risk_band_on=self.riskband, details_on=self.details) \
+                if self._statements else None
+            if self._statements:
+                out["jev_statements"] = ",".join(c["id"] for c in self._statements)
             out["jev_state"] = json.dumps(st, ensure_ascii=False)
             if enricher and enricher.errors:
                 out["jev_enrich_errors"] = " | ".join(([self._q_warn] if self._q_warn else []) + enricher.errors[-3:])
             if self.dryrun:
                 out["jev_status"] = "dryrun"
                 return out
-            if self._remote:   # analysts: the app's endpoint calls Jev with the stored key and settings
-                call = lambda q: remote.jev(self.service, st, q, timeout=int(s["timeout"]))
-            else:
-                call = lambda q: jev_client.call(key, s["model"], st, q, timeout=int(s["timeout"]), proxy=s["proxy"] or None,
-                                                 endpoint=s["endpoint"] or None, extra=s["request_extra"],
-                                                 confidence_field=s["confidence_field"] or None)
-            # forward and reversed-option calls run at the same time
-            f_rev = pool2.submit(call, Qrev) if do_order else None
-            res = call(Q)
-            rev = f_rev.result() if f_rev else None
-            out.update(policy.decide(res["answers"], rev["answers"] if rev else None, state.is_rollup(rec),
-                                     float(s["confidence_threshold"]), float(s["escalation_floor"]),
-                                     s["rollup_urgency_cap"] or None, s["undetermined_urgency_cap"] or None,
-                                     float(s["critical_min_probability"] or 0), s["benign_urgency_cap"] or None))
+            def ask(stt):
+                if self._remote:   # analysts: the app's endpoint calls Jev with the stored key and settings
+                    call = lambda q: remote.jev(self.service, stt, q, timeout=int(s["timeout"]))
+                else:
+                    call = lambda q: jev_client.call(key, s["model"], stt, q, timeout=int(s["timeout"]),
+                                                     proxy=s["proxy"] or None, endpoint=s["endpoint"] or None,
+                                                     extra=s["request_extra"], confidence_field=s["confidence_field"] or None)
+                # forward and reversed-option calls run at the same time
+                f_rev = pool2.submit(call, Qrev) if do_order else None
+                r = call(Q)
+                rv = f_rev.result() if f_rev else None
+                return r, rv, policy.decide(r["answers"], rv["answers"] if rv else None, state.is_rollup(rec),
+                                            float(s["confidence_threshold"]), float(s["escalation_floor"]),
+                                            s["rollup_urgency_cap"] or None, s["undetermined_urgency_cap"] or None,
+                                            float(s["critical_min_probability"] or 0), s["benign_urgency_cap"] or None)
+            res, rev, dec = ask(st)
+            out.update(dec)
+            if st_base is not None:
+                # Jev takes the analyst's statements as true (measured 1.1): keep what the facts alone say beside it
+                _, _, base = ask(st_base)
+                out.update(conditions.compare(base, dec))
             if enricher and self.ers in ("urgency", "both"):
                 policy.ers_adjust(out, enricher.ers)
             out["jev_answers"] = json.dumps(res["answers"])
@@ -246,6 +262,10 @@ class JevTriageCommand(StreamingCommand):
         if self.details:
             s["rules_text"] += "; detection output: on"
         qset, self._q_warn = self._load_questions(s)
+        try:
+            self._statements = conditions.resolve(self.service, self.statements)
+        except ValueError as e:
+            raise RuntimeError("statements=: %s" % e)
         Q = qset["questions"]
         Qrev = policy.reversed_disposition(Q)
         if self.dryrun:

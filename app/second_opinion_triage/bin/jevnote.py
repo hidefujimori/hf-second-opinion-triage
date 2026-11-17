@@ -21,7 +21,7 @@ sys.path.insert(0, HERE)
 
 from splunklib.searchcommands import Configuration, Option, StreamingCommand, dispatch, validators  # noqa: E402
 
-from jev_triage import guide, modelname, note, persist, settings  # noqa: E402
+from jev_triage import conditions, guide, modelname, note, persist, settings  # noqa: E402
 
 
 @Configuration(local=True)
@@ -39,6 +39,16 @@ class JevNoteCommand(StreamingCommand):
 
     def stream(self, records):
         return _persisting(self, self._stream(records))
+
+    def _labels(self, lang):
+        """Statement id -> label in the Note's language (built-in and admin-defined statements)."""
+        if not hasattr(self, "_stmt_labels"):
+            try:
+                self._stmt_labels = conditions.all_statements(self.service)
+            except Exception:
+                self._stmt_labels = conditions.BUILTIN
+        key = "label_ja" if lang == "ja" else "label_en"
+        return {c["id"]: c.get(key) or c.get("label_en") or c["id"] for c in self._stmt_labels}
 
     def _post(self, fid, title, content):
         # splunklib URL-encodes the path itself; '@' must stay as is (pre-encoding gives %2540 -> 404)
@@ -104,7 +114,7 @@ class JevNoteCommand(StreamingCommand):
                     continue
                 only_expl = True   # the Note was written before the explanation: add the explanation
             fid = rec.get("event_id") or ""
-            title, content = note.build_explanation(rec, lang) if only_expl else note.build(rec, lang)
+            title, content = note.build_explanation(rec, lang) if only_expl else note.build(rec, lang, self._labels(lang))
             try:
                 body = self._post(fid, title, content)
                 out["jev_note_status"] = "ok (explanation added)" if only_expl else "ok"
