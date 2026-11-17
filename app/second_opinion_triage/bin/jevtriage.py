@@ -206,9 +206,9 @@ class JevTriageCommand(StreamingCommand):
             enricher.ers_mode = self.ers   # fact: tell the model; urgency: bound urgency afterwards; both; off
         if self.endpoint or self.model or self.questions or self.extra or self.conffield or self.usekey:   # evaluation of another decision model / questions
             if not settings.can_admin(self.service):
-                raise RuntimeError("endpoint= / model= / questions= / extra= / conffield= are for admins (edit_storage_passwords or admin_all_objects)")
+                raise RuntimeError("endpoint= / model= / questions= / extra= / conffield= / usekey= are for admins (edit_storage_passwords or admin_all_objects)")
             if self.persist or self.auto:
-                raise RuntimeError("endpoint= / model= / questions= / extra= / conffield= are for evaluation: persist=true and auto=true are not allowed")
+                raise RuntimeError("endpoint= / model= / questions= / extra= / conffield= / usekey= are for evaluation: persist=true and auto=true are not allowed")
             if self.endpoint and not str(self.endpoint).lower().startswith(("http://", "https://")):
                 raise RuntimeError("endpoint must start with http:// or https://")
         if self.extra is not None:

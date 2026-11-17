@@ -41,7 +41,7 @@ const L = {
       limits: ['Limits for automatic runs', 'Daily limits for automatic runs only (detections through the Second Opinion Triage response action, and the scheduled search). Manual actions are not limited. Empty = no limit, 0 = none per day. A day is the Splunk server\'s local calendar day.'],
     },
     rulesNow: 'Rules in use for {m}: threshold {t}, option-order check {o} ({s})', on: 'on', off: 'off', srcBuiltIn: 'built-in for this model', srcSettings: 'values below', show: 'Show', hide: 'Hide',
-    usage: 'Used today', usageCols: ['Jev (automatic)', 'Jev (manual)', 'LLM explanations (automatic)', 'LLM explanations (manual)'], usageNone: 'Nothing counted yet today.',
+    usage: 'Used today', usageLast: 'Nothing counted today. Last counted day', usageCols: ['Jev (automatic)', 'Jev (manual)', 'LLM explanations (automatic)', 'LLM explanations (manual)'], usageNone: 'Nothing counted yet today.',
     f: {
       typesafe_api_key: 'Jev API key',
       alt_api_key_2: 'API key for evaluation 2|Optional. A second key for another server, sent only with `usekey=alt2` (e.g. an OpenAI API key for the Decisions API).',
@@ -90,7 +90,7 @@ const L = {
       limits: ['自動実行の上限', '自動実行（検知から動く Second Opinion Triage レスポンスアクションと定期検索）だけに適用する1日の上限です。手動の操作は制限しません。空欄 = 無制限、0 = 1日0件。1日は Splunk サーバーの現地時間で区切ります。'],
     },
     rulesNow: '{m} の判定ルール: 閾値 {t}、順序確認 {o}（{s}）', on: 'あり', off: 'なし', srcBuiltIn: 'モデル別の既定', srcSettings: '下の設定値', show: '表示する', hide: '隠す',
-    usage: '本日の使用量', usageCols: ['Jev（自動）', 'Jev（手動）', 'LLM 説明（自動）', 'LLM 説明（手動）'], usageNone: '本日はまだ使用していません。',
+    usage: '本日の使用量', usageLast: '本日はまだ使用していません。最後に数えた日', usageCols: ['Jev（自動）', 'Jev（手動）', 'LLM 説明（自動）', 'LLM 説明（手動）'], usageNone: '本日はまだ使用していません。',
     f: {
       typesafe_api_key: 'Jev の API キー',
       alt_api_key_2: '評価用の API キー 2|任意。別のサーバー用の2つ目のキー。`usekey=alt2` のときだけ送ります（例: OpenAI Decisions API 用の OpenAI API キー）。',
@@ -176,6 +176,9 @@ function SetupPage({ theme }) {
   const [usage, setUsage] = useState(null);
   const [showEval, setShowEval] = useState(false);
   const [sup, setSup] = useState(null);   // { busy, text, type }   // { date, jev_auto, jev_manual, llm_auto, llm_manual }
+
+  // the server counts by its local calendar day; compare with the browser's day (same in most setups)
+  const localDay = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
   const loadUsage = () => rest('storage/collections/data/jev_usage', { params: { sort: 'date:-1', limit: 20 } })
     .then((docs) => {
@@ -332,7 +335,7 @@ function SetupPage({ theme }) {
               .replace('{o}', r.order_check ? T.on : T.off).replace('{s}', r.source === 'built-in' ? T.srcBuiltIn : T.srcSettings)}</div>;
           })()}
           {sec.usage && usage && (
-            <ControlGroup label={T.usage + (usage.date ? ` (${usage.date})` : '')} labelWidth={240}>
+            <ControlGroup label={(usage.date && usage.date !== localDay() ? T.usageLast : T.usage) + (usage.date ? ` (${usage.date})` : '')} labelWidth={240}>
               {usage.date ? (
                 <table className="jev-check" style={{ marginTop: 0 }}><thead><tr>{T.usageCols.map((c) => <th key={c}>{c}</th>)}</tr></thead>
                   <tbody><tr>{['jev_auto', 'jev_manual', 'llm_auto', 'llm_manual'].map((k) => <td key={k}>{usage[k] || 0}</td>)}</tr></tbody></table>
