@@ -273,8 +273,8 @@ function SetupPage({ theme }) {
           'param.write_note': vals.manual_note === 'true' ? '1' : '0', 'param.auto_explain': vals.manual_explain === 'true' ? '1' : '0' } });
       } catch (e) { /* the response action keeps its own defaults */ }
       for (const s of ALL_SECRETS) { await saveSecret(s.name); }   // eslint-disable-line no-await-in-loop
-      // Who may read the keys: admins only. Analysts (role jev_triage_user) get the Jev / LLM keys through the app's
-      // endpoint /services/second_opinion_triage/keys (capability jev_triage_run). Applied to every stored key on each save.
+      // Who may read the keys: admins only. Analysts (role jev_triage_user) never receive them: their searches ask the
+      // app's endpoint /services/second_opinion_triage/call to call the models (capability jev_triage_run). Applied on each save.
       const aclFailed = [];
       const present = await search(`| rest splunk_server=local count=0 /servicesNS/nobody/${APP}/storage/passwords | search realm="${REALM}" | rename eai:acl.owner as owner | table username owner`);
       for (const row of present) {   // eslint-disable-line no-restricted-syntax

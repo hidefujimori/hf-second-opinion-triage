@@ -18,7 +18,7 @@ sys.path.insert(0, HERE)
 
 from splunklib.searchcommands import Configuration, Option, StreamingCommand, dispatch, validators  # noqa: E402
 
-from jev_triage import llm, modelname, persist, settings, usage  # noqa: E402
+from jev_triage import modelname, persist, remote, settings, usage  # noqa: E402
 
 APP = "second_opinion_triage"
 WORDS = {"en": "120 words", "ja": "300字"}
@@ -118,7 +118,7 @@ class JevExplainCommand(StreamingCommand):
             try:
                 system, user = self._prompt(lang, rec)
                 t0 = time.time()
-                out["jev_explanation"] = llm.complete(cfg, system, user)
+                out["jev_explanation"] = remote.complete(self.service, cfg, system, user)
                 out["jev_explain_status"] = "ok"
                 out["jev_explain_ms"] = int((time.time() - t0) * 1000)
                 out["jev_explain_model"] = "%s:%s" % (cfg["provider"], cfg["model"])

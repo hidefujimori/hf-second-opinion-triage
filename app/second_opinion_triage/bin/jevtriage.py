@@ -34,7 +34,7 @@ sys.path.insert(0, HERE)
 from splunklib import results  # noqa: E402
 from splunklib.searchcommands import Configuration, Option, StreamingCommand, dispatch, validators  # noqa: E402
 
-from jev_triage import __version__, jev_client, persist, policy, prompts_store, rules, settings, state, usage  # noqa: E402
+from jev_triage import __version__, jev_client, persist, policy, prompts_store, remote, rules, settings, state, usage  # noqa: E402
 from jev_triage.enrich import Enricher, load_templates  # noqa: E402
 
 APP = "second_opinion_triage"
@@ -60,6 +60,8 @@ class JevTriageCommand(StreamingCommand):
     riskband = Option(require=False, validate=validators.Boolean(), default=False)
     details = Option(require=False, validate=validators.Boolean(), default=False)
     ers = Option(require=False, default="off", validate=validators.Set("fact", "urgency", "both", "off"))
+
+    _remote = False
 
     def _settings(self):
         s = {"model": "jev-1.13.0", "questions_file": "questions.json", "confidence_threshold": "0.60",
@@ -152,9 +154,12 @@ class JevTriageCommand(StreamingCommand):
             if self.dryrun:
                 out["jev_status"] = "dryrun"
                 return out
-            call = lambda q: jev_client.call(key, s["model"], st, q, timeout=int(s["timeout"]), proxy=s["proxy"] or None,
-                                             endpoint=s["endpoint"] or None, extra=s["request_extra"],
-                                             confidence_field=s["confidence_field"] or None)
+            if self._remote:   # analysts: the app's endpoint calls Jev with the stored key and settings
+                call = lambda q: remote.jev(self.service, st, q, timeout=int(s["timeout"]))
+            else:
+                call = lambda q: jev_client.call(key, s["model"], st, q, timeout=int(s["timeout"]), proxy=s["proxy"] or None,
+                                                 endpoint=s["endpoint"] or None, extra=s["request_extra"],
+                                                 confidence_field=s["confidence_field"] or None)
             # forward and reversed-option calls run at the same time
             f_rev = pool2.submit(call, Qrev) if do_order else None
             res = call(Q)
@@ -253,6 +258,9 @@ class JevTriageCommand(StreamingCommand):
                                    % (self.usekey, "" if self.usekey == "alt" else " 2"))
         elif self.endpoint and self.endpoint != configured:
             key = None   # never send the stored key to an endpoint given in the search
+        elif settings.use_endpoint(self.service):
+            key = None
+            self._remote = True
         else:
             key = settings.jev_api_key(self.service, required=jev_client.is_typesafe(s["endpoint"] or None))
         self._jev_limit = usage.limits(settings.stanza(self.service, "limits", settings.LIMIT_DEFAULTS))["jev_auto"]

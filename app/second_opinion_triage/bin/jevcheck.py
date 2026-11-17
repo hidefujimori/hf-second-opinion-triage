@@ -14,7 +14,7 @@ sys.path.insert(0, HERE)
 
 from splunklib.searchcommands import Configuration, GeneratingCommand, Option, dispatch, validators  # noqa: E402
 
-from jev_triage import __version__, jev_client, llm, settings  # noqa: E402
+from jev_triage import __version__, jev_client, llm, remote, settings  # noqa: E402
 
 PING_STATE = {"alert": "connectivity test from the Splunk app second_opinion_triage", "note": "no security event"}
 PING_Q = {"is_test": {"type": "noul", "instructions": "This message is a connectivity test."}}
@@ -28,10 +28,30 @@ def _short(e):
 class JevCheckCommand(GeneratingCommand):
     target = Option(require=False, default="all", validate=validators.Set("jev", "llm", "all"))
 
+    def _via_endpoint(self, row, fn):
+        """Analysts cannot read the keys: test through the app's endpoint (the same path their searches use)."""
+        row["key_set"] = "not shown (app endpoint)"
+        t0 = time.time()
+        try:
+            row.update(status="ok", detail=fn())
+        except Exception as e:
+            row.update(status="error", detail=_short(e))
+        row["latency_ms"] = int((time.time() - t0) * 1000)
+        return row
+
     def _jev(self):
         row = {"target": "jev", "version": __version__}
         sec = settings.secrets(self.service)
         s = settings.stanza(self.service, "jev", {"model": "jev-1.13.0", "timeout": "30", "proxy": "", "endpoint": ""})
+        if settings.use_endpoint(self.service, sec):
+            row["model"] = s["model"]
+
+            def ping():
+                out = remote.jev(self.service, PING_STATE, PING_Q, timeout=int(s["timeout"]), retries=1)
+                if "is_test" not in (out.get("answers") or {}):
+                    raise RuntimeError("unexpected response")
+                return "Jev answered (through the app endpoint)"
+            return self._via_endpoint(row, ping)
         row["key_set"] = "yes" if sec.get(settings.JEV_SECRET) else "no"
         native = jev_client.is_typesafe(s["endpoint"] or None)
         row["model"] = s["model"] if native else "%s (%s)" % (s["model"], s["endpoint"])
@@ -53,6 +73,9 @@ class JevCheckCommand(GeneratingCommand):
     def _llm(self):
         cfg = settings.llm_cfg(self.service, self.logger)
         row = {"target": "llm", "version": __version__, "model": "%s / %s" % (cfg.get("provider"), cfg.get("model") or "-")}
+        if settings.use_endpoint(self.service):
+            return self._via_endpoint(row, lambda: "LLM answered (through the app endpoint): %s" % remote.llm(
+                self.service, "You are a connectivity test. Reply with the single word OK.", "ping", max_tokens=40, retries=1)[:40])
         if (cfg.get("provider") or "").lower() == "bedrock":
             row["key_set"] = "yes" if cfg["aws_access_key_id"] and cfg["aws_secret_access_key"] else "no"
         else:

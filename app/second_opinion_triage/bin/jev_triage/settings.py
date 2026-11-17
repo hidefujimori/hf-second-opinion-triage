@@ -24,20 +24,18 @@ def stanza(service, name, defaults=None, logger=None):
 
 
 def secrets(service):
-    """username -> clear password of this app's keys.
+    """username -> clear password of this app's keys, for admins (read ACL admin, sc_admin).
 
-    Admins read storage/passwords directly. Other users (role jev_triage_user, capability jev_triage_run) get the
-    Jev / LLM keys from the app's endpoint, which runs with the system session and returns only this app's keys."""
-    direct = _secrets_direct(service)
-    if any(direct.get(k) for k in (JEV_SECRET, "llm_api_key", "aws_access_key_id")):
-        return direct
-    try:
-        import json
-        resp = service.get("/services/second_opinion_triage/keys", output_mode="json")
-        keys = json.loads(resp.body.read().decode("utf-8")).get("keys") or {}
-        return dict(direct, **keys)
-    except Exception:
-        return direct
+    Other users (role jev_triage_user, capability jev_triage_run) never receive the keys: their search commands ask
+    the app's endpoint /services/second_opinion_triage/call to call the model (see use_endpoint)."""
+    return _secrets_direct(service)
+
+
+def use_endpoint(service, sec=None):
+    """True when this user's searches must call the models through the app's endpoint: the stored keys are not
+    readable (analysts) or none is stored. The endpoint uses the same settings, so the result is the same."""
+    sec = secrets(service) if sec is None else sec
+    return not any(sec.get(k) for k in (JEV_SECRET,) + LLM_SECRETS)
 
 
 def _secrets_direct(service):
@@ -64,7 +62,7 @@ def _secrets_direct(service):
     return out
 
 
-def jev_api_key(service, required=True):
+def jev_api_key(service, required=True):  # admins only (see use_endpoint)
     """The key stored for [jev]. Not required for a local System One server (e.g. llama.cpp without --api-key)."""
     key = secrets(service).get(JEV_SECRET)
     if not key and required:
