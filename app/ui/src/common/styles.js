@@ -54,6 +54,9 @@ table.jev-findings tr.row.checked { background:var(--sel); }
 .jev-gcard.p-close { border-left-color:var(--fp); } .jev-gcard.p-review { border-left-color:#ca8a04; }
 ul.jev-cautions li { color:var(--err); }
 .jev-col { min-width:0; }
+/* long tokens (hashes, paths, URLs, defanged addresses) wrap inside the pane instead of running into the next column */
+.jev-detail .jev-pane-body, .jev-detail .jev-explain, .jev-detail ul.jev-facts li, .jev-detail .jev-policy, .jev-detail .jev-kv > div,
+.jev-detail .jev-stmt-result, .jev-detail .jev-hist td, .jev-detail .jev-status { overflow-wrap:anywhere; word-break:break-word; min-width:0; }
 .jev-col + .jev-col { border-left:1px solid var(--line); }
 .jev-col-head { padding:8px 14px; font-weight:700; border-bottom:1px solid var(--line); background:var(--bg); }
 .jev-esai .jev-col-head { border-top:3px solid #475569; }
