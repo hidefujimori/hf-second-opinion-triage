@@ -66,7 +66,7 @@ class JevInvestigationCommand(GeneratingCommand):
         stream = self.service.jobs.oneshot(spl, output_mode="json", count=0, **kw)
         return [r for r in results.JSONResultsReader(stream) if isinstance(r, dict)]
 
-    def _llm(self, inv, items, s, lang):
+    def _summarize(self, inv, items, s, lang):   # not "_llm": splunklib keeps option "llm" in self._llm
         cfg = settings.llm_cfg(self.service, self.logger)
         path = os.path.join(HERE, "jev_triage", "prompts", "investigation_%s.txt" % lang)
         if not os.path.exists(path):
@@ -145,7 +145,7 @@ class JevInvestigationCommand(GeneratingCommand):
         llm_text = ""
         if self.llm:
             try:
-                llm_text, out["inv_llm_model"] = self._llm(inv, items, s, lang)
+                llm_text, out["inv_llm_model"] = self._summarize(inv, items, s, lang)
             except Exception as e:
                 out["inv_llm_error"] = str(e)[:300]
         title, content = invnote.build(inv, s, lang, llm_text)

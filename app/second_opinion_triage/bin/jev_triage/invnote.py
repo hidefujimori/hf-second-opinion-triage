@@ -36,7 +36,8 @@ def aggregate(items):
         if u in URG and (not s["top"] or URG.index(u) > URG.index(s["top"])):
             s["top"] = u
         if d == "TP":
-            s["tp"].append("%s (%s)" % (it.get("name") or r.get("rule_name") or it["event_id"], u.capitalize()))
+            ent = ", ".join(x for x in (r.get("user"), r.get("src"), r.get("dest"), r.get("risk_object")) if x)[:80]
+            s["tp"].append("%s%s (%s)" % (it.get("name") or r.get("rule_name") or it["event_id"], " — %s" % ent if ent else "", u.capitalize()))
         if d == "Undetermined":
             s["und"] += 1
         a = it.get("ai_cat") or ""
