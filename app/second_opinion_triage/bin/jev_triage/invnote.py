@@ -1,4 +1,6 @@
 """Investigation summary: the Jev results of all findings in an ES investigation, aggregated, as a Note."""
+import json
+
 from . import guide, note
 
 URG = ["low", "medium", "high", "critical"]
@@ -78,7 +80,11 @@ def llm_input(inv, items, s):
     rows = []
     for it in items[:30]:
         r = it.get("rec") or {}
-        rows.append({"finding": guide.clip(it.get("name") or r.get("rule_name") or "", 120),
+        try:
+            facts = (json.loads(r.get("jev_state") or "{}").get("context_from_siem") or [])[:6]
+        except (ValueError, AttributeError):
+            facts = []
+        rows.append({"facts": [guide.clip(str(f), 200) for f in facts],"finding": guide.clip(it.get("name") or r.get("rule_name") or "", 120),
                      "jev_disposition": r.get("jev_disposition") or "not triaged",
                      "jev_confidence": r.get("jev_disposition_confidence"), "jev_urgency": r.get("jev_urgency"),
                      "tactic": r.get("jev_tactic"), "es_ai": it.get("ai_cat") or "",
