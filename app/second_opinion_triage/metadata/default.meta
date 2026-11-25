@@ -29,6 +29,10 @@ access = read : [ * ], write : [ admin, sc_admin ]
 [collections/jev_conditions]
 access = read : [ * ], write : [ admin, sc_admin ]
 
+# Investigation summary Notes: analysts write the record through | jevinvestigation note=true
+[collections/jev_investigation_notes]
+access = read : [ * ], write : [ admin, sc_admin, ess_admin, ess_analyst, jev_triage_user ]
+
 # Translations of the ES AI texts: analysts write them through | jevtranslate
 [collections/jev_ai_translations]
 access = read : [ * ], write : [ admin, sc_admin, ess_admin, ess_analyst, jev_triage_user ]

@@ -38,10 +38,12 @@ const L = {
       llm: ['LLM explanation', 'Used only when someone clicks Explain. Choose any provider; the credential is stored per app.'],
       note: ['Notes on ES findings', ''],
       evaluation: ['Evaluation keys (support only)', 'Only for evaluating another decision model together with support (jevtriage ... usekey=alt / alt2). These keys are never used for triage and are NOT a fallback: if the decision model in use fails, triage reports an error. Leave them empty unless support asks.'],
+      investigation: ['Investigation summary', 'The summary Note of an ES investigation (detail pane > Investigation > Write summary) aggregates the results of all its findings.'],
       manual: ['Manual run', 'Defaults for "Run Second Opinion Triage" in the menu of an ES finding (one click, no form), and the initial values of the Second Opinion Triage response-action form.'],
       limits: ['Limits for automatic runs', 'Daily limits for automatic runs only (detections through the Second Opinion Triage response action, and the scheduled search). Manual actions are not limited. Empty = no limit, 0 = none per day. A day is the Splunk server\'s local calendar day.'],
     },
     rulesNow: 'Rules in use for {m}: threshold {t}, option-order check {o} ({s})', on: 'on', off: 'off', srcBuiltIn: 'built-in for this model', srcSettings: 'values below', show: 'Show', hide: 'Hide',
+    ol: { inv_untriaged: { count: 'Count only', run: 'Triage them now' } },
     usage: 'Used today', usageLast: 'Nothing counted today. Last counted day', usageCols: ['Jev (automatic)', 'Jev (manual)', 'LLM explanations (automatic)', 'LLM explanations (manual)'], usageNone: 'Nothing counted yet today.',
     f: {
       typesafe_api_key: 'Jev API key',
@@ -65,6 +67,8 @@ const L = {
       region: 'AWS region', thinking_level: 'Thinking level|gemini: Gemma 4 minimal makes answers ~1 s (empty for Gemini models). openai: sent as reasoning_effort; Ollama: gemma4 / qwen3 need none, gpt-oss needs low',
       max_tokens: 'Max tokens', llm_timeout: 'Timeout (seconds)', language: 'Default language', llm_proxy: 'HTTPS proxy|Do not put a password in this URL',
       note_language: 'Note language',
+      inv_untriaged: 'Findings not triaged yet|count: only counted in the summary (no model calls). run: triaged first, then summarized (manual use)',
+      inv_max_run: 'Max findings triaged per summary|With run: at most this many untriaged findings are triaged for one summary',
       manual_note: 'Write a Note to ES|After triage, write the suggestion to the finding as a Note',
       manual_explain: 'Write the LLM explanation|After triage, ask the LLM for an explanation (counted as manual use)',
       jev_auto_daily: 'Triage per day (automatic)|Findings sent to the decision model per day by automatic runs',
@@ -87,10 +91,12 @@ const L = {
       llm: ['LLM による説明', '「LLM で説明」を押したときだけ使います。プロバイダは選べます。資格情報はアプリごとに保存されます。'],
       note: ['ES の Finding への Note', ''],
       evaluation: ['評価用のキー（サポート用）', 'サポートと一緒に別の判定モデルを評価するときだけ使います（jevtriage ... usekey=alt / alt2）。ここのキーはトリアージには使われず、予備（フォールバック）でもありません。使用中の判定モデルが失敗した場合はエラーになります。サポートから依頼がない限り空欄のままにしてください。'],
+      investigation: ['調査のまとめ', 'ES の調査（Investigation）のまとめの Note（詳細ペイン > 調査 > まとめを書く）は、調査内のすべての Finding の結果を集計します。'],
       manual: ['手動実行', 'ES の Finding のメニュー「Run Second Opinion Triage」（フォームなしで実行）の既定値です。Second Opinion Triage レスポンスアクションのフォームの初期値にも使います。'],
       limits: ['自動実行の上限', '自動実行（検知から動く Second Opinion Triage レスポンスアクションと定期検索）だけに適用する1日の上限です。手動の操作は制限しません。空欄 = 無制限、0 = 1日0件。1日は Splunk サーバーの現地時間で区切ります。'],
     },
     rulesNow: '{m} の判定ルール: 閾値 {t}、順序確認 {o}（{s}）', on: 'あり', off: 'なし', srcBuiltIn: 'モデル別の既定', srcSettings: '下の設定値', show: '表示する', hide: '隠す',
+    ol: { inv_untriaged: { count: '件数のみ', run: 'その場で実行' } },
     usage: '本日の使用量', usageLast: '本日はまだ使用していません。最後に数えた日', usageCols: ['Jev（自動）', 'Jev（手動）', 'LLM 説明（自動）', 'LLM 説明（手動）'], usageNone: '本日はまだ使用していません。',
     f: {
       typesafe_api_key: 'Jev の API キー',
@@ -114,6 +120,8 @@ const L = {
       region: 'AWS リージョン', thinking_level: 'Thinking level|gemini: Gemma 4 は minimal で約1秒（Gemini モデルは空欄）。openai: reasoning_effort として送信。Ollama の gemma4・qwen3 は none、gpt-oss は low',
       max_tokens: '最大トークン数', llm_timeout: 'タイムアウト（秒）', language: '既定の言語', llm_proxy: 'HTTPS プロキシ|URL にパスワードを入れないでください',
       note_language: 'Note の言語',
+      inv_untriaged: 'まだトリアージしていない Finding|件数のみ: まとめに件数だけ書く（判定モデルを呼ばない）。その場で実行: 先にトリアージしてからまとめる（手動の使用として数える）',
+      inv_max_run: '1回のまとめでトリアージする最大件数|その場で実行のとき、未トリアージの Finding をこの件数までトリアージします',
       manual_note: 'ES に Note を書く|トリアージ後に、提案を Note として Finding に書き込む',
       manual_explain: 'LLM の説明を作る|トリアージ後に、LLM に説明を作らせる（手動の利用として数える）',
       jev_auto_daily: 'トリアージ / 日（自動）|自動実行で判定モデルに送る Finding の1日の上限',
@@ -145,6 +153,8 @@ const SECTIONS = [
     { id: 'max_tokens', stanza: 'llm', key: 'max_tokens', num: [100, 4000] }, { id: 'llm_timeout', stanza: 'llm', key: 'timeout', num: [5, 300] },
     { id: 'language', stanza: 'llm', key: 'language', options: ['en', 'ja'] }, { id: 'llm_proxy', stanza: 'llm', key: 'proxy', proxy: true }] },
   { id: 'note', fields: [{ id: 'note_language', stanza: 'es_note', key: 'language', options: ['en', 'ja'] }] },
+  { id: 'investigation', fields: [{ id: 'inv_untriaged', stanza: 'investigation', key: 'untriaged', options: ['count', 'run'] },
+    { id: 'inv_max_run', stanza: 'investigation', key: 'max_run', num: [1, 100] }] },
   { id: 'manual', fields: [{ id: 'manual_note', stanza: 'manual', key: 'write_note', options: ['true', 'false'], bool: true },
     { id: 'manual_explain', stanza: 'manual', key: 'explain', options: ['true', 'false'], bool: true }] },
   // keys for evaluating other decision models with support: hidden unless opened (they are not a fallback)
@@ -356,7 +366,7 @@ function SetupPage({ theme }) {
               <ControlGroup key={f.id} label={l} help={h} labelWidth={240}>
                 {f.options ? (
                   <Select value={vals[f.id]} onChange={set(f.id)} style={{ maxWidth: 360 }}>
-                    {[...new Set([...f.options, vals[f.id]])].map((o) => <Select.Option key={o} value={o} label={o === '' ? T.none : o} />)}
+                    {[...new Set([...f.options, vals[f.id]])].map((o) => <Select.Option key={o} value={o} label={(T.ol && T.ol[f.id] && T.ol[f.id][o]) || (o === '' ? T.none : o)} />)}
                   </Select>
                 ) : <Text value={vals[f.id]} onChange={set(f.id)} style={{ maxWidth: 520 }} />}
               </ControlGroup>);

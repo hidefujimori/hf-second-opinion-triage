@@ -22,10 +22,14 @@ const LIST_SPL = 'search `notable`'
   + ' | lookup jev_triage_latest event_id OUTPUT jev_status jev_error jev_model jev_disposition jev_disposition_raw jev_disposition_confidence jev_es_disposition'
   + ' jev_urgency jev_urgency_confidence jev_escalate jev_tactic jev_policy jev_time jev_rerun_count'
   + ' | where isnotnull(jev_status)'
-  + ' | eval analyst_decided=if(disposition_default="false" OR status_label IN ("Resolved","Closed"), 1, 0)'
-  + ' | eval agree=case(analyst_decided=0, null(), jev_es_disposition=disposition, 1, true(), 0)'
+  + ' | `jev_investigations`'
+  // the analyst's decision: the finding's own disposition first, then a decided investigation, then a closed finding
+  + ' | eval human_src=case(disposition_default="false", "finding", isnotnull(inv_decided), "investigation", status_label IN ("Resolved","Closed"), "finding")'
+  + ' | eval analyst_decided=if(isnotnull(human_src), 1, 0), human_disposition=if(human_src="investigation", inv_decided, disposition)'
+  + ' | eval agree=case(analyst_decided=0, null(), jev_es_disposition=human_disposition, 1, true(), 0)'
   + ' | eval entity=coalesce(user, src, dest, risk_object)'
-  + ' | table _time event_id rule_name security_domain entity urgency disposition_label status_label analyst_decided agree'
+  + ' | table _time event_id rule_name security_domain entity urgency disposition_label status_label analyst_decided agree human_src human_disposition'
+  + ' inv_guid inv_id inv_name inv_status inv_disposition inv_owner'
   + ' jev_status jev_error jev_model jev_disposition jev_disposition_raw jev_disposition_confidence jev_urgency jev_urgency_confidence jev_escalate jev_tactic jev_policy jev_time jev_rerun_count'
   + ' | head 1000';
 
@@ -40,6 +44,14 @@ function fmtTime(t) {
   const d = new Date(t);
   return Number.isNaN(d.getTime()) ? String(t) : d.toLocaleString();
 }
+// ES investigations of a finding (multivalue inv_* fields from the `jev_investigations` macro)
+function invsOf(r) {
+  const g = mv(r.inv_guid); const id = mv(r.inv_id); const nm = mv(r.inv_name); const st = mv(r.inv_status);
+  const dp = mv(r.inv_disposition); const ow = mv(r.inv_owner);
+  return id.map((x, i) => ({ guid: g[i] || '', id: x, name: nm[i] || '', status: st[i] || '', disposition: dp[i] || '', owner: ow[i] || '' }));
+}
+// TODO(1.2): confirm the ES 8.7 page that opens one investigation
+const invUrl = (inv) => createURL('/app/SplunkEnterpriseSecuritySuite/incident_review', { search: inv.id });
 function urlParam(name) {
   const m = new RegExp(`[?&]${name.replace('.', '\\.')}=([^&]*)`).exec(window.location.search);
   return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : null;
@@ -73,7 +85,7 @@ function CmpMark({ c, T }) {
 }
 
 // ---------- filters, tiles, list ----------
-function Filters({ T, f, setF, onRefresh, hasAi }) {
+function Filters({ T, f, setF, onRefresh, hasAi, invIds }) {
   const set = (k) => (e, { value }) => setF({ ...f, [k]: value });
   return (
     <div className="jev-bar">
@@ -102,6 +114,11 @@ function Filters({ T, f, setF, onRefresh, hasAi }) {
           <Select.Option value="*" label={T.all} />
           {['disagree', 'lean', 'agree', 'none'].map((k) => <Select.Option key={k} value={k} label={T[`cmp_${k}`]} />)}
         </Select></label>}
+      {invIds.length > 0 && <label className="f">{T.inv}
+        <Select value={f.inv} onChange={set('inv')}>
+          <Select.Option value="*" label={T.all} /><Select.Option value="+" label={T.invAny} /><Select.Option value="-" label={T.invNone} />
+          {invIds.map((x) => <Select.Option key={x} value={x} label={x} />)}
+        </Select></label>}
       <label className="f" style={{ minWidth: 220 }}>{T.find}
         <Text value={f.text} onChange={set('text')} canClear /></label>
       <Button label={T.refresh} onClick={onRefresh} />
@@ -129,7 +146,7 @@ function Tiles({ T, rows, f, setF }) {
   );
 }
 
-function FindingsTable({ T, rows, sel, onSelect, checked, setChecked, lock, ai }) {
+function FindingsTable({ T, rows, sel, onSelect, checked, setChecked, lock, ai, inv }) {
   if (!rows.length) { return <div className="jev-empty">{T.none}</div>; }
   const allOn = rows.every((r) => checked.has(r.event_id));
   const toggleAll = () => setChecked(() => (allOn ? new Set() : new Set(rows.map((r) => r.event_id))));
@@ -138,7 +155,7 @@ function FindingsTable({ T, rows, sel, onSelect, checked, setChecked, lock, ai }
     <table className="jev-findings">
       <thead><tr>
         <th className="jev-chk"><input type="checkbox" aria-label={T.selAll} title={T.selAll} checked={allOn} disabled={lock} onChange={toggleAll} /></th>
-        {[T.cUrg, T.cDisp, ...(ai ? [T.cAi] : []), T.cRule, T.cEntity, T.cTime, T.cEs, T.cAnalyst].map((h) => <th key={h}>{h}</th>)}</tr></thead>
+        {[T.cUrg, T.cDisp, ...(ai ? [T.cAi] : []), T.cRule, T.cEntity, T.cTime, T.cEs, T.cAnalyst, ...(inv ? [T.cInv] : [])].map((h) => <th key={h}>{h}</th>)}</tr></thead>
       <tbody>
         {rows.map((r) => (
           <tr key={r.event_id} className={`row u-${r.jev_urgency || 'none'}${sel === r.event_id ? ' selected' : ''}${checked.has(r.event_id) ? ' checked' : ''}`} onClick={() => onSelect(r.event_id)}>
@@ -152,7 +169,10 @@ function FindingsTable({ T, rows, sel, onSelect, checked, setChecked, lock, ai }
             <td>{mv(r.entity).slice(0, 2).join(', ')}</td>
             <td className="sub">{fmtTime(r._time)}</td>
             <td className="sub">{r.urgency || ''}</td>
-            <td className="sub">{r.analyst_decided === '1' ? (r.disposition_label || r.status_label || '') : '–'}</td>
+            <td className="sub">{r.analyst_decided !== '1' ? '–' : r.human_src === 'investigation'
+              ? <>{T.esDisp[r.human_disposition] || r.human_disposition}<span className="jev-tag">{T.fromInv}</span></>
+              : (r.disposition_label || r.status_label || '')}</td>
+            {inv && <td className="sub nowrap">{(() => { const v = mv(r.inv_id); return v.length ? `${v[0]}${v.length > 1 ? ` +${v.length - 1}` : ''}` : '–'; })()}</td>}
           </tr>))}
       </tbody>
     </table>
@@ -300,7 +320,8 @@ function Statements({ T, lang, id, r, onDone, st, run }) {
   );
 }
 
-function Pane({ T, lang, id, onChanged }) {
+function Pane({ T, lang, id, onChanged, invs = [] }) {
+  const [noteTo, setNoteTo] = useState('');
   const [rec, setRec] = useState(undefined);
   const [err, setErr] = useState('');
   const [expl, setExpl] = useState(null);
@@ -336,6 +357,13 @@ function Pane({ T, lang, id, onChanged }) {
     return { ok: false, msg: `${T.failed}: ${x.jev_explain_status || x.jev_persist_error || ''}` };
   });
   const note = () => runAc(async () => {
+    if (noteTo) {
+      const inv = invs.find((v) => v.guid === noteTo) || {};
+      const y = (await search(`| inputlookup jev_triage_latest where event_id=${q(id)} | jevnote lang=${lang} target=${q(noteTo)}`
+        + ' | table jev_note_target_status jev_note_target_id'))[0] || {};
+      return y.jev_note_target_status === 'ok' ? { ok: true, msg: `${fmt(T.noteInvDone, { id: inv.id || noteTo })} (${y.jev_note_target_id || ''})` }
+        : { ok: false, msg: `${T.failed}: ${y.jev_note_target_status || ''}` };
+    }
     const rows = await search(`| inputlookup jev_triage_latest where event_id=${q(id)} | jevnote persist=true lang=${lang}`
       + ' | table jev_note_status jev_note_id jev_persist_error');
     const x = rows[0] || {};
@@ -407,6 +435,11 @@ function Pane({ T, lang, id, onChanged }) {
         {rec !== undefined && (
           <Sec title=" ">
             <div className="jev-actions">
+              {invs.length > 0 && <label className="f sub">{T.noteTo}{' '}
+                <Select value={noteTo} onChange={(e, { value }) => setNoteTo(value)} disabled={acSt.busy}>
+                  <Select.Option value="" label={T.noteToFinding} />
+                  {invs.map((v) => <Select.Option key={v.guid} value={v.guid} label={fmt(T.noteToInv, { id: v.id })} />)}
+                </Select></label>}
               <Button appearance="primary" label={T.note} onClick={note} disabled={acSt.busy || !ok} />
               <Button label={T.rerun} onClick={rerunNow} disabled={acSt.busy} />
               <Button label={T.openEs} to={esUrl} openInNewContext />
@@ -503,6 +536,44 @@ function GuideColumn({ T, lang, id, listRow, ai }) {
 }
 
 // ---------- detail: ES AI (left), Jev (middle), decision guide (right) ----------
+function InvSummary({ T, lang, inv }) {
+  const [llm, setLlm] = useState(false);
+  const [st, run] = useAction();
+  const go = () => run(async () => {
+    const x = (await search(`| jevinvestigation id=${q(inv.guid || inv.id)} note=true lang=${lang}${llm ? ' llm=true' : ''}`))[0] || {};
+    const ran = x.inv_ran ? fmt(T.invSumRan, { ok: x.inv_ran_ok || 0, n: x.inv_ran }) : '';
+    if (x.inv_status_msg === 'ok') {
+      return { ok: true, msg: fmt(T.invSumDone, { id: inv.id, n: x.inv_findings, u: T[x.inv_top_urgency] || '–', tp: x.inv_tp, und: x.inv_undetermined, untr: x.inv_untriaged }) + ran
+        + (x.inv_llm_error ? ` / LLM: ${x.inv_llm_error}` : '') };
+    }
+    if (x.inv_status_msg === 'already written') { return { ok: true, msg: fmt(T.invSumAlready, { id: inv.id }) }; }
+    return { ok: false, msg: `${T.failed}: ${x.inv_status_msg || ''}` };
+  });
+  return (
+    <div className="jev-inv-sum">
+      <Button label={T.invSum} onClick={go} disabled={st.busy} />
+      <label className="sub"><input type="checkbox" checked={llm} disabled={st.busy} onChange={(e) => setLlm(e.target.checked)} /> {T.invSumLlm}</label>
+      <span className={`jev-status ${st.cls}`}>{st.busy ? T.working : st.msg}</span>
+    </div>
+  );
+}
+
+function Investigations({ T, lang, invs }) {
+  return (
+    <div className="jev-inv">
+      <div className="t">{T.invTitle}</div>
+      {invs.map((v) => (
+        <div className="jev-inv-row" key={v.guid || v.id}>
+          <div className="h"><a href={invUrl(v)} target="_blank" rel="noopener noreferrer"><b>{v.id}</b></a> {v.name}</div>
+          <div className="sub">{[`${T.invStatus}: ${T.invSt[v.status] || v.status || '–'}`, `${T.invOwner}: ${v.owner || '–'}`,
+            `${T.invDisp}: ${T.esDisp[v.disposition] || v.disposition || '–'}`].join(' · ')}</div>
+          <InvSummary T={T} lang={lang} inv={v} />
+        </div>))}
+      <div className="sub">{T.invSumHint}</div>
+    </div>
+  );
+}
+
 function Detail({ lang, id, listRow, mcfg, onClose, onChanged }) {
   // texts name the model that produced this result (Jev, Clef 27B, ...)
   const T = useMemo(() => localize(TEXT[lang], modelLabel(listRow.jev_model, mcfg)), [lang, listRow.jev_model, mcfg]);
@@ -528,9 +599,10 @@ function Detail({ lang, id, listRow, mcfg, onClose, onChanged }) {
               </>)}
           </div>)}
       </div>
+      {invsOf(listRow).length > 0 && <Investigations T={T} lang={lang} invs={invsOf(listRow)} />}
       <div className="jev-cols">
         <EsAiColumn key={`ai-${id}`} T={T} lang={lang} id={id} Badge={Badge} Chip={Chip} onData={setAi} />
-        <Pane key={id} T={T} lang={lang} id={id} onChanged={onChanged} />
+        <Pane key={id} T={T} lang={lang} id={id} onChanged={onChanged} invs={invsOf(listRow)} />
         <GuideColumn key={`g-${id}`} T={T} lang={lang} id={id} listRow={listRow} ai={ai} />
       </div>
     </div>
@@ -601,7 +673,7 @@ function TriagePage({ theme }) {
     rest('configs/conf-jev_triage/jev').then((d) => setMcfg((((d || {}).entry || [])[0] || {}).content || {}), () => {});
   }, []);
   const T = useMemo(() => localize(TEXT[lang], modelLabel('', mcfg)), [lang, mcfg]);
-  const [f, setF] = useState({ time: '-90d', disp: '*', urg: '*', conf: '0', es: '*', ai: '*', text: '' });
+  const [f, setF] = useState({ time: '-90d', disp: '*', urg: '*', conf: '0', es: '*', ai: '*', inv: '*', text: '' });
   const [rows, setRows] = useState(null);
   const [err, setErr] = useState('');
   const [sel, setSel] = useState(() => urlParam('event_id') || urlParam('form.event_id'));
@@ -640,6 +712,10 @@ function TriagePage({ theme }) {
       if (f.disp !== '*' && r.jev_disposition !== f.disp) { return false; }
       if (f.urg !== '*' && r.jev_urgency !== f.urg) { return false; }
       if (f.es !== '*' && String(r.analyst_decided) !== f.es) { return false; }
+      if (f.inv !== '*') {
+        const v = mv(r.inv_id);
+        if (f.inv === '+' ? !v.length : f.inv === '-' ? v.length : !v.includes(f.inv)) { return false; }
+      }
       if (r.jev_status === 'ok' && (num(r.jev_disposition_confidence) || 0) < minc) { return false; }
       if (text && ![r.rule_name, mv(r.entity).join(' '), r.jev_tactic, r.event_id].join(' ').toLowerCase().includes(text)) { return false; }
       return true;
@@ -651,6 +727,7 @@ function TriagePage({ theme }) {
   }, [rows, f, ai]);
 
   const listRow = (rows || []).find((x) => x.event_id === sel) || {};
+  const invIds = useMemo(() => [...new Set((rows || []).flatMap((r) => mv(r.inv_id)))].sort(), [rows]);
   return (
     <div className={`jev-root${theme === 'dark' ? ' dark' : ''}`}>
       <div className="jev-top">
@@ -660,7 +737,7 @@ function TriagePage({ theme }) {
       {pstate && pstate.act && <Message type="warning">{fmt(T.customQ, { id: pstate.act.id, model: pstate.act.model, by: pstate.act.applied_by })}</Message>}
       {pstate && pstate.st.support_on === '1' && <Message type="info">{fmt(T.supportOn, { t: new Date(Number(pstate.st.support_expires) * 1000).toLocaleString(), by: pstate.st.support_by })}</Message>}
       {autoRun && sel && <AutoRun T={T} id={sel} onDone={() => { load(); setDetailKey((k) => k + 1); }} onCancel={() => setAutoRun(false)} />}
-      <Filters T={T} f={f} setF={setF} onRefresh={load} hasAi={Object.keys(ai).length > 0} />
+      <Filters T={T} f={f} setF={setF} onRefresh={load} hasAi={Object.keys(ai).length > 0} invIds={invIds} />
       {err && <Message type="error">{err}</Message>}
       <Tiles T={T} rows={rows || []} f={f} setF={setF} />
       <BulkBar T={T} checked={checked} rows={rows || []} earliest={f.time === '0' ? '0' : f.time}
@@ -668,7 +745,7 @@ function TriagePage({ theme }) {
       <div className={`jev-split${sel ? ' open' : ''}`}>
         <div className="jev-list">{rows == null ? <div className="jev-empty">{T.loading}</div>
           : <FindingsTable T={T} rows={shown} sel={sel} onSelect={setSel} checked={checked} setChecked={setChecked} lock={bulkBusy}
-            ai={Object.keys(ai).length ? ai : null} />}</div>
+            ai={Object.keys(ai).length ? ai : null} inv={invIds.length > 0} />}</div>
         {sel && <Detail key={`${sel}-${detailKey}`} lang={lang} id={sel} listRow={listRow} mcfg={mcfg} onClose={() => setSel(null)} onChanged={load} />}
       </div>
     </div>

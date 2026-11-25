@@ -7,6 +7,8 @@ Output: jev_note_status, jev_note_id, jev_note_time, jev_note_for, jev_note_expl
 an explanation made after that Note is added as a second, explanation-only Note; force=true writes again).
 Typical use:  | `jev_note("<event_id>")`
 kind=guide writes the decision guide (Jev vs ES AI SOC Analyst) instead: jev_note_guide_status / _id / _time / _for.
+target=<ES-00002 | investigation GUID> writes the suggestion on an investigation that contains the finding instead of the
+finding itself (always written; output jev_note_target_status / jev_note_target_id, the finding's Note records are kept).
 Requires mc_investigation_write for the user running the search.
 """
 import json
@@ -21,7 +23,7 @@ sys.path.insert(0, HERE)
 
 from splunklib.searchcommands import Configuration, Option, StreamingCommand, dispatch, validators  # noqa: E402
 
-from jev_triage import conditions, guide, modelname, note, persist, settings  # noqa: E402
+from jev_triage import conditions, guide, investigations, modelname, note, persist, settings  # noqa: E402
 
 
 @Configuration(local=True)
@@ -30,6 +32,7 @@ class JevNoteCommand(StreamingCommand):
     lang = Option(require=False, default=None)
     persist = Option(require=False, validate=validators.Boolean(), default=False)
     kind = Option(require=False, default="suggestion", validate=validators.Set("suggestion", "guide"))
+    target = Option(require=False, default=None)
 
     def _default_lang(self):   # not "_lang": splunklib keeps the value of option "lang" in self._lang
         try:
@@ -38,6 +41,8 @@ class JevNoteCommand(StreamingCommand):
             return "en"
 
     def stream(self, records):
+        if self.target:   # the finding's KV record is not changed (save_kv replaces whole records)
+            return self._stream(records)
         return _persisting(self, self._stream(records))
 
     def _labels(self, lang):
@@ -92,6 +97,34 @@ class JevNoteCommand(StreamingCommand):
                 out["jev_note_guide_status"] = "error: %s" % str(e)[:300]
             yield out
 
+    def _to_investigation(self, records, lang, jev_cfg):
+        """target=: the suggestion Note on an investigation that contains the finding."""
+        try:
+            inv = investigations.get(self.service, self.target)
+        except Exception as e:
+            inv, err = None, "error: cannot read investigations (%s)" % str(e)[:200]
+        else:
+            err = "error: investigation not found"
+        for rec in records:
+            rec = dict(rec, jev_model_label=modelname.for_record(rec, jev_cfg))
+            out = {"event_id": rec.get("event_id")}   # nothing of the finding's own Note records is changed
+            if not inv:
+                out["jev_note_target_status"] = err
+            elif rec.get("jev_status") != "ok":
+                out["jev_note_target_status"] = "skipped (no Jev result)"
+            elif not investigations.contains(self.service, inv["_key"], rec.get("event_id") or ""):
+                out["jev_note_target_status"] = "error: the finding is not in %s" % (inv.get("display_id") or inv["_key"])
+            else:
+                title, content = note.build(rec, lang, self._labels(lang))
+                try:
+                    body = self._post(inv["_key"], "%s — %s" % (title, rec.get("rule_name") or rec.get("event_id")), content)
+                    out["jev_note_target_status"] = "ok"
+                    out["jev_note_target_id"] = body.get("id", "")
+                    out["jev_note_target"] = inv.get("display_id") or inv["_key"]
+                except Exception as e:
+                    out["jev_note_target_status"] = "error: %s" % str(e)[:300]
+            yield out
+
     def _stream(self, records):
         lang = (self.lang or self._default_lang()).lower()
         if self.kind == "guide":
@@ -99,6 +132,10 @@ class JevNoteCommand(StreamingCommand):
                 yield out
             return
         jev_cfg = settings.stanza(self.service, "jev", {"model": "", "display_name": ""})
+        if self.target:
+            for out in self._to_investigation(records, lang, jev_cfg):
+                yield out
+            return
         for rec in records:
             rec = dict(rec, jev_model_label=modelname.for_record(rec, jev_cfg))
             out = dict(rec)

@@ -39,6 +39,10 @@ proxy = <url>
 [es_note]
 language = en|ja
 
+[investigation]
+untriaged = count|run
+max_run = <integer>
+
 [manual]
 write_note = <bool>
 explain = <bool>

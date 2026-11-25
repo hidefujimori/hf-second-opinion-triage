@@ -11,6 +11,7 @@ const CSS = `
 .jev-root.dark .jev-chip.Benign { background:rgba(96,165,250,.12); } .jev-root.dark .jev-chip.error { color:#1f2933; }
 .jev-root.dark .jev-tag { background:#3b2a63; color:#ddd6fe; }
 .jev-root.dark .jev-rerun .t { color:#c4b5fd; }
+.jev-root.dark .jev-inv .t { color:#67e8f9; }
 .jev-root.dark .jev-badge.none { background:#4b5563; color:#e5e7eb; }
 .jev-root * { box-sizing:border-box; }
 .jev-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:10px; }
@@ -116,6 +117,11 @@ ul.jev-facts { margin:0; padding-left:18px; } ul.jev-facts li { margin:3px 0; }
 .jev-policy { background:var(--policy); border:1px solid var(--policyline); border-radius:4px; padding:6px 8px; }
 .jev-rerun { background:var(--rerun); border:1px solid var(--rerunline); border-left:4px solid #7c3aed; border-radius:4px; padding:8px 10px; margin-bottom:14px; line-height:1.5; }
 .jev-rerun .t { font-weight:700; color:#7c3aed; margin-bottom:2px; }
+.jev-inv { border:1px solid var(--rerunline); border-left:4px solid #0e7490; border-radius:4px; padding:8px 10px; margin:0 0 10px; line-height:1.5; }
+.jev-inv .t { font-weight:700; color:#0e7490; margin-bottom:4px; }
+.jev-inv-row { padding:4px 0; border-top:1px dashed var(--rerunline); min-width:0; overflow-wrap:anywhere; }
+.jev-inv-row:first-of-type { border-top:none; }
+.jev-inv-sum { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:4px; }
 .jev-explain { white-space:pre-wrap; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:10px; line-height:1.55; }
 .jev-explain.placeholder { color:var(--muted); font-style:italic; }
 .jev-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
