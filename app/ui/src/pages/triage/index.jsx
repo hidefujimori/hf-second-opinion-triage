@@ -50,8 +50,8 @@ function invsOf(r) {
   const dp = mv(r.inv_disposition); const ow = mv(r.inv_owner);
   return id.map((x, i) => ({ guid: g[i] || '', id: x, name: nm[i] || '', status: st[i] || '', disposition: dp[i] || '', owner: ow[i] || '' }));
 }
-// TODO(1.2): confirm the ES 8.7 page that opens one investigation
-const invUrl = (inv) => createURL('/app/SplunkEnterpriseSecuritySuite/incident_review', { search: inv.id });
+// ES 8.7: one investigation opens in the analyst queue page (mission_control) at #/<guid>/overview
+const invUrl = (inv) => `${createURL('/app/SplunkEnterpriseSecuritySuite/mission_control')}#/${encodeURIComponent(inv.guid)}/overview`;
 function urlParam(name) {
   const m = new RegExp(`[?&]${name.replace('.', '\\.')}=([^&]*)`).exec(window.location.search);
   return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : null;
