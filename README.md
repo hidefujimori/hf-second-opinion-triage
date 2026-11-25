@@ -33,6 +33,9 @@ written to the ES finding as a Note. ES fields are never changed: analysts decid
 - Translation of the ES AI SOC Analyst text into Japanese with the app's LLM (1.1): summary and justification, or
   everything; stored and reused, never sent to the decision model
 - Light and dark themes (1.1)
+- ES investigations (1.2): the investigation of each finding in the list and the detail pane, a filter, the
+  investigation's disposition counted in the agreement rate, a summary Note of all findings of an investigation
+  (optionally with an LLM summary), and the suggestion Note written to the finding or to its investigation
 - Splunk Cloud: passes AppInspect cloud vetting and runs on Splunk Cloud
 
 ## Documentation
@@ -60,7 +63,7 @@ Release packages (`second_opinion_triage-<version>.spl`) are attached to GitHub 
 
 ## Status
 
-Version 1.1 (latest: see [Releases](../../releases)). Tested on Splunk Enterprise 10.4.2 with
+Version 1.2 (latest: see [Releases](../../releases)). Tested on Splunk Enterprise 10.4.2 with
 Enterprise Security 8.7.1, and on Splunk Cloud 10.4 with Enterprise Security 8.7.0 / 8.7.1 (ES AI SOC Analyst enabled).
 Release notes: [docs/release-notes](docs/release-notes).
 Accuracy on the evaluation set (BOTS v3, 33 labelled findings, Jev 1.13): disposition 32/33, no true positive missed,

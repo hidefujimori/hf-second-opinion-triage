@@ -29,6 +29,9 @@ Splunk アプリ（`second_opinion_triage`、旧 `TA-jev-triage`）です。Find
   試した内容はすべて Note に書く。管理者が独自の申告を追加できる
 - ES AI SOC Analyst の文章をアプリの LLM で日本語に翻訳（1.1）: 要約と根拠、またはすべて。保存して使い回し、判定モデルには渡さない
 - ライト・ダークの両テーマに対応（1.1）
+- ES の調査（Investigation）に対応（1.2）: 一覧と詳細ペインに Finding が入っている調査を表示、調査での絞り込み、調査の
+  Disposition を一致率に反映、調査内のすべての Finding のまとめを Note に（任意で LLM のまとめ付き）、提案の Note を
+  Finding か調査のどちらに書くか選べる
 - Splunk Cloud 対応: AppInspect の Cloud 向け審査に合格し、Splunk Cloud で動作確認済み
 
 ## ドキュメント
@@ -56,7 +59,7 @@ Splunk アプリ（`second_opinion_triage`、旧 `TA-jev-triage`）です。Find
 
 ## 状況
 
-バージョン 1.1（最新は [Releases](../../releases) を参照）。Splunk Enterprise 10.4.2 ＋ Enterprise Security 8.7.1、
+バージョン 1.2（最新は [Releases](../../releases) を参照）。Splunk Enterprise 10.4.2 ＋ Enterprise Security 8.7.1、
 および Splunk Cloud 10.4 ＋ Enterprise Security 8.7.0 / 8.7.1（ES AI SOC Analyst 有効）で検証済み。リリースノート: [docs/release-notes](docs/release-notes)。
 評価データ（BOTS v3、正解付き Finding 33件、Jev 1.13）での精度: Disposition 32/33、TP の見逃しなし、Urgency 完全一致 31/33・1段階以内 33/33。
 

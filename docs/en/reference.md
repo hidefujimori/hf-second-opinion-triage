@@ -21,12 +21,15 @@ Normally changed on the Setup page. Defaults are in `default/jev_triage.conf`; c
 | `[enrichment] enabled`, `max_facts`, `shared_entities` | true, 12, `*.amazonaws.com,…` | Context collection; patterns never used as join keys |
 | `[llm] provider`, `model`, `endpoint`, `region`, `thinking_level`, `max_tokens`, `timeout`, `language`, `proxy` | anthropic, —, —, —, —, 600, 60, en, — | LLM for explanations. `thinking_level`: gemini → thinkingLevel (`minimal` for Gemma 4); openai → reasoning_effort (Ollama: `none` for gemma4 / qwen3, `low` for gpt-oss). OpenAI-compatible requests always send `stream: false` |
 | `[es_note] language` | en | Language of Notes |
+| `[investigation] untriaged`, `max_run` | count, 20 | Investigation summary (1.2): findings of the investigation without a Jev result are only counted (`count`) or triaged first (`run`, at most `max_run` per summary, manual use) |
 | `[limits] llm_auto_daily` | 100 | Automatic LLM explanations per day (empty = no limit) |
 | `[limits] jev_auto_daily` | empty | Findings sent to Jev per day by automatic runs |
 
 Macros: `jev_cloudtrail` (CloudTrail data), `jev_endpoint` (endpoint process data and Windows Security events),
 `jev_guardduty` (GuardDuty findings, default `index=* sourcetype=aws:cloudwatch:guardduty`),
-`jev_findings` (findings source, `` `notable` ``).
+`jev_findings` (findings source, `` `notable` ``), `jev_investigations` (1.2: the ES investigations of each finding, from
+the ES lookups `mc_findings_lookup` and `mc_investigations_lookup`; fields `inv_guid`, `inv_id`, `inv_name`, `inv_status`,
+`inv_disposition`, `inv_owner`, multivalue when a finding is in several investigations, and `inv_decided`).
 
 Source addresses: the country comes from `iplocation`; the network owner comes from the ASN data of Enterprise Security
 (threat intelligence source `maxmind_geoip_asn_ipv4`, which needs a free MaxMind license key in its URL). Without that
@@ -65,6 +68,8 @@ Keys: `storage/passwords`, realm `second_opinion_triage`, names `typesafe_api_ke
 | `jevguide [lang=en\|ja] [force=true] [persist=true]` | Decision guide (Jev vs ES AI SOC Analyst) written by the LLM |
 | `jevexplain [lang=en\|ja] [force=true] [persist=true] [auto=true min_urgency=… dispositions=…]` | LLM explanation of rows of `jev_triage_latest` |
 | `jevnote [lang=en\|ja] [force=true] [persist=true] [kind=guide]` | Write a Note on the ES finding (the suggestion, or the decision guide) |
+| `jevnote target=<ES-00001\|investigation GUID> [lang=en\|ja]` | Write the suggestion Note on an ES investigation that contains the finding instead (1.2). Always written; the finding's own Note record is not changed (`jev_note_target_status`, `jev_note_target_id`) |
+| `jevinvestigation id=<ES-00001\|GUID> [note=true] [llm=true] [untriaged=count\|run] [force=true] [lang=en\|ja]` | Summary of the Jev results of all findings in an ES investigation (1.2): one row with `inv_findings`, `inv_top_urgency`, `inv_tp`, `inv_undetermined`, `inv_untriaged`, `inv_errors`, `inv_ai_disagree`, `inv_statement_conflict`, `inv_dispositions`. `note=true` writes it as a Note on the investigation (not again while the results are the same, unless `force=true`); `llm=true` adds a short LLM summary of the stored facts and results |
 | `jevmigrate [action=plan\|run] [source=TA-jev-triage]` | Copy settings, keys and KV data from the old app TA-jev-triage (admins; once, after the 0.11.0 rename) |
 | `jevcheck [target=jev\|llm\|all]` | Connection test (never prints keys) |
 | `jevqueue` | Works the response-action queue (scheduled) |
@@ -90,6 +95,7 @@ context searches (`name ms(xcount)`). Both are search output only and are not st
 | index `jev_triage` | History (`jev:triage:result` from automatic runs, `jev:triage:json` from Re-run) |
 | KV store `jev_conditions` | Analyst statements added by admins (Setup > Analyst statements) |
 | KV store `jev_ai_translations` | Translations of the ES AI texts, one per finding and language |
+| KV store `jev_investigation_notes` | Last investigation summary Note per ES investigation (1.2; to avoid writing the same summary twice) |
 | KV store `jev_prompt_versions` | Edited versions of the Jev questions (support mode) |
 | KV store `jev_prompt_state` | Support mode on/off and the version in use per decision model |
 | index `jev_triage` sourcetype `jev:prompt:audit` | Who started support mode, saved, tested, applied, reverted, exported or imported which version, when and why |
@@ -221,6 +227,8 @@ contains API keys, and the endpoint and proxy hosts are hidden.
 | Detection runs but nothing is triaged | Is *Second Opinion Triage - Response Queue* enabled? Look at `jev_usage` limits (status *skipped*) |
 | Command errors | The job's search.log (Job Inspector) — look for `ChunkedExternProcessor` |
 | Slow triage | Point the enrichment macros at real indexes; lower `[jev] parallel` if the search head is busy |
+| The Investigation column and the investigation box stay empty (1.2) | The user needs an ES role that can read investigations (KV `missioncontrol/mc_incidents`, e.g. `ess_analyst`), and ES 8.x |
+| Investigation summary fails with `cannot read investigations` or HTTP 403 | Same; writing the Note also needs the ES capability to edit investigations |
 
 ## Known limitations
 
@@ -232,6 +240,8 @@ contains API keys, and the endpoint and proxy hosts are hidden.
   Splunk SDK for Python is 2.1.1 (3.x needs Python 3.13 only), the UI bundle contains SplunkJS
   layout code from `@splunk/react-page`.
 - Daily limits can be passed by up to the number of findings processed in parallel.
+- Investigations (1.2): the investigation summary covers findings stored with a finding id of ES (findings and finding
+  groups); the ES AI verdict of the investigation itself is not used, only the verdicts of its findings.
 - Running the response action by hand repeatedly on the same finding with *Write ES Note* on adds
   a new Note each time (each run is a new result).
 - Accuracy figures come from 33 BOTS v3 findings; real data will differ.

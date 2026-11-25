@@ -4,7 +4,7 @@
 
 This page shows how Second Opinion Triage turns an ES finding into a suggestion: which Enterprise Security data it
 reads, which facts it passes to the decision model, how the answer becomes a disposition and an urgency, and which
-kinds of context were tried and left out. Version 1.1.
+kinds of context were tried and left out. Version 1.2.
 
 ## 1. Overall flow
 
@@ -160,6 +160,11 @@ flowchart TD
 With analyst statements (1.1), the state also carries `analyst_statements`, apart from the facts. The model takes
 them as true, so the same run also asks without them; the result without statements and a warning when the facts
 alone point to a true positive are kept and written to the Note.
+
+ES investigations (1.2) are not part of the state either: the model judges each finding on its own facts. The app
+reads the investigations only to show them, to use an investigation's disposition as the analyst's decision in the
+agreement rate (when the finding's own disposition is still Undetermined), and to aggregate the stored results of an
+investigation's findings into a summary Note (optionally with an LLM text written from those stored facts and results).
 
 The threshold and the order check depend on the model, and the rules used are kept in `jev_rules`; the reasons for
 any change to the model's answer are in `jev_policy`. The wording of the questions can be changed in support mode;

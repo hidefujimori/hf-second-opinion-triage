@@ -8,9 +8,13 @@ shows Jev's **suggested disposition** (TP, FP, Benign, Undetermined) and **sugge
 ## The triage page
 
 - **Filters** (top): finding time, Jev disposition, Jev urgency, minimum confidence, ES status
-  (decided by an analyst or not), and a text search.
+  (decided by an analyst or not), investigation (1.2: in an investigation, not in one, or one investigation), and a
+  text search.
 - **Tiles**: counts per urgency and disposition, errors, and the agreement between Jev and the
   analysts' final dispositions. Click a tile to filter the list; click again to clear it.
+  The analyst's disposition is the finding's own one; when the finding is still *Undetermined*, the disposition of
+  an ES investigation that contains it is used (1.2, marked *investigation* in the *Analyst* column).
+- **Investigation** column (1.2): the ES investigation the finding is in (ES-00001 …; *+n* when it is in several).
 - **List**: highest urgency first. Critical rows have a red edge, High rows an orange one.
   A small **re-run** tag marks findings that were triaged again.
 - **Decision guide** (0.9.14): a third column to the right of ES AI and Jev. It compares the two (a fixed table) and
@@ -33,6 +37,25 @@ shows Jev's **suggested disposition** (TP, FP, Benign, Undetermined) and **sugge
 
 From ES you can open a finding directly: finding menu (⋯) > **Open in Second Opinion Triage**.
 
+### Findings in an ES investigation (1.2)
+
+When the finding is in one or more ES investigations, the detail pane shows them above the columns: ID (a link to
+the investigation in ES), name, status, owner and disposition.
+
+- **Write summary to the investigation** collects the results of all findings in the investigation and writes them
+  as a Note on the investigation: number of findings, highest suggested urgency, suggested dispositions, the findings
+  suggested as true positive, undetermined findings, findings not triaged yet, findings where the ES AI SOC Analyst
+  disagrees, and findings whose result was moved away from a true positive by analyst statements.
+  *Add an LLM summary* adds a short text written by the LLM from the stored facts and results.
+  The same summary is not written twice while the results have not changed.
+- Findings of the investigation that have not been triaged yet are only counted by default. An admin can choose on
+  **Setup > Investigation summary** to triage them first (up to 20 per summary by default).
+- **Write Note to** next to *Write Note to ES* chooses where the suggestion Note goes: the finding itself or an
+  investigation that contains it.
+- Nothing is changed in the investigation except the Note: its status, owner, urgency and disposition stay as they are.
+- You need an ES role that can read and write investigations (for example `ess_analyst`). Without it, the
+  investigation fields stay empty.
+
 ### Actions in the detail pane
 
 | Button | What it does |
@@ -40,6 +63,7 @@ From ES you can open a finding directly: finding menu (⋯) > **Open in Second O
 | **Explain with LLM** | Asks the LLM to explain the current suggestion (about 5 s). The text is kept; **Explain again** makes a new one |
 | **Write Note to ES** | Adds the suggestion (and the explanation, if there is one) as a Note on the ES finding. One Note per result. If you make the explanation after the Note was written (or make a new one with **Explain again**), pressing the button again adds the explanation as a second Note ("LLM explanation (added)"); otherwise it says *already written* |
 | **Re-run triage** | Sends the finding to Jev again and replaces the result. The old explanation and Note record are cleared (they belonged to the old result); the pane shows *Triaged again* with the previous result. Ask the LLM again if you need an explanation |
+| **Write Note to** (1.2) | Shown when the finding is in an ES investigation: write the Note to the finding or to that investigation |
 | **Open in ES** | Opens the finding in the ES Analyst Queue |
 
 ### Re-triage with your statements (1.1)

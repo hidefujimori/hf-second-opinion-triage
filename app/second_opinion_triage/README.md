@@ -110,6 +110,9 @@ in `local/macros.conf` (defaults search `index=*`, which is slow):
   `jev_ai_translations`, 1.1)
 - REST `/services/second_opinion_triage/call` (`bin/jev_call.py`, capability `jev_triage_run`): calls Jev and the LLM
   for users who cannot read the keys (analysts); the keys stay in splunkd (1.1)
+- `| jevinvestigation id=<ES-00001|guid> [note=true] [llm=true]`: summary of an ES investigation (KV
+  `jev_investigation_notes`, `bin/jev_triage/investigations.py`, `invnote.py`); `jevnote target=` writes the suggestion
+  to an investigation; macro `jev_investigations` (1.2)
 
 ## Changes in 0.5.0
 - Faster: findings are processed in parallel (`[jev] parallel`, default 4), the same enrichment search is

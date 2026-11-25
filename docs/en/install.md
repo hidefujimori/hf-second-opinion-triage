@@ -98,6 +98,7 @@ the API key can stay empty.
 | Admin who runs Setup | `admin_all_objects` or `edit_storage_passwords` (Splunk Cloud: `sc_admin`) |
 | Analysts using the app (buttons, ad hoc response action) | the role **`jev_triage_user`** (shipped with the app; capability `jev_triage_run`). Their searches ask the app's endpoint `/services/second_opinion_triage/call` to call Jev and the LLM, so the keys stay inside Splunk: analysts never receive them, do not need `list_storage_passwords` (which would let them read every credential shared with everyone) and cannot read the keys in Setup. Since 0.15.0 the stored keys are readable by admins only: after upgrading, click **Save** on the Setup page once |
 | Writing Notes to ES findings | `mc_investigation_write` (ES roles `ess_analyst`, `ess_admin` have it) |
+| Seeing ES investigations and writing investigation summaries (1.2) | read access to ES's KV `missioncontrol/mc_incidents` and `mc_investigation_write` (`ess_analyst`, `ess_admin`) |
 | History copy in index `jev_triage` from the **Re-run triage** button | `edit_tcp`. Without it only the KV store is updated |
 | Detections with the response action | They run as the detection owner (usually `nobody` → `splunk-system-user`), which already has the needed rights |
 

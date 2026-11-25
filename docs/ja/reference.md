@@ -21,12 +21,15 @@
 | `[enrichment] enabled`, `max_facts`, `shared_entities` | true, 12, `*.amazonaws.com,…` | 情報収集。結合キーに使わないパターン |
 | `[llm] provider`, `model`, `endpoint`, `region`, `thinking_level`, `max_tokens`, `timeout`, `language`, `proxy` | anthropic, —, —, —, —, 600, 60, en, — | 説明に使う LLM。`thinking_level`: gemini → thinkingLevel（Gemma 4 は `minimal`）、openai → reasoning_effort（Ollama の gemma4・qwen3 は `none`、gpt-oss は `low`）。OpenAI 互換には常に `stream: false` を送ります |
 | `[es_note] language` | en | Note の言語 |
+| `[investigation] untriaged`、`max_run` | count、20 | 調査のまとめ（1.2）: 調査内で Jev の結果がない Finding を件数だけ数える（`count`）か、先にトリアージする（`run`、1回のまとめで `max_run` 件まで、手動の使用） |
 | `[limits] llm_auto_daily` | 100 | 自動の LLM 説明の1日の上限（空欄 = 無制限） |
 | `[limits] jev_auto_daily` | 空欄 | 自動実行で Jev に送る Finding の1日の上限 |
 
 マクロ: `jev_cloudtrail`（CloudTrail のデータ）、`jev_endpoint`（エンドポイントのプロセスデータと Windows のセキュリティイベント）、
 `jev_guardduty`（GuardDuty の検出結果。既定は `index=* sourcetype=aws:cloudwatch:guardduty`）、
-`jev_findings`（Finding の取得元、`` `notable` ``）。
+`jev_findings`（Finding の取得元、`` `notable` ``）、`jev_investigations`（1.2: 各 Finding が入っている ES の調査。ES の
+ルックアップ `mc_findings_lookup` と `mc_investigations_lookup` から `inv_guid`、`inv_id`、`inv_name`、`inv_status`、
+`inv_disposition`、`inv_owner` を返す。複数の調査に入っているときは複数値。ほかに `inv_decided`）。
 
 送信元アドレス: 国は `iplocation`、ネットワークの持ち主は Enterprise Security の ASN データ（脅威インテリジェンスのソース
 `maxmind_geoip_asn_ipv4`。URL に MaxMind の無料ライセンスキーが必要）から付けます。このデータがない場合は持ち主を省きます。送信元アドレスが Enterprise Security の脅威インテリジェンス（`ip_intel`: ダウンロードした
@@ -63,6 +66,8 @@ GuardDuty（常に）: 詳細はその検出結果のインスタンスまたは
 | `jevguide [lang=en\|ja] [force=true] [persist=true]` | 判断ガイド（Jev と ES AI SOC Analyst の比較）を LLM で作成 |
 | `jevexplain [lang=en\|ja] [force=true] [persist=true] [auto=true min_urgency=… dispositions=…]` | `jev_triage_latest` の行の LLM 説明 |
 | `jevnote [lang=en\|ja] [force=true] [persist=true] [kind=guide]` | ES の Finding に Note を書く（提案、または判断ガイド） |
+| `jevnote target=<ES-00001\|調査の GUID> [lang=en\|ja]` | 提案の Note を、Finding の代わりにその Finding が入っている ES の調査に書く（1.2）。毎回書き込み、Finding 自身の Note の記録は変えない（`jev_note_target_status`、`jev_note_target_id`） |
+| `jevinvestigation id=<ES-00001\|GUID> [note=true] [llm=true] [untriaged=count\|run] [force=true] [lang=en\|ja]` | ES の調査内のすべての Finding の Jev の結果のまとめ（1.2）。1行で `inv_findings`、`inv_top_urgency`、`inv_tp`、`inv_undetermined`、`inv_untriaged`、`inv_errors`、`inv_ai_disagree`、`inv_statement_conflict`、`inv_dispositions` を返す。`note=true` で調査に Note として書く（結果が同じなら `force=true` がない限り二度書かない）。`llm=true` で保存した事実と結果から LLM の短いまとめを加える |
 | `jevmigrate [action=plan\|run] [source=TA-jev-triage]` | 旧アプリ TA-jev-triage から設定・キー・KV のデータをコピー（管理者のみ。0.11.0 の名称変更後に1回） |
 | `jevcheck [target=jev\|llm\|all]` | 接続テスト（キーは出力しません） |
 | `jevqueue` | レスポンスアクションの依頼を処理（定期検索で使用） |
@@ -88,6 +93,7 @@ GuardDuty（常に）: 詳細はその検出結果のインスタンスまたは
 | index `jev_triage` | 履歴（自動実行は `jev:triage:result`、再トリアージは `jev:triage:json`） |
 | KV ストア `jev_conditions` | 管理者が追加した申告（Setup > アナリストの申告） |
 | KV ストア `jev_ai_translations` | ES AI の文章の翻訳（Finding と言語ごとに1つ） |
+| KV ストア `jev_investigation_notes` | ES の調査ごとの最後のまとめの Note（1.2。同じまとめを二度書かないため） |
 | KV ストア `jev_prompt_versions` | 編集した Jev の質問の版（サポートモード） |
 | KV ストア `jev_prompt_state` | サポートモードの状態と、判定モデルごとの使用中の版 |
 | index `jev_triage` sourcetype `jev:prompt:audit` | 誰が、いつ、なぜ、どの版でサポートモードの開始・保存・試験・適用・戻す・書き出し・読み込みを行ったか |
@@ -210,6 +216,8 @@ Clef 27B が外した Finding（#5）と Urgency の2件（#22、#32）は Jev �
 | 検知は動くがトリアージされない | *Second Opinion Triage - Response Queue* が有効か。`jev_usage` の上限（状態が skipped） |
 | コマンドのエラー | ジョブの search.log（Job Inspector）で `ChunkedExternProcessor` を探す |
 | トリアージが遅い | 情報収集のマクロを実際の index に向ける。検索ヘッドが混んでいれば `[jev] parallel` を下げる |
+| 調査の列や調査の欄が空のまま（1.2） | 調査を読める ES のロール（KV `missioncontrol/mc_incidents`、例: `ess_analyst`）と ES 8.x が必要 |
+| 調査のまとめが `cannot read investigations` や HTTP 403 で失敗する | 同上。Note を書くには調査を編集できる ES の権限も必要 |
 
 ## 既知の制限
 
@@ -219,6 +227,8 @@ Clef 27B が外した Finding（#5）と Urgency の2件（#22、#32）は Jev �
 - 残っている AppInspect の警告: Response Queue が毎分動く（意図どおり）、同梱の Splunk SDK for Python が 2.1.1
   （3.x は Python 3.13 専用）、画面のバンドルに `@splunk/react-page` の SplunkJS のレイアウト処理が含まれる。
 - 並行処理のため、1日の上限を最大で同時処理数だけ超えることがあります。
+- 調査（1.2）: 調査のまとめの対象は ES の Finding ID を持つ Finding（Finding と Finding グループ）です。調査そのものに付く
+  ES AI の判定は使わず、調査内の各 Finding の判定を使います。
 - *Write ES Note* をオンにして同じ Finding に手動でレスポンスアクションを繰り返すと、そのたびに Note が増えます（毎回が新しい結果のため）。
 - 精度の数値は BOTS v3 の Finding 33件での結果です。実際のデータでは変わります。
 

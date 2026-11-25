@@ -89,6 +89,7 @@ API キーは空欄でかまいません。
 | Setup を行う管理者 | `admin_all_objects` または `edit_storage_passwords`（Splunk Cloud では `sc_admin`） |
 | アプリを使うアナリスト（ボタン、手動のレスポンスアクション） | アプリに含まれる **`jev_triage_user`** ロール（権限 `jev_triage_run`）。アナリストの検索は、アプリのエンドポイント `/services/second_opinion_triage/call` に Jev と LLM の呼び出しを頼むので、キーは Splunk の中から出ません。アナリストはキーを受け取らず、`list_storage_passwords`（全員に共有された資格情報をすべて読めてしまう）も不要で、Setup 画面でもキーは読めません。0.15.0 から保存したキーを読めるのは管理者だけです。更新後に Setup 画面で一度**保存**を押してください |
 | ES の Finding への Note 書き込み | `mc_investigation_write`（ES の `ess_analyst`、`ess_admin` が持っています） |
+| ES の調査の表示と調査のまとめの書き込み（1.2） | ES の KV `missioncontrol/mc_incidents` の読み取りと `mc_investigation_write`（`ess_analyst`、`ess_admin`） |
 | **再トリアージ**ボタンでの index `jev_triage` への履歴の書き込み | `edit_tcp`。なければ KV ストアだけを更新します |
 | レスポンスアクションを付けた検知 | 検知の所有者（通常は `nobody` → `splunk-system-user`）で動くため、追加の権限は不要です |
 

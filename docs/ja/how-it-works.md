@@ -3,7 +3,7 @@
 [English](../en/how-it-works.md)
 
 Second Opinion Triage が ES の Finding から提案を作るまでの流れです。Enterprise Security のどのデータを読み、どの事実を判定
-モデルに渡し、答えをどう Disposition と Urgency にするか、また試して外した情報をまとめています。1.1 時点。
+モデルに渡し、答えをどう Disposition と Urgency にするか、また試して外した情報をまとめています。1.2 時点。
 
 ## 1. 全体の流れ
 
@@ -155,6 +155,11 @@ flowchart TD
 
 アナリストの申告（1.1）があるときは、状態に事実とは別に `analyst_statements` が入ります。モデルは申告を正しいものとして
 扱うので、同じ実行で申告なしでも聞き、申告なしの判定と、事実だけでは TP を示すときの警告を残して Note に書きます。
+
+ES の調査（1.2）も状態には入れません。モデルは各 Finding をその Finding の事実だけで判定します。アプリが調査を読むのは、
+表示すること、Finding 自身の Disposition がまだ Undetermined のときに調査の Disposition を一致率のアナリストの判断として
+使うこと、調査内の Finding の保存済みの結果を集めてまとめの Note を書くこと（任意で、保存した事実と結果から LLM が書く文章を
+添える）のためだけです。
 
 閾値と順序確認の有無はモデルごとに決まり、使ったルールは `jev_rules` に、モデルの答えを変えた理由は `jev_policy` に残ります。
 質問の文言はサポートモードで差し替えられ、使った版は `jev_questions` に残ります。

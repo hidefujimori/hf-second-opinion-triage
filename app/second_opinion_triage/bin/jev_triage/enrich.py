@@ -63,7 +63,7 @@ def network_kind(org):
 
 
 def lookalike_key(name):
-    """frothly, fr0thly and fr0thIy give the same key."""
+    """admin, adm1n and admIn give the same key, and so do acme and acrne (look-alike characters)."""
     return str(name).lower().translate(LOOKALIKE).replace("rn", "m")
 
 
